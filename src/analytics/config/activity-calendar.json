@@ -1,0 +1,16 @@
+{
+  "id": "activity-calendar",
+  "title": "Calendar",
+  "calculator": "individualCalendar",
+  "dataSource": "dailyEntries",
+  "scope": "individual",
+  "type": "month-calendar",
+  "visibility": "available-with-history",
+  "display": {
+    "showMonthNavigation": true,
+    "showLegend": true,
+    "independentTimeline": true
+  },
+  "displayOrder": 3,
+  "visible": true
+}

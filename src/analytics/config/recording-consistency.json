@@ -1,0 +1,1 @@
+{"id":"recording-consistency","title":"Recording consistency","calculator":"recordingConsistency","dataSource":"dailyEntries","scope":"all","type":"horizontal-bar","visibility":"all-activities","display":{"showCounts":true,"showCoverage":true,"color":"#2A9D8F"}}

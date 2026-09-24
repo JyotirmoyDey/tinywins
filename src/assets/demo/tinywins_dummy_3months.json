@@ -1,0 +1,3106 @@
+{
+  "datasetName": "TinyWins synthetic 90-day analytics dataset",
+  "generatedFor": "TinyWins graph development and UI testing",
+  "period": {
+    "startDate": "2026-06-25",
+    "endDate": "2026-09-22",
+    "days": 90
+  },
+  "importantSemantics": [
+    "Option order is authoritative; do not infer ranking from label text.",
+    "weightAtEntry is the historical value to use for analytics.",
+    "Missing DailyEntry means not recorded and must not be treated as weight 0.",
+    "This dataset is synthetic and intentionally contains weekday patterns, trends, and missing days for testing."
+  ],
+  "tasks": [
+    {
+      "id": "workout",
+      "name": "Workout",
+      "options": [
+        {
+          "id": "workout-skipped",
+          "label": "Skipped",
+          "position": 1,
+          "weight": 0
+        },
+        {
+          "id": "workout-good",
+          "label": "Good",
+          "position": 2,
+          "weight": 33
+        },
+        {
+          "id": "workout-poor",
+          "label": "Poor",
+          "position": 3,
+          "weight": 67
+        },
+        {
+          "id": "workout-average",
+          "label": "Average",
+          "position": 4,
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "study",
+      "name": "Study",
+      "options": [
+        {
+          "id": "study-low",
+          "label": "Low",
+          "position": 1,
+          "weight": 0
+        },
+        {
+          "id": "study-medium",
+          "label": "Medium",
+          "position": 2,
+          "weight": 50
+        },
+        {
+          "id": "study-high",
+          "label": "High",
+          "position": 3,
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "guitar",
+      "name": "Guitar",
+      "options": [
+        {
+          "id": "guitar-skipped",
+          "label": "Skipped",
+          "position": 1,
+          "weight": 0
+        },
+        {
+          "id": "guitar-low",
+          "label": "Low",
+          "position": 2,
+          "weight": 33
+        },
+        {
+          "id": "guitar-medium",
+          "label": "Medium",
+          "position": 3,
+          "weight": 67
+        },
+        {
+          "id": "guitar-high",
+          "label": "High",
+          "position": 4,
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "chess",
+      "name": "Chess practice",
+      "options": [
+        {
+          "id": "chess-skipped",
+          "label": "Skipped",
+          "position": 1,
+          "weight": 0
+        },
+        {
+          "id": "chess-average",
+          "label": "Average",
+          "position": 2,
+          "weight": 50
+        },
+        {
+          "id": "chess-high",
+          "label": "High",
+          "position": 3,
+          "weight": 100
+        }
+      ]
+    }
+  ],
+  "dailyEntries": [
+    {
+      "id": "workout-2026-06-25",
+      "taskId": "workout",
+      "localDate": "2026-06-25",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-06-25",
+      "taskId": "study",
+      "localDate": "2026-06-25",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-06-25",
+      "taskId": "guitar",
+      "localDate": "2026-06-25",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-06-25",
+      "taskId": "chess",
+      "localDate": "2026-06-25",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-06-26",
+      "taskId": "workout",
+      "localDate": "2026-06-26",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-06-26",
+      "taskId": "study",
+      "localDate": "2026-06-26",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "chess-2026-06-26",
+      "taskId": "chess",
+      "localDate": "2026-06-26",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-06-27",
+      "taskId": "workout",
+      "localDate": "2026-06-27",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-06-27",
+      "taskId": "study",
+      "localDate": "2026-06-27",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-06-27",
+      "taskId": "chess",
+      "localDate": "2026-06-27",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-06-28",
+      "taskId": "workout",
+      "localDate": "2026-06-28",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-06-28",
+      "taskId": "study",
+      "localDate": "2026-06-28",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-06-28",
+      "taskId": "guitar",
+      "localDate": "2026-06-28",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-06-28",
+      "taskId": "chess",
+      "localDate": "2026-06-28",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-06-29",
+      "taskId": "workout",
+      "localDate": "2026-06-29",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-06-29",
+      "taskId": "study",
+      "localDate": "2026-06-29",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-06-29",
+      "taskId": "guitar",
+      "localDate": "2026-06-29",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-06-29",
+      "taskId": "chess",
+      "localDate": "2026-06-29",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-06-30",
+      "taskId": "workout",
+      "localDate": "2026-06-30",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-06-30",
+      "taskId": "study",
+      "localDate": "2026-06-30",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-06-30",
+      "taskId": "guitar",
+      "localDate": "2026-06-30",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "workout-2026-07-01",
+      "taskId": "workout",
+      "localDate": "2026-07-01",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-01",
+      "taskId": "study",
+      "localDate": "2026-07-01",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-01",
+      "taskId": "guitar",
+      "localDate": "2026-07-01",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-07-01",
+      "taskId": "chess",
+      "localDate": "2026-07-01",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-02",
+      "taskId": "workout",
+      "localDate": "2026-07-02",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-07-02",
+      "taskId": "study",
+      "localDate": "2026-07-02",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-07-02",
+      "taskId": "guitar",
+      "localDate": "2026-07-02",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-07-02",
+      "taskId": "chess",
+      "localDate": "2026-07-02",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-07-03",
+      "taskId": "workout",
+      "localDate": "2026-07-03",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-07-03",
+      "taskId": "study",
+      "localDate": "2026-07-03",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-03",
+      "taskId": "guitar",
+      "localDate": "2026-07-03",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "workout-2026-07-04",
+      "taskId": "workout",
+      "localDate": "2026-07-04",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-07-04",
+      "taskId": "study",
+      "localDate": "2026-07-04",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-04",
+      "taskId": "guitar",
+      "localDate": "2026-07-04",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-07-04",
+      "taskId": "chess",
+      "localDate": "2026-07-04",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-05",
+      "taskId": "workout",
+      "localDate": "2026-07-05",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-05",
+      "taskId": "study",
+      "localDate": "2026-07-05",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-07-05",
+      "taskId": "guitar",
+      "localDate": "2026-07-05",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-07-05",
+      "taskId": "chess",
+      "localDate": "2026-07-05",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-07-06",
+      "taskId": "workout",
+      "localDate": "2026-07-06",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-06",
+      "taskId": "study",
+      "localDate": "2026-07-06",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-06",
+      "taskId": "guitar",
+      "localDate": "2026-07-06",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-07",
+      "taskId": "workout",
+      "localDate": "2026-07-07",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-07-07",
+      "taskId": "study",
+      "localDate": "2026-07-07",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-07-07",
+      "taskId": "guitar",
+      "localDate": "2026-07-07",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-07-07",
+      "taskId": "chess",
+      "localDate": "2026-07-07",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-07-08",
+      "taskId": "workout",
+      "localDate": "2026-07-08",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-07-08",
+      "taskId": "study",
+      "localDate": "2026-07-08",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-08",
+      "taskId": "guitar",
+      "localDate": "2026-07-08",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-07-08",
+      "taskId": "chess",
+      "localDate": "2026-07-08",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-09",
+      "taskId": "workout",
+      "localDate": "2026-07-09",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-07-09",
+      "taskId": "study",
+      "localDate": "2026-07-09",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-09",
+      "taskId": "guitar",
+      "localDate": "2026-07-09",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-07-09",
+      "taskId": "chess",
+      "localDate": "2026-07-09",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-07-10",
+      "taskId": "workout",
+      "localDate": "2026-07-10",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-10",
+      "taskId": "study",
+      "localDate": "2026-07-10",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-10",
+      "taskId": "guitar",
+      "localDate": "2026-07-10",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-07-10",
+      "taskId": "chess",
+      "localDate": "2026-07-10",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-07-11",
+      "taskId": "workout",
+      "localDate": "2026-07-11",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-07-11",
+      "taskId": "study",
+      "localDate": "2026-07-11",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-07-11",
+      "taskId": "guitar",
+      "localDate": "2026-07-11",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-07-11",
+      "taskId": "chess",
+      "localDate": "2026-07-11",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-07-12",
+      "taskId": "study",
+      "localDate": "2026-07-12",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-12",
+      "taskId": "guitar",
+      "localDate": "2026-07-12",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "workout-2026-07-13",
+      "taskId": "workout",
+      "localDate": "2026-07-13",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-07-13",
+      "taskId": "study",
+      "localDate": "2026-07-13",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-13",
+      "taskId": "guitar",
+      "localDate": "2026-07-13",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-07-13",
+      "taskId": "chess",
+      "localDate": "2026-07-13",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-14",
+      "taskId": "workout",
+      "localDate": "2026-07-14",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-07-14",
+      "taskId": "study",
+      "localDate": "2026-07-14",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-14",
+      "taskId": "guitar",
+      "localDate": "2026-07-14",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-07-14",
+      "taskId": "chess",
+      "localDate": "2026-07-14",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-07-15",
+      "taskId": "workout",
+      "localDate": "2026-07-15",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-15",
+      "taskId": "study",
+      "localDate": "2026-07-15",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-15",
+      "taskId": "guitar",
+      "localDate": "2026-07-15",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-07-15",
+      "taskId": "chess",
+      "localDate": "2026-07-15",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-16",
+      "taskId": "workout",
+      "localDate": "2026-07-16",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-16",
+      "taskId": "study",
+      "localDate": "2026-07-16",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-07-16",
+      "taskId": "chess",
+      "localDate": "2026-07-16",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-07-17",
+      "taskId": "workout",
+      "localDate": "2026-07-17",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-17",
+      "taskId": "study",
+      "localDate": "2026-07-17",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-17",
+      "taskId": "guitar",
+      "localDate": "2026-07-17",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-07-17",
+      "taskId": "chess",
+      "localDate": "2026-07-17",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-18",
+      "taskId": "workout",
+      "localDate": "2026-07-18",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-18",
+      "taskId": "study",
+      "localDate": "2026-07-18",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-18",
+      "taskId": "guitar",
+      "localDate": "2026-07-18",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-07-18",
+      "taskId": "chess",
+      "localDate": "2026-07-18",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-19",
+      "taskId": "workout",
+      "localDate": "2026-07-19",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-19",
+      "taskId": "study",
+      "localDate": "2026-07-19",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-07-19",
+      "taskId": "guitar",
+      "localDate": "2026-07-19",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-07-19",
+      "taskId": "chess",
+      "localDate": "2026-07-19",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-07-20",
+      "taskId": "workout",
+      "localDate": "2026-07-20",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-07-20",
+      "taskId": "study",
+      "localDate": "2026-07-20",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-20",
+      "taskId": "guitar",
+      "localDate": "2026-07-20",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-07-20",
+      "taskId": "chess",
+      "localDate": "2026-07-20",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-07-21",
+      "taskId": "workout",
+      "localDate": "2026-07-21",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-07-21",
+      "taskId": "study",
+      "localDate": "2026-07-21",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-21",
+      "taskId": "guitar",
+      "localDate": "2026-07-21",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-07-21",
+      "taskId": "chess",
+      "localDate": "2026-07-21",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-22",
+      "taskId": "workout",
+      "localDate": "2026-07-22",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-07-22",
+      "taskId": "study",
+      "localDate": "2026-07-22",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-22",
+      "taskId": "guitar",
+      "localDate": "2026-07-22",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-07-22",
+      "taskId": "chess",
+      "localDate": "2026-07-22",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-07-23",
+      "taskId": "workout",
+      "localDate": "2026-07-23",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-07-23",
+      "taskId": "study",
+      "localDate": "2026-07-23",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-23",
+      "taskId": "guitar",
+      "localDate": "2026-07-23",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-07-23",
+      "taskId": "chess",
+      "localDate": "2026-07-23",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-07-24",
+      "taskId": "study",
+      "localDate": "2026-07-24",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-24",
+      "taskId": "guitar",
+      "localDate": "2026-07-24",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-07-24",
+      "taskId": "chess",
+      "localDate": "2026-07-24",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-25",
+      "taskId": "workout",
+      "localDate": "2026-07-25",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-25",
+      "taskId": "study",
+      "localDate": "2026-07-25",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-07-25",
+      "taskId": "guitar",
+      "localDate": "2026-07-25",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-07-25",
+      "taskId": "chess",
+      "localDate": "2026-07-25",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-07-26",
+      "taskId": "workout",
+      "localDate": "2026-07-26",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-26",
+      "taskId": "study",
+      "localDate": "2026-07-26",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-26",
+      "taskId": "guitar",
+      "localDate": "2026-07-26",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-07-26",
+      "taskId": "chess",
+      "localDate": "2026-07-26",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-07-27",
+      "taskId": "workout",
+      "localDate": "2026-07-27",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-07-27",
+      "taskId": "study",
+      "localDate": "2026-07-27",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-27",
+      "taskId": "guitar",
+      "localDate": "2026-07-27",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-07-27",
+      "taskId": "chess",
+      "localDate": "2026-07-27",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-07-28",
+      "taskId": "workout",
+      "localDate": "2026-07-28",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-07-28",
+      "taskId": "study",
+      "localDate": "2026-07-28",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-07-28",
+      "taskId": "guitar",
+      "localDate": "2026-07-28",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-07-28",
+      "taskId": "chess",
+      "localDate": "2026-07-28",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-07-29",
+      "taskId": "workout",
+      "localDate": "2026-07-29",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-07-29",
+      "taskId": "study",
+      "localDate": "2026-07-29",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-29",
+      "taskId": "guitar",
+      "localDate": "2026-07-29",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "workout-2026-07-30",
+      "taskId": "workout",
+      "localDate": "2026-07-30",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-30",
+      "taskId": "study",
+      "localDate": "2026-07-30",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-30",
+      "taskId": "guitar",
+      "localDate": "2026-07-30",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-07-31",
+      "taskId": "workout",
+      "localDate": "2026-07-31",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-07-31",
+      "taskId": "study",
+      "localDate": "2026-07-31",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-07-31",
+      "taskId": "guitar",
+      "localDate": "2026-07-31",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-07-31",
+      "taskId": "chess",
+      "localDate": "2026-07-31",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-01",
+      "taskId": "workout",
+      "localDate": "2026-08-01",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-01",
+      "taskId": "study",
+      "localDate": "2026-08-01",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-01",
+      "taskId": "guitar",
+      "localDate": "2026-08-01",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-08-01",
+      "taskId": "chess",
+      "localDate": "2026-08-01",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-02",
+      "taskId": "workout",
+      "localDate": "2026-08-02",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-02",
+      "taskId": "study",
+      "localDate": "2026-08-02",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-03",
+      "taskId": "workout",
+      "localDate": "2026-08-03",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-03",
+      "taskId": "study",
+      "localDate": "2026-08-03",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-03",
+      "taskId": "guitar",
+      "localDate": "2026-08-03",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-08-03",
+      "taskId": "chess",
+      "localDate": "2026-08-03",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-08-04",
+      "taskId": "workout",
+      "localDate": "2026-08-04",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-04",
+      "taskId": "study",
+      "localDate": "2026-08-04",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-04",
+      "taskId": "guitar",
+      "localDate": "2026-08-04",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "workout-2026-08-05",
+      "taskId": "workout",
+      "localDate": "2026-08-05",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-05",
+      "taskId": "study",
+      "localDate": "2026-08-05",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-05",
+      "taskId": "guitar",
+      "localDate": "2026-08-05",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-08-05",
+      "taskId": "chess",
+      "localDate": "2026-08-05",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-08-06",
+      "taskId": "workout",
+      "localDate": "2026-08-06",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-06",
+      "taskId": "guitar",
+      "localDate": "2026-08-06",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-08-06",
+      "taskId": "chess",
+      "localDate": "2026-08-06",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-08-07",
+      "taskId": "workout",
+      "localDate": "2026-08-07",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-07",
+      "taskId": "study",
+      "localDate": "2026-08-07",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-07",
+      "taskId": "guitar",
+      "localDate": "2026-08-07",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-08-07",
+      "taskId": "chess",
+      "localDate": "2026-08-07",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-08-08",
+      "taskId": "workout",
+      "localDate": "2026-08-08",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-08-08",
+      "taskId": "study",
+      "localDate": "2026-08-08",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-08",
+      "taskId": "guitar",
+      "localDate": "2026-08-08",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-08-08",
+      "taskId": "chess",
+      "localDate": "2026-08-08",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-08-09",
+      "taskId": "workout",
+      "localDate": "2026-08-09",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-09",
+      "taskId": "study",
+      "localDate": "2026-08-09",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-09",
+      "taskId": "guitar",
+      "localDate": "2026-08-09",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-08-09",
+      "taskId": "chess",
+      "localDate": "2026-08-09",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-08-10",
+      "taskId": "workout",
+      "localDate": "2026-08-10",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-10",
+      "taskId": "study",
+      "localDate": "2026-08-10",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-10",
+      "taskId": "guitar",
+      "localDate": "2026-08-10",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-08-10",
+      "taskId": "chess",
+      "localDate": "2026-08-10",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-11",
+      "taskId": "workout",
+      "localDate": "2026-08-11",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-11",
+      "taskId": "study",
+      "localDate": "2026-08-11",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-11",
+      "taskId": "guitar",
+      "localDate": "2026-08-11",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-08-11",
+      "taskId": "chess",
+      "localDate": "2026-08-11",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-08-12",
+      "taskId": "workout",
+      "localDate": "2026-08-12",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-12",
+      "taskId": "study",
+      "localDate": "2026-08-12",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-12",
+      "taskId": "guitar",
+      "localDate": "2026-08-12",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "workout-2026-08-13",
+      "taskId": "workout",
+      "localDate": "2026-08-13",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-13",
+      "taskId": "study",
+      "localDate": "2026-08-13",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-13",
+      "taskId": "guitar",
+      "localDate": "2026-08-13",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-08-13",
+      "taskId": "chess",
+      "localDate": "2026-08-13",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-14",
+      "taskId": "workout",
+      "localDate": "2026-08-14",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-08-14",
+      "taskId": "study",
+      "localDate": "2026-08-14",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-14",
+      "taskId": "guitar",
+      "localDate": "2026-08-14",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-08-14",
+      "taskId": "chess",
+      "localDate": "2026-08-14",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-15",
+      "taskId": "workout",
+      "localDate": "2026-08-15",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "guitar-2026-08-15",
+      "taskId": "guitar",
+      "localDate": "2026-08-15",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-08-15",
+      "taskId": "chess",
+      "localDate": "2026-08-15",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-16",
+      "taskId": "workout",
+      "localDate": "2026-08-16",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-08-16",
+      "taskId": "study",
+      "localDate": "2026-08-16",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-16",
+      "taskId": "guitar",
+      "localDate": "2026-08-16",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-08-16",
+      "taskId": "chess",
+      "localDate": "2026-08-16",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-08-17",
+      "taskId": "workout",
+      "localDate": "2026-08-17",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-17",
+      "taskId": "study",
+      "localDate": "2026-08-17",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-17",
+      "taskId": "guitar",
+      "localDate": "2026-08-17",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-08-17",
+      "taskId": "chess",
+      "localDate": "2026-08-17",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-08-18",
+      "taskId": "study",
+      "localDate": "2026-08-18",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-18",
+      "taskId": "guitar",
+      "localDate": "2026-08-18",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-08-18",
+      "taskId": "chess",
+      "localDate": "2026-08-18",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-19",
+      "taskId": "workout",
+      "localDate": "2026-08-19",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-19",
+      "taskId": "study",
+      "localDate": "2026-08-19",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-19",
+      "taskId": "guitar",
+      "localDate": "2026-08-19",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-08-19",
+      "taskId": "chess",
+      "localDate": "2026-08-19",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-20",
+      "taskId": "workout",
+      "localDate": "2026-08-20",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-20",
+      "taskId": "study",
+      "localDate": "2026-08-20",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-20",
+      "taskId": "guitar",
+      "localDate": "2026-08-20",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-08-20",
+      "taskId": "chess",
+      "localDate": "2026-08-20",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-08-21",
+      "taskId": "workout",
+      "localDate": "2026-08-21",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-21",
+      "taskId": "study",
+      "localDate": "2026-08-21",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-21",
+      "taskId": "guitar",
+      "localDate": "2026-08-21",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-08-21",
+      "taskId": "chess",
+      "localDate": "2026-08-21",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-22",
+      "taskId": "workout",
+      "localDate": "2026-08-22",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-08-22",
+      "taskId": "study",
+      "localDate": "2026-08-22",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-22",
+      "taskId": "guitar",
+      "localDate": "2026-08-22",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-08-22",
+      "taskId": "chess",
+      "localDate": "2026-08-22",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-08-23",
+      "taskId": "workout",
+      "localDate": "2026-08-23",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-23",
+      "taskId": "study",
+      "localDate": "2026-08-23",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-23",
+      "taskId": "guitar",
+      "localDate": "2026-08-23",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "workout-2026-08-24",
+      "taskId": "workout",
+      "localDate": "2026-08-24",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-24",
+      "taskId": "study",
+      "localDate": "2026-08-24",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-24",
+      "taskId": "guitar",
+      "localDate": "2026-08-24",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-08-24",
+      "taskId": "chess",
+      "localDate": "2026-08-24",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-25",
+      "taskId": "workout",
+      "localDate": "2026-08-25",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-08-25",
+      "taskId": "study",
+      "localDate": "2026-08-25",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-08-25",
+      "taskId": "guitar",
+      "localDate": "2026-08-25",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-08-25",
+      "taskId": "chess",
+      "localDate": "2026-08-25",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-26",
+      "taskId": "workout",
+      "localDate": "2026-08-26",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-26",
+      "taskId": "study",
+      "localDate": "2026-08-26",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "chess-2026-08-26",
+      "taskId": "chess",
+      "localDate": "2026-08-26",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-08-27",
+      "taskId": "workout",
+      "localDate": "2026-08-27",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-08-27",
+      "taskId": "study",
+      "localDate": "2026-08-27",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-27",
+      "taskId": "guitar",
+      "localDate": "2026-08-27",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-08-27",
+      "taskId": "chess",
+      "localDate": "2026-08-27",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-08-28",
+      "taskId": "workout",
+      "localDate": "2026-08-28",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-08-28",
+      "taskId": "study",
+      "localDate": "2026-08-28",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-08-28",
+      "taskId": "guitar",
+      "localDate": "2026-08-28",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-08-28",
+      "taskId": "chess",
+      "localDate": "2026-08-28",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-08-29",
+      "taskId": "workout",
+      "localDate": "2026-08-29",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-08-29",
+      "taskId": "study",
+      "localDate": "2026-08-29",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "chess-2026-08-29",
+      "taskId": "chess",
+      "localDate": "2026-08-29",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-08-30",
+      "taskId": "workout",
+      "localDate": "2026-08-30",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-08-30",
+      "taskId": "study",
+      "localDate": "2026-08-30",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-08-30",
+      "taskId": "guitar",
+      "localDate": "2026-08-30",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-08-30",
+      "taskId": "chess",
+      "localDate": "2026-08-30",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-08-31",
+      "taskId": "workout",
+      "localDate": "2026-08-31",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-08-31",
+      "taskId": "study",
+      "localDate": "2026-08-31",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-08-31",
+      "taskId": "guitar",
+      "localDate": "2026-08-31",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-08-31",
+      "taskId": "chess",
+      "localDate": "2026-08-31",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-01",
+      "taskId": "workout",
+      "localDate": "2026-09-01",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-01",
+      "taskId": "study",
+      "localDate": "2026-09-01",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-01",
+      "taskId": "guitar",
+      "localDate": "2026-09-01",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-09-01",
+      "taskId": "chess",
+      "localDate": "2026-09-01",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-09-02",
+      "taskId": "workout",
+      "localDate": "2026-09-02",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-02",
+      "taskId": "study",
+      "localDate": "2026-09-02",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-02",
+      "taskId": "guitar",
+      "localDate": "2026-09-02",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-09-02",
+      "taskId": "chess",
+      "localDate": "2026-09-02",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-03",
+      "taskId": "workout",
+      "localDate": "2026-09-03",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-09-03",
+      "taskId": "study",
+      "localDate": "2026-09-03",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-09-03",
+      "taskId": "chess",
+      "localDate": "2026-09-03",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-09-04",
+      "taskId": "workout",
+      "localDate": "2026-09-04",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-04",
+      "taskId": "study",
+      "localDate": "2026-09-04",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-09-04",
+      "taskId": "guitar",
+      "localDate": "2026-09-04",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "workout-2026-09-05",
+      "taskId": "workout",
+      "localDate": "2026-09-05",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-05",
+      "taskId": "study",
+      "localDate": "2026-09-05",
+      "optionId": "study-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "guitar-2026-09-05",
+      "taskId": "guitar",
+      "localDate": "2026-09-05",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-09-05",
+      "taskId": "chess",
+      "localDate": "2026-09-05",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-09-06",
+      "taskId": "workout",
+      "localDate": "2026-09-06",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-06",
+      "taskId": "study",
+      "localDate": "2026-09-06",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-06",
+      "taskId": "guitar",
+      "localDate": "2026-09-06",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-09-06",
+      "taskId": "chess",
+      "localDate": "2026-09-06",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-07",
+      "taskId": "workout",
+      "localDate": "2026-09-07",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-09-07",
+      "taskId": "study",
+      "localDate": "2026-09-07",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-07",
+      "taskId": "guitar",
+      "localDate": "2026-09-07",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-09-07",
+      "taskId": "chess",
+      "localDate": "2026-09-07",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-08",
+      "taskId": "workout",
+      "localDate": "2026-09-08",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-08",
+      "taskId": "study",
+      "localDate": "2026-09-08",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-09-08",
+      "taskId": "guitar",
+      "localDate": "2026-09-08",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-09-09",
+      "taskId": "workout",
+      "localDate": "2026-09-09",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-09-09",
+      "taskId": "study",
+      "localDate": "2026-09-09",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-09",
+      "taskId": "guitar",
+      "localDate": "2026-09-09",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-09-09",
+      "taskId": "chess",
+      "localDate": "2026-09-09",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-09-10",
+      "taskId": "workout",
+      "localDate": "2026-09-10",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-09-10",
+      "taskId": "study",
+      "localDate": "2026-09-10",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-10",
+      "taskId": "guitar",
+      "localDate": "2026-09-10",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "workout-2026-09-11",
+      "taskId": "workout",
+      "localDate": "2026-09-11",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-09-11",
+      "taskId": "study",
+      "localDate": "2026-09-11",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-09-11",
+      "taskId": "guitar",
+      "localDate": "2026-09-11",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-09-11",
+      "taskId": "chess",
+      "localDate": "2026-09-11",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-12",
+      "taskId": "workout",
+      "localDate": "2026-09-12",
+      "optionId": "workout-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-09-12",
+      "taskId": "study",
+      "localDate": "2026-09-12",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-09-12",
+      "taskId": "guitar",
+      "localDate": "2026-09-12",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-09-12",
+      "taskId": "chess",
+      "localDate": "2026-09-12",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-13",
+      "taskId": "workout",
+      "localDate": "2026-09-13",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-09-13",
+      "taskId": "study",
+      "localDate": "2026-09-13",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-09-13",
+      "taskId": "guitar",
+      "localDate": "2026-09-13",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-09-13",
+      "taskId": "chess",
+      "localDate": "2026-09-13",
+      "optionId": "chess-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-09-14",
+      "taskId": "workout",
+      "localDate": "2026-09-14",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-14",
+      "taskId": "study",
+      "localDate": "2026-09-14",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-09-14",
+      "taskId": "guitar",
+      "localDate": "2026-09-14",
+      "optionId": "guitar-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "chess-2026-09-14",
+      "taskId": "chess",
+      "localDate": "2026-09-14",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-09-15",
+      "taskId": "workout",
+      "localDate": "2026-09-15",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-15",
+      "taskId": "study",
+      "localDate": "2026-09-15",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-09-15",
+      "taskId": "guitar",
+      "localDate": "2026-09-15",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "workout-2026-09-16",
+      "taskId": "workout",
+      "localDate": "2026-09-16",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-16",
+      "taskId": "study",
+      "localDate": "2026-09-16",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-16",
+      "taskId": "guitar",
+      "localDate": "2026-09-16",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-09-16",
+      "taskId": "chess",
+      "localDate": "2026-09-16",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-17",
+      "taskId": "workout",
+      "localDate": "2026-09-17",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-17",
+      "taskId": "study",
+      "localDate": "2026-09-17",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-09-17",
+      "taskId": "guitar",
+      "localDate": "2026-09-17",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "chess-2026-09-17",
+      "taskId": "chess",
+      "localDate": "2026-09-17",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-18",
+      "taskId": "workout",
+      "localDate": "2026-09-18",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-18",
+      "taskId": "study",
+      "localDate": "2026-09-18",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-09-18",
+      "taskId": "chess",
+      "localDate": "2026-09-18",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-19",
+      "taskId": "workout",
+      "localDate": "2026-09-19",
+      "optionId": "workout-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "study-2026-09-19",
+      "taskId": "study",
+      "localDate": "2026-09-19",
+      "optionId": "study-medium",
+      "optionLabelAtEntry": "Medium",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "guitar-2026-09-19",
+      "taskId": "guitar",
+      "localDate": "2026-09-19",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-09-19",
+      "taskId": "chess",
+      "localDate": "2026-09-19",
+      "optionId": "chess-average",
+      "optionLabelAtEntry": "Average",
+      "positionAtEntry": 2,
+      "weightAtEntry": 50
+    },
+    {
+      "id": "workout-2026-09-20",
+      "taskId": "workout",
+      "localDate": "2026-09-20",
+      "optionId": "workout-poor",
+      "optionLabelAtEntry": "Poor",
+      "positionAtEntry": 3,
+      "weightAtEntry": 67
+    },
+    {
+      "id": "study-2026-09-20",
+      "taskId": "study",
+      "localDate": "2026-09-20",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-20",
+      "taskId": "guitar",
+      "localDate": "2026-09-20",
+      "optionId": "guitar-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 4,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "chess-2026-09-20",
+      "taskId": "chess",
+      "localDate": "2026-09-20",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "workout-2026-09-21",
+      "taskId": "workout",
+      "localDate": "2026-09-21",
+      "optionId": "workout-good",
+      "optionLabelAtEntry": "Good",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "study-2026-09-21",
+      "taskId": "study",
+      "localDate": "2026-09-21",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-21",
+      "taskId": "guitar",
+      "localDate": "2026-09-21",
+      "optionId": "guitar-skipped",
+      "optionLabelAtEntry": "Skipped",
+      "positionAtEntry": 1,
+      "weightAtEntry": 0
+    },
+    {
+      "id": "study-2026-09-22",
+      "taskId": "study",
+      "localDate": "2026-09-22",
+      "optionId": "study-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    },
+    {
+      "id": "guitar-2026-09-22",
+      "taskId": "guitar",
+      "localDate": "2026-09-22",
+      "optionId": "guitar-low",
+      "optionLabelAtEntry": "Low",
+      "positionAtEntry": 2,
+      "weightAtEntry": 33
+    },
+    {
+      "id": "chess-2026-09-22",
+      "taskId": "chess",
+      "localDate": "2026-09-22",
+      "optionId": "chess-high",
+      "optionLabelAtEntry": "High",
+      "positionAtEntry": 3,
+      "weightAtEntry": 100
+    }
+  ]
+}

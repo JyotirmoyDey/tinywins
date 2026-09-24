@@ -1,0 +1,56 @@
+{
+  "id": "rating-trend",
+  "title": "Rating trend",
+  "calculator": "ratingTrend",
+  "type": "adaptive-categorical",
+  "location": "task-insights",
+  "scope": "individual",
+  "displayOrder": 1,
+  "visible": true,
+  "dataSource": "daily-entries",
+  "timeline": "shared",
+  "calculation": {
+    "epoch": "current",
+    "categoryIdentity": "optionId",
+    "excludeMissing": true,
+    "connectConsecutiveDaysOnly": true,
+    "breakOnScaleVersionChange": true,
+    "weekStartsOn": "monday",
+    "weeklyMiddle": "lower"
+  },
+  "presentation": {
+    "sparseMaxObservations": 2,
+    "dailyLineMaxDays": 14,
+    "dailyDotMaxDays": 60,
+    "weeklyMinDays": 61,
+    "normalChartHeight": 170,
+    "expandedChartHeight": 272,
+    "axisWidthNarrow": 82,
+    "axisWidthRegular": 102,
+    "dailyExpandedPointsPerDay": 12,
+    "maxExpandedPlotDays": 180,
+    "weeklyScrollableAfterWeeks": 16,
+    "weeklyPointsPerWeek": 22,
+    "weeklyLabelSpacing": 85,
+    "dailyDateLabelCount": 4,
+    "weeklyDateLabelCount": 4
+  },
+  "style": {
+    "lineColor": "#398F80",
+    "markerFill": "#FFFFFF",
+    "variationColor": "#A8D0C9",
+    "gridColor": "#E9E9E5",
+    "axisLabelColor": "#74746F",
+    "lineWidth": 1.6,
+    "markerRadius": 3.5,
+    "activeMarkerRadius": 5.5,
+    "weeklyMarkerRadius": 4.5
+  },
+  "interaction": {
+    "nearestObservation": true,
+    "hapticOnChange": true,
+    "hapticIntervalMs": 80,
+    "nearestTouchRadius": 20,
+    "allowExpandedDaily": true
+  }
+}

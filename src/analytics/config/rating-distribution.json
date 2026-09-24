@@ -1,0 +1,31 @@
+{
+  "id": "rating-distribution",
+  "title": "Rating distribution",
+  "type": "horizontal-bar",
+  "calculator": "ratingDistribution",
+  "location": "task-insights",
+  "scaleVersion": "current",
+  "groupBy": "optionId",
+  "metric": "count",
+  "sortBy": "optionPosition",
+  "excludeMissing": true,
+  "timeline": {
+    "default": "1d",
+    "options": [
+      "1d",
+      "7d",
+      "30d",
+      "90d",
+      "custom"
+    ]
+  },
+  "style": {
+    "color": "#2A9D8F",
+    "showLabels": true,
+    "showCounts": true,
+    "showPercentages": false,
+    "barRadius": 6
+  },
+  "displayOrder": 2,
+  "visible": true
+}
