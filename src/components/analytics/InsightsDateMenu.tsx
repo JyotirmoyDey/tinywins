@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { MenuView } from '@expo/ui/community/menu';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { RatingDistributionTimeline } from '../../analytics/ratingDistribution';
 import { CustomRange, formatLocalDate } from '../../analytics/insightsDateRange';
+import { dateMenuActions } from './dateMenuActions';
 import { colors as c, spacing as s, typography as t } from '../../theme';
 
 interface Props {
@@ -13,21 +14,13 @@ interface Props {
   onCustom: () => void;
 }
 
-const choices = [
-  { id: '1D', title: 'Today (1D)' },
-  { id: '7D', title: 'Last 7 days' },
-  { id: '30D', title: 'Last 30 days' },
-  { id: '90D', title: 'Last 90 days' },
-  { id: 'CUSTOM', title: 'Custom range' },
-] as const;
-
 export function InsightsDateMenu({ value, custom, onPreset, onCustom }: Props) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   const label = value === 'CUSTOM' ? 'Custom' : value;
   const detail = value === 'CUSTOM' ? `, ${formatLocalDate(custom.startDate)} to ${formatLocalDate(custom.endDate)}` : '';
-  return <MenuView
-    actions={choices.map(choice => ({ ...choice, title: choice.id === 'CUSTOM' && value === 'CUSTOM' ? `Custom · ${formatLocalDate(custom.startDate)} – ${formatLocalDate(custom.endDate)}` : choice.title, state: value === choice.id ? 'on' as const : 'off' as const }))}
+  return <MenuView key={value}
+    actions={dateMenuActions(value, custom, Platform.OS === 'ios' ? 'ios' : 'android')}
     onPressAction={event => {
       const id = event.nativeEvent.event;
       if (id === 'CUSTOM') {

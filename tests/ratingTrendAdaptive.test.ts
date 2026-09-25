@@ -21,18 +21,19 @@ function fixture(dayCount: number, selected: { day: number; level: number; versi
   return { dates, observations, levels: labels.map((label, index) => ({ id: `option-${index}`, label, active: true })),
     scaleChangeDates: [], epochId: 'epoch', isNewEpochEmpty: false };
 }
-test('adaptive modes put empty and sparse data ahead of dense-range presentations', () => {
+test('adaptive modes preserve one rating and draw lines for two or more observations', () => {
   const empty = fixture(90, []);
   assert.equal(getAdaptiveTrend(empty, '90D').presentation, 'empty');
   assert.equal(getAdaptiveTrend(fixture(1, [{ day: 0, level: 1 }]), '1D').presentation, 'today');
   assert.equal(getAdaptiveTrend(fixture(90, [{ day: 2, level: 0 }]), '90D').presentation, 'sparse');
-  assert.equal(getAdaptiveTrend(fixture(90, [{ day: 2, level: 0 }, { day: 83, level: 2 }]), '90D').presentation, 'sparse');
+  assert.equal(getAdaptiveTrend(fixture(90, [{ day: 2, level: 0 }, { day: 83, level: 2 }]), '90D').presentation, 'weekly');
+  assert.equal(getAdaptiveTrend(fixture(7, [{ day: 2, level: 0 }, { day: 3, level: 2 }]), '7D').presentation, 'daily-line');
   assert.equal(getAdaptiveTrend(fixture(7, [0, 1, 2].map(day => ({ day, level: day % 3 }))), '7D').presentation, 'daily-line');
-  assert.equal(getAdaptiveTrend(fixture(30, Array.from({ length: 20 }, (_, day) => ({ day, level: day % 3 }))), '30D').presentation, 'daily-dots');
+  assert.equal(getAdaptiveTrend(fixture(30, Array.from({ length: 20 }, (_, day) => ({ day, level: day % 3 }))), '30D').presentation, 'daily-line');
   assert.equal(getAdaptiveTrend(fixture(90, Array.from({ length: 72 }, (_, day) => ({ day, level: day % 3 }))), '90D').presentation, 'weekly');
 });
 test('custom duration changes only presentation; every daily observation stays available', () => {
-  for (const [days, expected] of [[14, 'daily-line'], [15, 'daily-dots'], [60, 'daily-dots'], [61, 'weekly'], [180, 'weekly']] as const) {
+  for (const [days, expected] of [[14, 'daily-line'], [15, 'daily-line'], [60, 'daily-line'], [61, 'weekly'], [180, 'weekly']] as const) {
     const selected = Array.from({ length: Math.min(days, 75) }, (_, day) => ({ day, level: day % 3 }));
     const data = fixture(days, selected);
     const view = getAdaptiveTrend(data, 'CUSTOM');
@@ -126,4 +127,66 @@ test('demo 90-day workout keeps all daily records while presenting weekly summar
   assert.equal(view.weeklyPoints.reduce((sum, point) => sum + point.observations.length, 0), data.observations.length);
   assert.ok(view.weeklyPoints.every(point => Number.isInteger(point.medianLevelIndex)));
   assert.ok(view.weeklyPoints.every(point => point.observations.every(day => day.scaleVersionId === point.scaleVersionId)));
+});
+
+test('portrait grouping uses daily, two-day, and calendar-week slots with at most 15 points', () => {
+  const demo = loadDemoDataset();
+  const task = demo.tasks.find(item => item.id === 'workout')!;
+  for (const [range, startDate, expectedSlots, subtitle] of [
+    ['7D', '2026-09-16', 7, 'Daily trend'],
+    ['30D', '2026-08-24', 15, '2-day median'],
+    ['90D', '2026-06-25', 14, 'Weekly median'],
+  ] as const) {
+    const data = getRatingTrend({ task, entries: demo.entries, versions: demo.scaleVersions,
+      period: { startDate, endDate: '2026-09-22' } });
+    const view = getAdaptiveTrend(data, range);
+    assert.equal(view.slots.length, expectedSlots);
+    assert.equal(view.subtitle, subtitle);
+    assert.ok(view.groupedPoints.length <= 15);
+    assert.ok(view.groupedPoints.every(point => point.slotIndex < view.slots.length));
+    assert.ok(view.groupedPoints.every(point => Number.isInteger(point.medianLevelIndex)));
+    assert.equal(view.recordedCount, data.observations.length);
+  }
+});
+
+test('portrait medians exclude missing days and use the lower actual rating for even groups', () => {
+  const data = fixture(30, [
+    { day: 0, level: 0 }, { day: 1, level: 2 },
+    { day: 6, level: 2 },
+    { day: 8, level: 1 }, { day: 9, level: 2 },
+  ]);
+  const view = getAdaptiveTrend(data, '30D');
+  assert.equal(view.slots.length, 15);
+  assert.deepEqual(view.groupedPoints.map(point => [point.slotIndex, point.medianLevelIndex, point.recordedCount]),
+    [[0, 0, 2], [3, 2, 1], [4, 1, 2]]);
+  assert.deepEqual(view.groupedPoints.map(point => point.connectsToPrevious), [false, false, true]);
+  assert.equal(view.groupedPoints.reduce((sum, point) => sum + point.recordedCount, 0), 5);
+});
+
+test('a two-day slot spanning incompatible scales stays blank while expanded observations survive', () => {
+  const data = fixture(30, [
+    { day: 0, level: 0, version: 'old' }, { day: 1, level: 2, version: 'new' },
+    { day: 2, level: 1, version: 'new' }, { day: 3, level: 2, version: 'new' },
+    { day: 4, level: 0, version: 'new' },
+  ]);
+  const view = getAdaptiveTrend(data, '30D');
+  assert.equal(view.mixedScaleSlots, 1);
+  assert.deepEqual(view.groupedPoints.map(point => point.slotIndex), [1, 2]);
+  assert.deepEqual(view.groupedPoints.map(point => point.connectsToPrevious), [false, true]);
+  assert.equal(data.observations.length, 5);
+});
+
+test('long custom ranges grow from day groups to multi-week groups without exceeding the cap', () => {
+  for (const [days, subtitle] of [
+    [16, '2-day median'], [31, '3-day median'], [45, '3-day median'],
+    [60, '4-day median'], [90, 'Weekly median'], [180, '2-week median'],
+    [365, '4-week median'], [720, '8-week median'],
+  ] as const) {
+    const data = fixture(days, Array.from({ length: days }, (_, day) => ({ day, level: day % 3 })));
+    const view = getAdaptiveTrend(data, 'CUSTOM');
+    assert.equal(view.subtitle, subtitle);
+    assert.ok(view.slots.length <= 15);
+    assert.ok(view.groupedPoints.length <= 15);
+    assert.equal(view.recordedCount, days);
+  }
 });

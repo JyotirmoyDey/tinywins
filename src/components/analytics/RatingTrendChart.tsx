@@ -1,38 +1,20 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import { scheduleOnRN } from 'react-native-worklets';
-import { useSharedValue } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { parseLocalDate } from '../../domain/task';
 import { RatingTrendData, ratingTrendConfig } from '../../analytics/ratingTrend';
-import { AdaptiveTrend, WeeklyTrendPoint, mondayOf } from '../../analytics/ratingTrendPresentation';
+import { AdaptiveTrend } from '../../analytics/ratingTrendPresentation';
 import { dailyAxisTicks, weeklyMonthTicks } from './trendAxisTicks';
+import { axisColumnWidth, expandedDailyScale, expandedDayIndexAt, expandedPlotHeight } from './trendPlotLayout';
+import { isolatedTrendFragments, trendCurvePath } from './trendCurve';
 import { colors as c, spacing as s, typography as t } from '../../theme';
 
-const { style: chartStyle, presentation: layout, interaction } = ratingTrendConfig;
-const inset = 18;
-let lastHapticAt = 0;
-function selectionHaptic() {
-  if (!interaction.hapticOnChange) return;
-  const now = Date.now();
-  if (now - lastHapticAt < interaction.hapticIntervalMs) return;
-  lastHapticAt = now;
-  void Haptics.selectionAsync().catch(() => {});
-}
+const { style: chartStyle, presentation: layout } = ratingTrendConfig;
+const inset = layout.plotInset;
 function formatDay(value: string, full = false) {
   return parseLocalDate(value).toLocaleDateString(undefined, full ?
     { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' } :
     { month: 'short', day: 'numeric' });
-}
-function WeeklyDetail({ point }: { point: WeeklyTrendPoint }) {
-  return <View style={styles.weekDetail}>
-    <Text style={styles.detailHeading}>{formatDay(point.weekStart)}–{formatDay(point.weekEnd)}</Text>
-    <Text style={styles.detailMain}>Median · {point.medianLabel}</Text>
-    <Text style={styles.detailSecondary}>{point.observations.length} recorded {point.observations.length === 1 ? 'day' : 'days'} · Range: {point.minLabel}–{point.maxLabel}</Text>
-  </View>;
 }
 function SparseSummary({ data, today }: { data: RatingTrendData; today: boolean }) {
   return <View style={styles.sparse}>
@@ -46,247 +28,219 @@ function SparseSummary({ data, today }: { data: RatingTrendData; today: boolean 
     <Text style={styles.count}>{data.observations.length} recorded {data.observations.length === 1 ? 'rating' : 'ratings'}</Text>
   </View>;
 }
-type PlotMode = 'daily-line' | 'daily-dots' | 'weekly';
+type PlotMode = 'daily-line' | 'weekly';
 type PlotPoint = {
-  id: string; x: number; y: number; date: string; levelIndex: number;
-  connectsToPrevious: boolean; weekly?: WeeklyTrendPoint; label: string;
-  minY?: number; maxY?: number;
+  x: number; y: number; connectsToPrevious: boolean;
 };
-function TrendPlot({ data, view, taskName, mode, expanded = false, onOpenWeek }: {
+function TrendPlot({ data, view, taskName, mode, expanded = false, availableHeight }: {
   data: RatingTrendData; view: AdaptiveTrend; taskName: string; mode: PlotMode;
-  expanded?: boolean; onOpenWeek?: (point: WeeklyTrendPoint) => void;
+  expanded?: boolean; availableHeight?: number;
 }) {
   const [width, setWidth] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const lastIndex = useSharedValue(-1);
-  const plotHeight = Math.max(expanded ? layout.expandedChartHeight : layout.normalChartHeight,
-    data.levels.length * 27 + 24);
-  const longestLabel = Math.max(0, ...data.levels.map(level => level.label.length));
-  const axisWidth = Math.min(Math.max(width < 310 ? 82 : 92, longestLabel * 5.2 + 12),
-    Math.min(140, width * 0.42));
+  const [measuredLabels, setMeasuredLabels] = useState<Record<string, number>>({});
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [selectedViewportX, setSelectedViewportX] = useState(0);
+  const scroller = useRef<ScrollView>(null);
+  const viewportRef = useRef<View>(null);
+  const scrollOffset = useRef(0);
+  const scrollWindowX = useRef<number | null>(null);
+  const initialScrollWidth = useRef<number | null>(null);
+  const finger = useRef<{ pageX: number; fallbackX: number } | null>(null);
+  const plotHeight = expanded ? expandedPlotHeight(availableHeight ?? layout.expandedChartHeight) :
+    Math.max(layout.normalChartHeight, data.levels.length * 27 + 24);
+  const measuredWidth = Math.max(44, ...Object.values(measuredLabels));
+  const labelsReady = data.levels.every(level => measuredLabels[level.id] !== undefined);
+  const axisWidth = axisColumnWidth(measuredWidth, width, expanded,
+    layout.axisMaxWidthCompact, layout.axisMaxWidthExpanded, layout.axisLabelGap);
   const viewportWidth = Math.max(1, width - axisWidth);
-  const scrollableWeeks = mode === 'weekly' && view.weeks.length > layout.weeklyScrollableAfterWeeks;
-  const chartWidth = scrollableWeeks ? Math.max(viewportWidth,
-    (view.weeks.length - 1) * layout.weeklyPointsPerWeek + inset * 2) :
-    expanded ? Math.max(viewportWidth, data.dates.length * layout.dailyExpandedPointsPerDay) : viewportWidth;
+  const timeScale = expanded ? expandedDailyScale(viewportWidth, data.dates.length,
+    inset, layout.dailyExpandedPointsPerDay) : null;
+  const chartWidth = timeScale?.chartWidth ?? viewportWidth;
   const chartHeight = plotHeight + 26;
+  useEffect(() => {
+    if (!expanded || !labelsReady || width <= 0) return;
+    const frame = requestAnimationFrame(() => {
+      viewportRef.current?.measureInWindow((x: number) => { scrollWindowX.current = x; });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [expanded, labelsReady, width, chartWidth]);
   const xSpan = chartWidth - inset * 2;
   const yFor = useCallback((index: number) => inset + (data.levels.length - 1 - index) /
     Math.max(1, data.levels.length - 1) * (plotHeight - inset * 2), [data.levels.length, plotHeight]);
   const dateIndices = useMemo(() => new Map(data.dates.map((date, index) => [date, index])), [data.dates]);
-  const weekIndices = useMemo(() => new Map(view.weeks.map((week, index) => [week, index])), [view.weeks]);
+  const observationByDay = useMemo(() => new Map(data.observations.map((observation, index) =>
+    [dateIndices.get(observation.date), index])), [data.observations, dateIndices]);
   const dailyX = useCallback((date: string) => data.dates.length === 1 ? chartWidth / 2 :
     inset + (dateIndices.get(date) ?? 0) / Math.max(1, data.dates.length - 1) * xSpan,
   [data.dates.length, dateIndices, chartWidth, xSpan]);
-  const weekX = useCallback((week: string) => view.weeks.length === 1 ? chartWidth / 2 :
-    inset + (weekIndices.get(week) ?? 0) / Math.max(1, view.weeks.length - 1) * xSpan,
-  [view.weeks.length, weekIndices, chartWidth, xSpan]);
-  const points = useMemo<PlotPoint[]>(() => mode === 'weekly' ?
-    view.weeklyPoints.map(point => {
-      const slot = xSpan / Math.max(1, view.weeks.length - 1);
-      const offset = point.groupsInWeek > 1 ?
-        (point.groupIndex - (point.groupsInWeek - 1) / 2) * Math.min(12, slot / 3) : 0;
-      return { id: point.id, x: Math.max(inset, Math.min(chartWidth - inset, weekX(point.weekStart) + offset)),
-        y: yFor(point.medianLevelIndex), date: point.weekStart, levelIndex: point.medianLevelIndex,
-        connectsToPrevious: point.connectsToPrevious, weekly: point, label: point.medianLabel,
-        minY: yFor(point.minLevelIndex), maxY: yFor(point.maxLevelIndex) };
-    }) :
-    data.observations.map(observation => ({ id: observation.date, x: dailyX(observation.date),
-      y: yFor(observation.levelIndex), date: observation.date, levelIndex: observation.levelIndex,
-      connectsToPrevious: observation.connectsToPrevious, label: observation.labelAtEntry })),
-  [mode, view.weeklyPoints, view.weeks.length, data.observations, xSpan, chartWidth, weekX, yFor, dailyX]);
-  const chosen = points.find(point => point.id === selectedId) ?? null;
-  const chosenIndex = chosen ? points.indexOf(chosen) : -1;
-  const reveal = useCallback((index: number) => { if (points[index]) setSelectedId(points[index].id); }, [points]);
-  const clear = useCallback(() => setSelectedId(null), []);
-  const xs = useMemo(() => points.map(point => point.x), [points]);
-  const gesture = useMemo(() => {
-    const move = (x: number) => {
-      'worklet';
-      if (!xs.length) return;
-      let closest = 0; let distance = Infinity;
-      for (let index = 0; index < xs.length; index++) {
-        const delta = Math.abs(xs[index] - x);
-        if (delta < distance) { distance = delta; closest = index; }
-      }
-      const radius = Math.max(interaction.nearestTouchRadius,
-        xSpan / Math.max(1, mode === 'weekly' ? view.weeks.length : data.dates.length));
-      if (distance > radius) {
-        if (lastIndex.get() !== -1) { lastIndex.set(-1); scheduleOnRN(clear); }
-      } else if (lastIndex.get() !== closest) {
-        lastIndex.set(closest);
-        scheduleOnRN(reveal, closest);
-        scheduleOnRN(selectionHaptic);
-      }
-    };
-    const tap = Gesture.Tap().maxDistance(10).onEnd((event, success) => { if (success) move(event.x); });
-    if (expanded || scrollableWeeks) return tap;
-    return Gesture.Race(
-      Gesture.Pan().activeOffsetX([-8, 8]).failOffsetY([-12, 12])
-        .onStart(event => { move(event.x); }).onUpdate(event => { move(event.x); }),
-      tap,
-    );
-  }, [xs, xSpan, mode, view.weeks.length, data.dates.length, lastIndex, reveal, clear, expanded, scrollableWeeks]);
-  const line = mode === 'daily-dots' ? '' : points.reduce((path, point, index) => {
-    if (!point.connectsToPrevious || index === 0) return path;
-    const previous = points[index - 1];
-    return path + ` M ${previous.x} ${previous.y} L ${point.x} ${point.y}`;
-  }, '');
-  const ticks = mode === 'weekly' ?
-    weeklyMonthTicks(view.weeks, data.dates[0], data.dates[data.dates.length - 1],
+  const points = useMemo<PlotPoint[]>(() => expanded ?
+    data.observations.map(observation => ({ x: dailyX(observation.date),
+      y: yFor(observation.levelIndex), connectsToPrevious: observation.connectsToPrevious })) :
+    view.groupedPoints.map(point => ({
+      x: view.slots.length === 1 ? chartWidth / 2 :
+        inset + point.slotIndex / Math.max(1, view.slots.length - 1) * xSpan,
+      y: yFor(point.medianLevelIndex), connectsToPrevious: point.connectsToPrevious })),
+  [expanded, data.observations, dailyX, yFor, view.groupedPoints, view.slots.length, chartWidth, xSpan]);
+  const selectAt = useCallback((pageX: number, fallbackX: number) => {
+    if (!expanded || !timeScale) return;
+    const viewportX = scrollWindowX.current === null ? fallbackX : pageX - scrollWindowX.current;
+    if (viewportX < 0 || viewportX > viewportWidth) { setSelectedIndex(null); return; }
+    const dayIndex = expandedDayIndexAt(viewportX, scrollOffset.current,
+      timeScale.dayStep, inset, data.dates.length);
+    const observationIndex = dayIndex === null ? undefined : observationByDay.get(dayIndex);
+    const observation = observationIndex === undefined ? undefined : points[observationIndex];
+    if (observation) {
+      setSelectedViewportX(viewportX);
+      setSelectedIndex(observationIndex!);
+    } else setSelectedIndex(null);
+  }, [expanded, timeScale, viewportWidth, observationByDay, points, data.dates.length]);
+  const selectedObservation = selectedIndex === null ? undefined : data.observations[selectedIndex];
+  const selectedPoint = selectedIndex === null ? undefined : points[selectedIndex];
+  const line = useMemo(() => trendCurvePath(points,
+    chartStyle.curve === 'linear' ? 'linear' : 'monotoneX'), [points]);
+  const fragments = useMemo(() => isolatedTrendFragments(points,
+    chartStyle.isolatedFragmentLength), [points]);
+  const slotDates = view.slots.map(slot => slot.axisDate);
+  const ticks = expanded ? dailyAxisTicks(data.dates, chartWidth, inset,
+    Math.max(4, Math.floor(chartWidth / 68))) : mode === 'weekly' ?
+    weeklyMonthTicks(slotDates, data.dates[0], data.dates[data.dates.length - 1],
       chartWidth, inset, Math.max(4, Math.floor(chartWidth / layout.weeklyLabelSpacing))) :
-    dailyAxisTicks(data.dates, chartWidth, inset, expanded ?
-      Math.max(4, Math.floor(chartWidth / 68)) : layout.dailyDateLabelCount);
-  const accessibilityValue = chosen ? chosen.weekly ?
-    `Week of ${formatDay(chosen.weekly.weekStart)}, median ${chosen.weekly.medianLabel}, ${chosen.weekly.observations.length} recorded days, lowest ${chosen.weekly.minLabel}, highest ${chosen.weekly.maxLabel}` :
-    `${formatDay(chosen.date, true)}, ${chosen.label}` :
-    `${points.length} ${mode === 'weekly' ? 'weekly summaries' : 'daily ratings'}. Swipe up or down to explore.`;
-  const surface = <GestureDetector gesture={gesture}><View collapsable={false}
-    style={{ width: chartWidth, height: chartHeight }} accessible accessibilityRole="adjustable"
-    accessibilityLabel={`${taskName} ${mode === 'weekly' ? 'weekly overview' : 'rating trend'}`}
-    accessibilityValue={{ text: accessibilityValue }}
-    accessibilityHint="Touch the chart or swipe up and down with a screen reader to explore recorded ratings."
-    accessibilityActions={[{ name: 'increment', label: 'Next observation' }, { name: 'decrement', label: 'Previous observation' }]}
-    onAccessibilityAction={event => {
-      const next = event.nativeEvent.actionName === 'increment' ? chosenIndex + 1 :
-        chosenIndex < 0 ? points.length - 1 : chosenIndex - 1;
-      const bounded = Math.max(0, Math.min(points.length - 1, next));
-      if (bounded !== chosenIndex) { lastIndex.set(bounded); reveal(bounded); selectionHaptic(); }
-    }}>
+    dailyAxisTicks(slotDates, chartWidth, inset, layout.dailyDateLabelCount);
+  const summary = expanded ? `${taskName} daily trend. ${data.observations.length} recorded days.` :
+    `${taskName} ${view.subtitle}. ${points.length} plotted medians from ${view.recordedCount} recorded days.` +
+    (view.mixedScaleSlots ? ` ${view.mixedScaleSlots} scale-change intervals are shown in the expanded daily chart.` : '');
+  const surface = <View collapsable={false}
+    style={{ width: chartWidth, height: chartHeight }} accessible
+    accessibilityRole={expanded ? 'adjustable' : 'image'}
+    accessibilityLabel={selectedObservation ?
+      `${summary} ${formatDay(selectedObservation.date, true)}, ${selectedObservation.labelAtEntry}.` : summary}
+    accessibilityHint={expanded ? 'Swipe up or down to inspect recorded days.' : undefined}
+    accessibilityActions={expanded ? [{ name: 'increment', label: 'Next recording' },
+      { name: 'decrement', label: 'Previous recording' }] : undefined}
+    onAccessibilityAction={expanded ? event => {
+      const delta = event.nativeEvent.actionName === 'increment' ? 1 : -1;
+      const next = Math.max(0, Math.min(data.observations.length - 1,
+        (selectedIndex ?? (delta > 0 ? -1 : data.observations.length)) + delta));
+      const targetOffset = Math.max(0, Math.min((timeScale?.initialOffset ?? 0),
+        points[next].x - viewportWidth / 2));
+      scrollOffset.current = targetOffset;
+      scroller.current?.scrollTo({ x: targetOffset, animated: false });
+      setSelectedViewportX(points[next].x - targetOffset);
+      setSelectedIndex(next);
+    } : undefined}>
     <Svg width={chartWidth} height={chartHeight}>
-      {data.levels.map((level, index) => <Line key={level.id} x1={0} x2={chartWidth}
+      {chartStyle.showHorizontalGridlines && data.levels.map((level, index) => <Line key={level.id} x1={0} x2={chartWidth}
         y1={yFor(index)} y2={yFor(index)} stroke={chartStyle.gridColor} strokeWidth={1}/>)}
-      {data.scaleChangeDates.map(date => <Line key={date}
-        x1={mode === 'weekly' ? weekX(mondayOf(date)) : dailyX(date)}
-        x2={mode === 'weekly' ? weekX(mondayOf(date)) : dailyX(date)}
-        y1={inset} y2={plotHeight - inset} stroke={c.borderStrong} strokeDasharray="3 5" strokeWidth={1}/>)}
-      {chosen?.weekly && chosen.minY !== chosen.maxY &&
-        <Line x1={chosen.x} x2={chosen.x} y1={chosen.minY} y2={chosen.maxY}
-          stroke={chartStyle.variationColor} strokeWidth={2} strokeLinecap="round"/>}
       {line ? <Path d={line} fill="none" stroke={chartStyle.lineColor}
+        strokeWidth={chartStyle.lineWidth} strokeLinecap="round" strokeLinejoin="round"/> : null}
+      {fragments ? <Path d={fragments} fill="none" stroke={chartStyle.lineColor}
         strokeWidth={chartStyle.lineWidth} strokeLinecap="round"/> : null}
-      {points.map(point => <Circle key={point.id} cx={point.x} cy={point.y}
-        r={point.id === selectedId ? chartStyle.activeMarkerRadius :
-          mode === 'weekly' ? chartStyle.weeklyMarkerRadius : chartStyle.markerRadius}
-        stroke={chartStyle.lineColor} strokeWidth={1.7}
-        fill={mode === 'daily-dots' ? chartStyle.lineColor : chartStyle.markerFill}/>)}
+      {expanded && selectedPoint && <Circle cx={selectedPoint.x} cy={selectedPoint.y} r={4.5}
+        fill={c.surface} stroke={chartStyle.lineColor} strokeWidth={2}/>}
       {ticks.map(item => <SvgText key={item.index} x={item.x} y={chartHeight - 5} fontSize={10}
         fill={chartStyle.axisLabelColor} textAnchor={item.anchor}>{item.label}</SvgText>)}
     </Svg>
-  </View></GestureDetector>;
-  return <View onLayout={event => setWidth(event.nativeEvent.layout.width)}>
-    {width > 0 && <View style={styles.plotRow}>
+  </View>;
+  return <View onLayout={event => {
+    const next = event.nativeEvent.layout.width;
+    setWidth(current => current === next ? current : next);
+  }}>
+    <View pointerEvents="none" style={styles.measureLabels}>
+      {data.levels.map(level => <Text key={level.id} style={styles.axisLabel}
+        onTextLayout={event => {
+          const next = Math.ceil(event.nativeEvent.lines[0]?.width ?? 0);
+          if (next && measuredLabels[level.id] !== next)
+            setMeasuredLabels(current => ({ ...current, [level.id]: next }));
+        }}>{level.label}</Text>)}
+    </View>
+    {width > 0 && (!expanded || labelsReady) && <View style={styles.plotRow}>
       <View style={[styles.axis, { width: axisWidth, height: plotHeight }]}>
         {data.levels.map((level, index) => <View key={level.id}
           style={[styles.axisLabelWrap, { top: yFor(index) - 16 }]}>
-          <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.76}
+          <Text numberOfLines={1} ellipsizeMode="tail"
             accessibilityLabel={level.label} style={styles.axisLabel}>{level.label}</Text>
         </View>)}
       </View>
-      {expanded || scrollableWeeks ? <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        style={{ width: viewportWidth }} contentContainerStyle={{ width: chartWidth }}>
-        {surface}
-      </ScrollView> : surface}
-    </View>}
-    {chosen && <View style={styles.tooltip}>
-      {chosen.weekly ? <>
-        <View style={styles.tooltipText} accessible accessibilityLabel={accessibilityValue}>
-          <Text style={styles.detailHeading}>{formatDay(chosen.weekly.weekStart)}–{formatDay(chosen.weekly.weekEnd)}
-            {' · '}{chosen.weekly.observations.length} recorded</Text>
-          <Text style={styles.detailMain}>Median: {chosen.weekly.medianLabel}</Text>
-          <Text style={styles.detailSecondary}>
-            Lowest {chosen.weekly.minLabel} · Highest {chosen.weekly.maxLabel}
-          </Text>
-        </View>
-        {onOpenWeek && <Pressable accessibilityRole="button" onPress={() => onOpenWeek(chosen.weekly!)}
-          style={styles.inlineAction}><Text style={styles.inlineActionText}>Inspect week</Text></Pressable>}
-      </> : <View accessible accessibilityLabel={accessibilityValue}>
-        <Text style={styles.detailHeading}>{formatDay(chosen.date, true)}</Text>
-        <Text style={styles.detailMain}>{chosen.label}</Text>
-      </View>}
+      {expanded ? <View ref={viewportRef} style={{ width: viewportWidth, height: chartHeight }}
+        onLayout={() => viewportRef.current?.measureInWindow((x: number) => { scrollWindowX.current = x; })}>
+        <ScrollView ref={scroller} horizontal scrollEnabled={timeScale?.scrollEnabled}
+          showsHorizontalScrollIndicator={false} scrollEventThrottle={16}
+          onScroll={event => {
+            scrollOffset.current = event.nativeEvent.contentOffset.x;
+            if (finger.current) selectAt(finger.current.pageX, finger.current.fallbackX);
+            else if (selectedPoint) {
+              const markerX = selectedPoint.x - scrollOffset.current;
+              if (markerX < 0 || markerX > viewportWidth) setSelectedIndex(null);
+              else setSelectedViewportX(markerX);
+            }
+          }}
+          onTouchStart={event => {
+            finger.current = { pageX: event.nativeEvent.pageX, fallbackX: event.nativeEvent.locationX };
+            selectAt(finger.current.pageX, finger.current.fallbackX);
+          }}
+          onTouchMove={event => {
+            finger.current = { pageX: event.nativeEvent.pageX, fallbackX: event.nativeEvent.locationX };
+            selectAt(finger.current.pageX, finger.current.fallbackX);
+          }}
+          onTouchEnd={() => { finger.current = null; }}
+          onTouchCancel={() => { finger.current = null; setSelectedIndex(null); }}
+          onContentSizeChange={contentWidth => {
+            if (initialScrollWidth.current !== contentWidth) {
+              initialScrollWidth.current = contentWidth;
+              scrollOffset.current = timeScale?.initialOffset ?? 0;
+              scroller.current?.scrollTo({ x: scrollOffset.current, animated: false });
+            }
+          }}
+          style={{ width: viewportWidth, height: chartHeight }} contentContainerStyle={{ width: chartWidth }}>
+          {surface}
+        </ScrollView>
+        {selectedObservation && selectedPoint && <View pointerEvents="none" style={[styles.tooltip, {
+          left: Math.max(0, Math.min(viewportWidth - 158, selectedViewportX - 79)),
+          top: Math.max(0, Math.min(chartHeight - 52, selectedPoint.y - 58)),
+        }]}>
+          <Text style={styles.tooltipDate}>{formatDay(selectedObservation.date, true)}</Text>
+          <Text style={styles.tooltipRating} numberOfLines={1}>{selectedObservation.labelAtEntry}</Text>
+        </View>}
+      </View> : surface}
     </View>}
   </View>;
 }
-type Detail = { kind: 'daily' } | { kind: 'week'; point: WeeklyTrendPoint };
-function TrendDetailModal({ detail, onClose, data, view, taskName }: {
-  detail: Detail; onClose: () => void; data: RatingTrendData; view: AdaptiveTrend; taskName: string;
+export function ExpandedRatingTrendChart({ data, view, taskName, height }: {
+  data: RatingTrendData; view: AdaptiveTrend; taskName: string; height: number;
 }) {
-  const observations = detail.kind === 'week' ? detail.point.observations : data.observations;
-  return <Modal visible animationType="slide" presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
-    onRequestClose={onClose}>
-    <GestureHandlerRootView style={{ flex: 1 }}><SafeAreaView style={styles.modalScreen} edges={['top', 'bottom']}>
-      <View style={styles.modalHeader}>
-        <View style={{ flex: 1 }}><Text style={styles.modalTitle}>{detail.kind === 'week' ? 'Recorded this week' : 'Daily ratings'}</Text>
-          <Text style={styles.modalSubtitle}>{taskName}</Text></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close trend detail" onPress={onClose}
-          style={styles.close}><Text style={styles.closeText}>Close</Text></Pressable>
-      </View>
-      <FlatList data={observations} keyExtractor={item => item.date}
-        contentContainerStyle={styles.modalContent}
-        ListHeaderComponent={<View style={styles.modalListHeader}>
-          {detail.kind === 'daily' ? <View style={styles.expandedCard}>
-            {data.dates.length <= layout.maxExpandedPlotDays ? <>
-              <Text style={styles.detailSecondary}>Daily ratings in their calendar positions. Empty days stay blank.</Text>
-              <TrendPlot data={data} view={view} taskName={taskName} mode="daily-dots" expanded/>
-            </> : <Text style={styles.detailSecondary}>Every recorded day in the selected period is listed below.</Text>}
-          </View> : <View style={styles.expandedCard}>
-            <WeeklyDetail point={detail.point}/>
-            <Text style={styles.detailSecondary}>Responses: {detail.point.distribution.map(item => `${item.label} ${item.count}`).join(' · ')}</Text>
-            <Text style={styles.detailSecondary}>For an even number of ratings, the lower middle rating is the median.</Text>
-          </View>}
-          <Text style={styles.listHeading}>{observations.length} recorded {observations.length === 1 ? 'day' : 'days'}</Text>
-        </View>}
-        renderItem={({ item, index }) => <View style={[styles.observationRow,
-          index === 0 && styles.firstObservation, index === observations.length - 1 && styles.lastObservation]}
-          accessible accessibilityLabel={`${formatDay(item.date, true)}, ${item.labelAtEntry}`}>
-          <Text style={styles.observationDate}>{formatDay(item.date, true)}</Text>
-          <Text style={styles.observationRating}>{item.labelAtEntry}</Text>
-        </View>}
-      />
-    </SafeAreaView></GestureHandlerRootView>
-  </Modal>;
+  if (data.observations.length === 0) return <Text style={styles.empty}>No ratings recorded for this period.</Text>;
+  return <TrendPlot data={data} view={view} taskName={taskName} mode="daily-line"
+    expanded availableHeight={height}/>;
 }
 export function RatingTrendChart({ data, view, taskName }: {
   data: RatingTrendData; view: AdaptiveTrend; taskName: string;
 }) {
-  const [detail, setDetail] = useState<Detail | null>(null);
-  const [showInfo, setShowInfo] = useState(false);
   if (view.presentation === 'empty') return <Text style={styles.empty}>
     {data.isNewEpochEmpty ? 'Your new trend starts with your next rating. Earlier ratings are preserved.' :
       'No ratings recorded for this period.'}</Text>;
   if (view.presentation === 'today' || view.presentation === 'sparse')
     return <SparseSummary data={data} today={view.presentation === 'today'}/>;
+  if (view.groupedPoints.length === 0) return <Text style={styles.empty}>
+    Ratings from different scale versions fall in the same interval. Expand to see each recorded day.
+  </Text>;
+  if (view.groupedPoints.length === 1) {
+    const point = view.groupedPoints[0], slot = view.slots[point.slotIndex];
+    return <View style={styles.sparse} accessible
+      accessibilityLabel={`${formatDay(slot.startDate, true)} to ${formatDay(slot.endDate, true)}, median ${point.medianLabel}, ${point.recordedCount} recorded days`}>
+      <View style={styles.sparseRow}>
+        <Text style={styles.sparseDateText}>{formatDay(slot.startDate)}–{formatDay(slot.endDate)}</Text>
+        <Text style={styles.sparseRating}>{point.medianLabel}</Text>
+      </View>
+      <Text style={styles.count}>{point.recordedCount} recorded {point.recordedCount === 1 ? 'day' : 'days'}</Text>
+    </View>;
+  }
   const mode: PlotMode = view.presentation;
   return <View>
-    <TrendPlot data={data} view={view} taskName={taskName} mode={mode}
-      onOpenWeek={point => setDetail({ kind: 'week', point })}/>
+    <TrendPlot data={data} view={view} taskName={taskName} mode={mode}/>
     <View style={styles.footer}>
       <Text style={styles.count}>{view.recordedCount} recorded {view.recordedCount === 1 ? 'day' : 'days'}</Text>
-      {(mode === 'weekly' || mode === 'daily-dots') && interaction.allowExpandedDaily &&
-        <Pressable accessibilityRole="button" accessibilityLabel="View all daily ratings"
-          onPress={() => setDetail({ kind: 'daily' })} style={styles.footerAction}>
-          <Text style={styles.footerActionText}>View all days</Text>
-        </Pressable>}
-      {mode === 'weekly' && <Pressable accessibilityRole="button" accessibilityLabel="About weekly ratings"
-        onPress={() => setShowInfo(value => !value)} style={styles.infoAction}>
-        <Text style={styles.infoText}>ⓘ</Text>
-      </Pressable>}
+      {view.mixedScaleSlots > 0 && <Text style={styles.count}>Scale changes: see expanded view</Text>}
     </View>
-    <Modal transparent visible={showInfo} animationType="fade" onRequestClose={() => setShowInfo(false)}>
-      <View style={styles.infoBackdrop}>
-        <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button"
-          accessibilityLabel="Close weekly overview information" onPress={() => setShowInfo(false)}/>
-        <View style={styles.infoSheet}>
-          <Text style={styles.infoTitle}>About weekly overview</Text>
-          <Text style={styles.infoBody}>Weeks start Monday. Each marker shows the middle recorded rating for that week. With an even number of ratings, the lower middle rating is used. Missing weeks stay blank, and scale changes remain separate.</Text>
-          <Pressable accessibilityRole="button" onPress={() => setShowInfo(false)} style={styles.infoClose}>
-            <Text style={styles.infoCloseText}>Close</Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
-    {detail && <TrendDetailModal detail={detail} onClose={() => setDetail(null)}
-      data={data} view={view} taskName={taskName}/>}
   </View>;
 }
 const styles = StyleSheet.create({
@@ -299,48 +253,15 @@ const styles = StyleSheet.create({
   sparseDateText: { ...t.secondary, color: c.textSecondary },
   sparseRating: { ...t.body, fontWeight: '600', color: c.textPrimary, flexShrink: 1, textAlign: 'right' },
   count: { ...t.caption, color: c.textSecondary },
+  measureLabels: { position: 'absolute', opacity: 0, top: 0, left: 0 },
   plotRow: { flexDirection: 'row', alignItems: 'flex-start' },
   axis: { position: 'relative' },
   axisLabelWrap: { position: 'absolute', left: 0, right: s.sm, minHeight: 32, justifyContent: 'center' },
   axisLabel: { ...t.caption, color: c.textSecondary, textAlign: 'right', lineHeight: 15 },
-  tooltip: { backgroundColor: c.surfaceSecondary, borderRadius: 10, paddingHorizontal: s.md,
-    paddingVertical: s.sm, marginTop: s.xs, gap: s.xs, flexDirection: 'row', alignItems: 'center' },
-  tooltipText: { flex: 1, minWidth: 0, gap: 2 },
-  weekDetail: { gap: s.xs },
-  detailHeading: { ...t.caption, color: c.textSecondary },
-  detailMain: { ...t.body, fontWeight: '600', color: c.textPrimary },
-  detailSecondary: { ...t.caption, color: c.textSecondary },
-  inlineAction: { minHeight: 44, justifyContent: 'center', paddingLeft: s.sm, flexShrink: 0 },
-  inlineActionText: { ...t.caption, color: c.textPrimary, textDecorationLine: 'underline' },
   footer: { flexDirection: 'row', alignItems: 'center', gap: s.md, marginTop: s.xs },
-  footerAction: { minHeight: 40, justifyContent: 'center', marginLeft: 'auto' },
-  footerActionText: { ...t.caption, color: c.textPrimary, fontWeight: '600' },
-  infoAction: { minWidth: 36, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
-  infoText: { fontSize: 17, color: c.textSecondary },
-  infoBackdrop: { flex: 1, backgroundColor: c.scrim, justifyContent: 'center', padding: s.xl },
-  infoSheet: { backgroundColor: c.surface, borderRadius: 16, padding: s.lg, gap: s.md },
-  infoTitle: { ...t.taskTitle, color: c.textPrimary },
-  infoBody: { ...t.secondary, color: c.textSecondary },
-  infoClose: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center' },
-  infoCloseText: { ...t.button, color: c.textPrimary },
-  modalScreen: { flex: 1, backgroundColor: c.background },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: s.xl, paddingVertical: s.md,
-    borderBottomWidth: 1, borderColor: c.border, backgroundColor: c.surface },
-  modalTitle: { ...t.sectionTitle, color: c.textPrimary },
-  modalSubtitle: { ...t.secondary, color: c.textSecondary },
-  close: { minWidth: 52, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' },
-  closeText: { ...t.button, color: c.textPrimary },
-  modalContent: { padding: s.xl, paddingBottom: s.xxxl },
-  modalListHeader: { gap: s.xl, marginBottom: s.md },
-  expandedCard: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border,
-    borderRadius: 16, padding: s.lg, gap: s.md },
-  listHeading: { ...t.caption, color: c.textSecondary },
-  observationRow: { minHeight: 48, paddingHorizontal: s.lg, paddingVertical: s.sm, backgroundColor: c.surface,
-    borderLeftWidth: 1, borderRightWidth: 1,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.border,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: s.md },
-  firstObservation: { borderTopWidth: 1, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  lastObservation: { borderBottomWidth: 1, borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
-  observationDate: { ...t.secondary, color: c.textSecondary, flexShrink: 1 },
-  observationRating: { ...t.secondary, color: c.textPrimary, fontWeight: '600', textAlign: 'right', flexShrink: 1 },
+  tooltip: { position: 'absolute', width: 158, borderRadius: 8,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.borderStrong,
+    paddingHorizontal: s.sm, paddingVertical: s.xs },
+  tooltipDate: { ...t.caption, color: c.textSecondary },
+  tooltipRating: { ...t.secondary, color: c.textPrimary, fontWeight: '600' },
 });

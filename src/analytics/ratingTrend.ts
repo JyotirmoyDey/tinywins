@@ -23,15 +23,22 @@ export function validateRatingTrendConfig(value: typeof config) {
     !value.calculation.connectConsecutiveDaysOnly || !value.calculation.breakOnScaleVersionChange ||
     !value.visible || value.displayOrder !== 1 ||
     value.calculation.weekStartsOn !== 'monday' || value.calculation.weeklyMiddle !== 'lower' ||
-    value.presentation.sparseMaxObservations < 1 ||
-    value.presentation.dailyLineMaxDays >= value.presentation.dailyDotMaxDays ||
-    value.presentation.weeklyMinDays !== value.presentation.dailyDotMaxDays + 1 ||
+    value.presentation.sparseMaxObservations !== 1 ||
+    value.presentation.maxPortraitPoints < 2 || value.presentation.maxPortraitPoints > 15 ||
+    value.presentation.shortRangeMaxDays > value.presentation.maxPortraitPoints ||
+    value.presentation.dayGroupingMaxDays < value.presentation.shortRangeMaxDays ||
+    value.presentation.weekGroupingMinDays !== value.presentation.dayGroupingMaxDays + 1 ||
     value.presentation.normalChartHeight < 140 ||
-    value.presentation.maxExpandedPlotDays < value.presentation.weeklyMinDays ||
-    value.presentation.weeklyScrollableAfterWeeks < 13 ||
-    value.presentation.weeklyPointsPerWeek < 16 ||
+    value.presentation.maxExpandedPlotDays < value.presentation.weekGroupingMinDays ||
     value.presentation.weeklyLabelSpacing < 50 ||
-    value.style.markerRadius <= 0) throw new Error('Invalid rating trend configuration.');
+    value.presentation.plotInset < 8 ||
+    value.presentation.axisMaxWidthCompact < 48 ||
+    value.presentation.expandedInitialWindowDays < 3 ||
+    value.style.transitionDurationMs < 0 ||
+    !['monotoneX', 'linear'].includes(value.style.curve) ||
+    value.style.lineWidth <= 0 ||
+    value.style.isolatedFragmentLength <= 0 ||
+    value.style.isolatedFragmentLength >= value.presentation.plotInset) throw new Error('Invalid rating trend configuration.');
   return value;
 }
 validateRatingTrendConfig(config);

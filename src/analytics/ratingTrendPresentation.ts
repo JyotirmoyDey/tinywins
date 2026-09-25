@@ -1,7 +1,7 @@
 import { localDate, parseLocalDate } from '../domain/task';
 import { RatingTrendData, TrendObservation, ratingTrendConfig } from './ratingTrend';
 
-export type TrendPresentation = 'empty' | 'today' | 'sparse' | 'daily-line' | 'daily-dots' | 'weekly';
+export type TrendPresentation = 'empty' | 'today' | 'sparse' | 'daily-line' | 'weekly';
 export type TrendRange = '1D' | '7D' | '30D' | '90D' | 'CUSTOM';
 
 export interface WeeklyTrendPoint {
@@ -26,6 +26,24 @@ export interface AdaptiveTrend {
   recordedCount: number;
   weeks: string[];
   weeklyPoints: WeeklyTrendPoint[];
+  slots: TrendGroupSlot[];
+  groupedPoints: GroupedTrendPoint[];
+  subtitle: string;
+  mixedScaleSlots: number;
+}
+export interface TrendGroupSlot {
+  startDate: string;
+  endDate: string;
+  axisDate: string;
+}
+export interface GroupedTrendPoint {
+  id: string;
+  slotIndex: number;
+  medianLevelIndex: number;
+  medianLabel: string;
+  scaleVersionId: string;
+  recordedCount: number;
+  connectsToPrevious: boolean;
 }
 export function mondayOf(date: string) {
   const day = parseLocalDate(date);
@@ -107,16 +125,72 @@ export function weeklyLabelIndices(weeks: string[], maximum: number) {
     unique[Math.round(index * (unique.length - 1) / Math.max(1, maximum - 1))]))];
 }
 
+function portraitGroups(dates: string[]): { slots: TrendGroupSlot[]; subtitle: string; weekly: boolean } {
+  if (!dates.length) return { slots: [], subtitle: 'Daily trend', weekly: false };
+  const p = ratingTrendConfig.presentation;
+  if (dates.length <= p.dayGroupingMaxDays) {
+    const span = dates.length <= p.shortRangeMaxDays ? 1 :
+      Math.ceil(dates.length / p.maxPortraitPoints);
+    const slots = Array.from({ length: Math.ceil(dates.length / span) }, (_, index) => {
+      const startDate = dates[index * span];
+      return { startDate, axisDate: startDate,
+        endDate: dates[Math.min(dates.length - 1, (index + 1) * span - 1)] };
+    });
+    return { slots, subtitle: span === 1 ? 'Daily trend' : `${span}-day median`, weekly: false };
+  }
+  const weeks = [...new Set(dates.map(mondayOf))];
+  let span = 1;
+  while (Math.ceil(weeks.length / span) > p.maxPortraitPoints) span *= 2;
+  const slots = Array.from({ length: Math.ceil(weeks.length / span) }, (_, index) => {
+    const firstWeek = weeks[index * span];
+    const lastWeek = weeks[Math.min(weeks.length - 1, (index + 1) * span - 1)];
+    return { axisDate: firstWeek,
+      startDate: index === 0 ? dates[0] : firstWeek,
+      endDate: index === Math.ceil(weeks.length / span) - 1 ? dates.at(-1)! : sundayOf(lastWeek) };
+  });
+  return { slots, subtitle: span === 1 ? 'Weekly median' : `${span}-week median`, weekly: true };
+}
+
+/** Only compatible scale versions may contribute to one median. Mixed-version
+ * buckets remain blank in portrait; expanded daily history retains every entry. */
+function groupedMedians(data: RatingTrendData, slots: TrendGroupSlot[]) {
+  const groupedPoints: GroupedTrendPoint[] = [];
+  let mixedScaleSlots = 0;
+  let observationIndex = 0;
+  slots.forEach((slot, slotIndex) => {
+    const observations: TrendObservation[] = [];
+    while (observationIndex < data.observations.length &&
+      data.observations[observationIndex].date < slot.startDate) observationIndex++;
+    while (observationIndex < data.observations.length &&
+      data.observations[observationIndex].date <= slot.endDate)
+      observations.push(data.observations[observationIndex++]);
+    if (!observations.length) return;
+    const versions = new Set(observations.map(item => item.scaleVersionId));
+    if (versions.size !== 1) { mixedScaleSlots++; return; }
+    const ordered = observations.map(item => item.levelIndex).sort((a, b) => a - b);
+    const medianLevelIndex = ordered[Math.floor((ordered.length - 1) / 2)];
+    const scaleVersionId = observations[0].scaleVersionId;
+    const previous = groupedPoints.at(-1);
+    groupedPoints.push({ id: `${slot.axisDate}:${scaleVersionId}`, slotIndex,
+      medianLevelIndex, medianLabel: data.levels[medianLevelIndex]?.label ?? observations[0].labelAtEntry,
+      scaleVersionId, recordedCount: observations.length,
+      connectsToPrevious: !!previous && previous.slotIndex === slotIndex - 1 &&
+        previous.scaleVersionId === scaleVersionId });
+  });
+  return { groupedPoints, mixedScaleSlots };
+}
+
 export function getAdaptiveTrend(data: RatingTrendData, range: TrendRange): AdaptiveTrend {
   const recordedCount = data.observations.length;
   const p = ratingTrendConfig.presentation;
+  const groups = portraitGroups(data.dates);
+  const medians = groupedMedians(data, groups.slots);
   let presentation: TrendPresentation;
   if (recordedCount === 0) presentation = 'empty';
   else if (range === '1D') presentation = 'today';
   else if (recordedCount <= p.sparseMaxObservations) presentation = 'sparse';
-  else if (data.dates.length <= p.dailyLineMaxDays) presentation = 'daily-line';
-  else if (data.dates.length <= p.dailyDotMaxDays) presentation = 'daily-dots';
+  else if (!groups.weekly) presentation = 'daily-line';
   else presentation = 'weekly';
   const weekly = presentation === 'weekly' ? getWeeklyRatingTrend(data) : { weeks: [], weeklyPoints: [] };
-  return { presentation, recordedCount, ...weekly };
+  return { presentation, recordedCount, ...weekly, ...groups, ...medians };
 }
