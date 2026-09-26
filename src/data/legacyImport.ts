@@ -1,6 +1,7 @@
-import { normalizeOptions, parseLocalDate, validateDraft } from '../domain/task';
+import { localDate, normalizeOptions, parseLocalDate, validateDraft } from '../domain/task';
 import { Connection } from './connection';
 import { insertOption } from './repository';
+import { nextTaskColor } from '../analytics/taskColors';
 interface LegacyTask {
   id: string; name: string; createdAt: string; updatedAt: string; active: boolean;
   options: { id: string; label: string }[];
@@ -34,8 +35,19 @@ export async function importLegacy(connection: Connection, raw: string | null, s
       if (!Array.isArray(task.options) || typeof task.active !== 'boolean') throw new Error('Invalid previous task.');
       const error = validateDraft(task); if (error) throw new Error(error);
       const scaleId = id(); const epochId = id();
-      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, currentScaleVersionId, currentTrendEpochId) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        task.id, task.name.trim(), task.createdAt, task.updatedAt, Number(task.active), scaleId, epochId);
+      const created = new Date(task.createdAt), changed = new Date(task.updatedAt);
+      if (Number.isNaN(created.getTime()) || Number.isNaN(changed.getTime())) throw new Error('Invalid previous task dates.');
+      const usedColors = await db.getAllAsync<{ chartColor: string }>(
+        'SELECT chartColor FROM tasks WHERE chartColor IS NOT NULL');
+      const chartColor = nextTaskColor(usedColors.map(row => row.chartColor));
+      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, currentScaleVersionId, currentTrendEpochId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        task.id, task.name.trim(), task.createdAt, task.updatedAt, Number(task.active),
+        localDate(created), task.active ? null : task.updatedAt, chartColor, scaleId, epochId);
+      if (!task.active) await db.runAsync(`INSERT INTO task_lifecycle_transitions
+        (id, taskId, type, occurredAt, localDate, utcOffsetMinutes, timeZone, inferred)
+        VALUES (?, ?, 'archived', ?, ?, ?, ?, 1)`,
+        id(), task.id, task.updatedAt, localDate(changed), -changed.getTimezoneOffset(),
+        Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown');
       const normalized = normalizeOptions(task.id, task.options, task.createdAt);
       for (const option of normalized) {
         requireString(option.id); await insertOption(db, { ...option, updatedAt: task.updatedAt });

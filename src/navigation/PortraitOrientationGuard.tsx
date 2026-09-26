@@ -1,40 +1,42 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
-/** The chart owns landscape; every other route must remain portrait after dismissal. */
+/** The root layout is the only owner of orientation for both chart and app routes. */
 export function PortraitOrientationGuard() {
   const pathname = usePathname();
+  const desired = useRef<ScreenOrientation.OrientationLock>(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+
+  const applyDesired = useCallback(() => {
+    const target = desired.current;
+    void ScreenOrientation.lockAsync(target)
+      .then(() => {
+        // A late native completion from a previous route must not undo its successor.
+        if (target !== desired.current) {
+          void ScreenOrientation.lockAsync(desired.current)
+            .catch(error => console.warn('Could not restore screen orientation:', error));
+        }
+      })
+      .catch(error => console.warn('Could not set screen orientation:', error));
+  }, []);
 
   useEffect(() => {
-    if (pathname === '/trend-expanded') return;
+    desired.current = pathname === '/trend-expanded'
+      ? ScreenOrientation.OrientationLock.LANDSCAPE
+      : ScreenOrientation.OrientationLock.PORTRAIT_UP;
+    applyDesired();
+  }, [pathname, applyDesired]);
 
-    let active = true;
-    let locking = false;
-    let requestedAgain = false;
-    const lockPortrait = () => {
-      if (!active) return;
-      if (locking) { requestedAgain = true; return; }
-      locking = true;
-      void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
-        .catch(error => console.warn('Could not restore portrait orientation:', error))
-        .finally(() => {
-          locking = false;
-          if (active && requestedAgain) {
-            requestedAgain = false;
-            lockPortrait();
-          }
-        });
-    };
-
-    lockPortrait();
+  useEffect(() => {
     const subscription = ScreenOrientation.addOrientationChangeListener(event => {
       const orientation = event.orientationInfo.orientation;
-      if (orientation === ScreenOrientation.Orientation.LANDSCAPE_LEFT ||
-        orientation === ScreenOrientation.Orientation.LANDSCAPE_RIGHT) lockPortrait();
+      const isLandscape = orientation === ScreenOrientation.Orientation.LANDSCAPE_LEFT ||
+        orientation === ScreenOrientation.Orientation.LANDSCAPE_RIGHT;
+      const wantsLandscape = desired.current === ScreenOrientation.OrientationLock.LANDSCAPE;
+      if (isLandscape !== wantsLandscape) applyDesired();
     });
-    return () => { active = false; subscription.remove(); };
-  }, [pathname]);
+    return () => subscription.remove();
+  }, [applyDesired]);
 
   return null;
 }

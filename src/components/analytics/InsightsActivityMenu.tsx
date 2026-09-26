@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { colors as c, spacing as s, typography as t } from '../../theme';
 
-interface Activity { id: string; name: string }
+interface Activity { id: string; name: string; active?: boolean }
 interface Props { tasks: Activity[]; selectedId: string; onSelect: (id: string) => void }
 
 export function InsightsActivityMenu({ tasks, selectedId, onSelect }: Props) {
@@ -12,7 +12,7 @@ export function InsightsActivityMenu({ tasks, selectedId, onSelect }: Props) {
   const { height } = useWindowDimensions();
   const selectedName = selectedId === 'all' ? 'All Activities' :
     tasks.find(task => task.id === selectedId)?.name || 'All Activities';
-  const choices = [{ id: 'all', name: 'All Activities' }, ...tasks];
+  const choices = [{ id: 'all', name: 'All Activities', active: true }, ...tasks];
   return <>
     <Pressable accessibilityRole="button" accessibilityLabel={'Activity, ' + selectedName}
       accessibilityHint="Choose an activity" onPress={() => setOpen(true)} style={styles.button}>
@@ -37,10 +37,11 @@ export function InsightsActivityMenu({ tasks, selectedId, onSelect }: Props) {
           <ScrollView style={{ maxHeight: height * 0.6 }} contentContainerStyle={styles.list}>
             {choices.map(choice => {
               const selected = choice.id === selectedId;
+              const label = choice.active === false ? `${choice.name} · Archived` : choice.name;
               return <Pressable key={choice.id} accessibilityRole="button"
-                accessibilityState={{ selected }} accessibilityLabel={choice.name}
+                accessibilityState={{ selected }} accessibilityLabel={label}
                 onPress={() => { setOpen(false); onSelect(choice.id); }} style={styles.row}>
-                <Text style={[styles.rowLabel, selected && styles.selected]}>{choice.name}</Text>
+                <Text style={[styles.rowLabel, selected && styles.selected]}>{label}</Text>
                 {selected && <Text style={styles.check}>✓</Text>}
               </Pressable>;
             })}

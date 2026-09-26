@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { getRatingTrend } from '../analytics/ratingTrend';
+import { getRatingTrend, ratingTrendConfig } from '../analytics/ratingTrend';
 import { getAdaptiveTrend } from '../analytics/ratingTrendPresentation';
 import { RatingDistributionTimeline } from '../analytics/ratingDistribution';
 import { useAnalyticsData } from '../analytics/useAnalyticsData';
@@ -26,11 +26,7 @@ function timelineKey(value: string | undefined): RatingDistributionTimeline {
 export default function ExpandedTrendScreen() {
   const params = useLocalSearchParams<{ task?: string; source?: string; start?: string; end?: string; timeline?: string }>();
   const router = useRouter();
-  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const closing = useRef(false);
-  const popped = useRef(false);
-  const [restoring, setRestoring] = useState(false);
-  const [screenFrame, setScreenFrame] = useState({ width: 0, height: 0 });
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
   const sourceIsDemo = __DEV__ && params.source === 'demo';
   const { dataset, loading } = useAnalyticsData(sourceIsDemo);
@@ -49,34 +45,22 @@ export default function ExpandedTrendScreen() {
   const close = useCallback(() => {
     if (closing.current) return;
     closing.current = true;
-    setRestoring(true);
-  }, []);
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/insights');
+  }, [router]);
   useEffect(() => {
     const listener = BackHandler.addEventListener('hardwareBackPress', () => { close(); return true; });
     return () => listener.remove();
   }, [close]);
-  useEffect(() => {
-    if (!restoring || screenFrame.width <= 0 || screenFrame.height < screenFrame.width ||
-      windowHeight < windowWidth || popped.current) return;
-    popped.current = true;
-    if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/insights');
-  }, [restoring, screenFrame, windowWidth, windowHeight, router]);
-
   // Render from the actual container size, then remount as native rotation changes it.
   const ready = expandedBoundsReady(bounds.width, bounds.height);
   const rangeLabel = period.startDate === period.endDate ? shortDate(period.startDate) :
     `${shortDate(period.startDate)} – ${shortDate(period.endDate)}`;
 
-  return <SafeAreaView style={styles.screen} edges={['top', 'bottom', 'left', 'right']}
-    onLayout={event => {
-      const { width, height } = event.nativeEvent.layout;
-      setScreenFrame(current => current.width === width && current.height === height ? current : { width, height });
-    }}>
-    <Stack.Screen options={{ orientation: restoring ? 'portrait_up' : 'landscape' }} />
+  return <SafeAreaView style={styles.screen} edges={['top', 'bottom', 'left', 'right']}>
     <View style={styles.header}>
       <View style={styles.heading}>
-        <Text style={styles.taskName} numberOfLines={1}>{task?.name ?? 'Rating trend'}</Text>
+        <Text style={styles.taskName} numberOfLines={1}>{task?.name ?? ratingTrendConfig.title}</Text>
         <Text style={styles.range} numberOfLines={1}>{rangeLabel}</Text>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Close expanded trend"
@@ -92,8 +76,7 @@ export default function ExpandedTrendScreen() {
       const { width, height } = event.nativeEvent.layout;
       setBounds(current => current.width === width && current.height === height ? current : { width, height });
     }}>
-      {restoring ? <Text style={styles.message}>Restoring portrait…</Text> :
-        !ready ? <Text style={styles.message}>Preparing landscape chart…</Text> :
+      {!ready ? <Text style={styles.message}>Preparing landscape chart…</Text> :
         loading ? <Text style={styles.message}>Loading chart…</Text> :
         data && view ? <ExpandedRatingTrendChart
           key={`${period.startDate}-${period.endDate}-${Math.round(bounds.width)}-${Math.round(bounds.height)}`}

@@ -1,11 +1,20 @@
-import { RatingScaleVersion, Task, TaskDraft, TaskOption, normalizeOptions, validateDraft, localDate } from '../domain/task';
+import { RatingScaleVersion, Task, TaskDraft, TaskLifecycleTransition, TaskOption, normalizeOptions, validateDraft, localDate } from '../domain/task';
 import { changesScaleStructure, reordersExistingOptions } from '../domain/ratingScale';
 import { Connection, SqlDatabase } from './connection';
+import { ACTIVE_TASK_LIMIT_MESSAGE, MAX_ACTIVE_TASKS } from '../config/taskLimits';
+import { nextTaskColor } from '../analytics/taskColors';
 type TaskRow = Omit<Task, 'options' | 'active'> & { active: number };
 type OptionRow = Omit<TaskOption, 'active'> & { active: number };
 type VersionRow = Omit<RatingScaleVersion, 'options'> & { optionsJson: string };
 export class TrendResetConfirmationRequired extends Error {
   constructor() { super('Reordering recorded rating levels requires confirmation.'); }
+}
+export class ActiveTaskLimitError extends Error {
+  constructor() { super(ACTIVE_TASK_LIMIT_MESSAGE); this.name = 'ActiveTaskLimitError'; }
+}
+async function assertActiveTaskCapacity(db: SqlDatabase) {
+  const row = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM tasks WHERE active = 1');
+  if ((row?.count ?? 0) >= MAX_ACTIVE_TASKS) throw new ActiveTaskLimitError();
 }
 function toVersion(row: VersionRow): RatingScaleVersion {
   return { id: row.id, taskId: row.taskId, trendEpochId: row.trendEpochId,
@@ -25,7 +34,9 @@ export class TaskRepository {
   constructor(private connection: Connection, private id: () => string) {}
   getAll(): Promise<Task[]> {
     return this.connection.run(async db => {
-      const tasks = await db.getAllAsync<TaskRow>('SELECT * FROM tasks ORDER BY createdAt, id');
+      const tasks = await db.getAllAsync<TaskRow>(`SELECT * FROM tasks ORDER BY
+        COALESCE((SELECT MAX(occurredAt) FROM task_lifecycle_transitions
+          WHERE taskId = tasks.id AND type = 'restored'), createdAt), id`);
       const options = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE active = 1 ORDER BY position');
       return tasks.map(task => ({ ...task, active: !!task.active, options: options.filter(o => o.taskId === task.id).map(o => ({ ...o, active: !!o.active })) }));
     });
@@ -40,6 +51,12 @@ export class TaskRepository {
       taskId ? 'SELECT * FROM rating_scale_versions WHERE taskId = ? ORDER BY createdAt, rowid' : 'SELECT * FROM rating_scale_versions ORDER BY createdAt, rowid',
       ...(taskId ? [taskId] : []))).map(toVersion));
   }
+  getLifecycleTransitions(taskId?: string): Promise<TaskLifecycleTransition[]> {
+    return this.connection.run(async db => (await db.getAllAsync<Omit<TaskLifecycleTransition, 'inferred'> & { inferred: number }>(
+      taskId ? `SELECT rowid AS sequence, * FROM task_lifecycle_transitions WHERE taskId = ? ORDER BY occurredAt, rowid` :
+        `SELECT rowid AS sequence, * FROM task_lifecycle_transitions ORDER BY occurredAt, rowid`,
+      ...(taskId ? [taskId] : []))).map(row => ({ ...row, inferred: !!row.inferred })));
+  }
   async requiresTrendReset(id: string, draft: TaskDraft) {
     return this.connection.run(async db => {
       const task = await readTask(db, id);
@@ -51,10 +68,14 @@ export class TaskRepository {
   create(draft: TaskDraft) {
     return this.connection.transaction(async db => {
       const error = validateDraft(draft); if (error) throw new Error(error);
+      await assertActiveTaskCapacity(db);
       const id = this.id(); const now = new Date().toISOString();
       const scaleId = this.id(); const epochId = this.id();
-      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, currentScaleVersionId, currentTrendEpochId) VALUES (?, ?, ?, ?, 1, ?, ?)',
-        id, draft.name.trim(), now, now, scaleId, epochId);
+      const usedColors = await db.getAllAsync<{ chartColor: string }>(
+        'SELECT chartColor FROM tasks WHERE chartColor IS NOT NULL');
+      const chartColor = nextTaskColor(usedColors.map(row => row.chartColor));
+      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, currentScaleVersionId, currentTrendEpochId) VALUES (?, ?, ?, ?, 1, ?, NULL, ?, ?, ?)',
+        id, draft.name.trim(), now, now, localDate(), chartColor, scaleId, epochId);
       const options = normalizeOptions(id, draft.options, now);
       for (const option of options) await insertOption(db, option);
       await insertVersion(db, { id: scaleId, taskId: id, trendEpochId: epochId, createdAt: now, effectiveLocalDate: localDate(),
@@ -97,11 +118,31 @@ export class TaskRepository {
   restore(id: string) { return this.setActive(id, true); }
   private setActive(id: string, active: boolean) {
     return this.connection.transaction(async db => {
-      if (!await readTask(db, id)) throw new Error('Task not found.');
-      await db.runAsync('UPDATE tasks SET active = ?, updatedAt = ? WHERE id = ?', Number(active), new Date().toISOString(), id);
+      const task = await readTask(db, id);
+      if (!task) throw new Error('Task not found.');
+      if (task.active === active) return;
+      if (active) await assertActiveTaskCapacity(db);
+      const moment = new Date(); const now = moment.toISOString();
+      const day = localDate(moment);
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+      await db.runAsync('UPDATE tasks SET active = ?, archivedAt = ?, updatedAt = ? WHERE id = ?',
+        Number(active), active ? null : now, now, id);
+      await db.runAsync(`INSERT INTO task_lifecycle_transitions
+        (id, taskId, type, occurredAt, localDate, utcOffsetMinutes, timeZone, inferred)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
+        this.id(), id, active ? 'restored' : 'archived', now, day,
+        -moment.getTimezoneOffset(), timeZone);
     });
   }
   delete(id: string) { return this.connection.transaction(async db => { await db.runAsync('DELETE FROM tasks WHERE id = ?', id); }); }
+  deleteArchivedTasks() {
+    return this.connection.transaction(async db => { await db.runAsync('DELETE FROM tasks WHERE active = 0'); });
+  }
+  deleteAllLocalData() {
+    // Foreign-key cascades remove options, entries, scale versions, and lifecycle
+    // transitions together. Keep app_metadata so legacy data cannot re-import.
+    return this.connection.transaction(async db => { await db.runAsync('DELETE FROM tasks'); });
+  }
   createTask(draft: TaskDraft) { return this.create(draft); }
   updateTask(id: string, draft: TaskDraft, confirmTrendReset = false) { return this.update(id, draft, confirmTrendReset); }
   archiveTask(id: string) { return this.archive(id); }

@@ -1,9 +1,11 @@
 {
   "id": "activity-calendar",
-  "title": "Calendar",
+  "title": "Your Days",
+  "subtitle": "Look back at your daily journey.",
   "calculator": "individualCalendar",
   "dataSource": "dailyEntries",
   "scope": "individual",
+  "section": "everyday",
   "type": "month-calendar",
   "visibility": "available-with-history",
   "display": {

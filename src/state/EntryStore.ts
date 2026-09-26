@@ -37,6 +37,11 @@ export class EntryStore {
   hydrateHistory(taskId: string, dates: string[], entries: DailyEntry[], checkpoint = this.revision) {
     for (const date of dates) this.hydrate(taskId, date, entries.find(e => e.localDate === date), checkpoint);
   }
+  clear() {
+    this.values.clear(); this.confirmed.clear(); this.writes.clear(); this.versions.clear();
+    this.revision++;
+    this.listeners.forEach(group => group.forEach(listener => listener()));
+  }
   async optimistic(taskId: string, date: string, next: DailyEntry | undefined,
     persist: () => Promise<DailyEntry | undefined>, recover: () => Promise<DailyEntry | null>) {
     const key = this.key(taskId, date); const revision = ++this.revision;

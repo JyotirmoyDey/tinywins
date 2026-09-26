@@ -1,1 +1,1 @@
-{"id":"combined-calendar","title":"Combined calendar","calculator":"combinedRecordingCalendar","dataSource":"dailyEntries","scope":"all","type":"month-calendar","visibility":"all-activities","display":{"showCoverageStates":true,"color":"#2A9D8F"}}
+{"id":"combined-calendar","title":"Your Days","subtitle":"Recording coverage across your activities.","calculator":"combinedRecordingCalendar","dataSource":"dailyEntries","scope":"all","type":"month-calendar","visibility":"all-activities","display":{"showCoverageStates":true,"color":"#2A9D8F"}}

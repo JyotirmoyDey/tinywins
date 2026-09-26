@@ -1,0 +1,30 @@
+{
+  "id": "journey-together",
+  "title": "Your Journey Together",
+  "subtitle": "See how your activities change over time.",
+  "calculator": "ratingTrend",
+  "type": "categorical-small-multiples",
+  "location": "all-activities",
+  "scope": "all",
+  "dataSource": "daily-entries",
+  "timeline": "shared",
+  "visible": true,
+  "displayOrder": 1,
+  "presentation": {
+    "initialActivities": 4,
+    "dailyThroughDays": 30,
+    "miniPlotHeight": 56,
+    "horizontalInset": 5,
+    "verticalInset": 6,
+    "markerRadius": 2.5,
+    "lineWidth": 1.6,
+    "axisLabelCount": 3
+  },
+  "style": {
+    "gridColor": "#E9E9E5",
+    "colors": [
+      "#318779", "#507EAD", "#C17B5D", "#9273AF", "#AE914A", "#B36C84",
+      "#548D91", "#7C82AD", "#9A8168", "#708C5C", "#A76C68", "#7779A0"
+    ]
+  }
+}

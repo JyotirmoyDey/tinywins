@@ -14,8 +14,12 @@ import { getRepositories } from '../data/runtime';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
 import { Button } from './ui';
 import { EditableOptionRow } from './EditableOptionRow';
+import { ActiveTaskLimitError } from '../data/repository';
+import { ACTIVE_TASK_LIMIT_MESSAGE, MAX_ACTIVE_TASKS } from '../config/taskLimits';
 export function TaskForm({ task }: { task?: Task }) {
-  const router = useRouter(); const navigation = useNavigation(); const { mutate } = useTasks();
+  const router = useRouter(); const navigation = useNavigation(); const { data, loading, mutate, reload } = useTasks();
+  const activeCount = data.tasks.filter(item => item.active).length;
+  const atLimit = !task && !loading && activeCount >= MAX_ACTIVE_TASKS;
   const [name, setName] = useState(task?.name ?? '');
   const [options, setOptions] = useState(() => task?.options.map(({ id, label }) => ({ id, label })) ?? ['Low', 'Medium', 'High'].map(label => ({ id: randomUUID(), label })));
   const positions = useSharedValue(positionsForIds(options.map(option => option.id)));
@@ -60,6 +64,10 @@ export function TaskForm({ task }: { task?: Task }) {
   const mutateCheck = async (id: string, draft: TaskDraft) => (await getRepositories()).tasks.requiresTrendReset(id, draft);
   const save = async () => {
     if (busy || sorting) return;
+    if (!task && (loading || atLimit)) {
+      if (atLimit) setError(ACTIVE_TASK_LIMIT_MESSAGE);
+      return;
+    }
     const draft: TaskDraft = { name, options }; const message = validateDraft(draft);
     if (message) {
       setError(message); AccessibilityInfo.announceForAccessibility(message);
@@ -72,7 +80,13 @@ export function TaskForm({ task }: { task?: Task }) {
       try {
         await mutate(repo => task ? repo.updateTask(task.id, draft, confirmTrendReset) : repo.createTask(draft));
         AccessibilityInfo.announceForAccessibility(task ? 'Task updated' : 'Task created'); setSaved(true);
-      } catch { setError('Your task could not be saved. Please try again.'); setBusy(false); }
+      } catch (failure) {
+        if (failure instanceof ActiveTaskLimitError) {
+          setError(ACTIVE_TASK_LIMIT_MESSAGE);
+          void reload();
+        } else setError('Your task could not be saved. Please try again.');
+        setBusy(false);
+      }
     };
     if (task) {
       try {
@@ -100,6 +114,8 @@ export function TaskForm({ task }: { task?: Task }) {
         }}>
         <Text style={[t.screenTitle, { color: c.textPrimary }]}>{task ? 'Make it yours.' : 'A little starts here.'}</Text>
         <Text style={[t.body, styles.subtitle]}>{task ? 'Adjust your task to fit your day.' : 'What would you like to check in on?'}</Text>
+        {!task && !loading && <Text style={styles.taskCount}>{activeCount} of {MAX_ACTIVE_TASKS} tasks</Text>}
+        {atLimit && <Text style={styles.limitMessage} accessibilityRole="alert">{ACTIVE_TASK_LIMIT_MESSAGE}</Text>}
         <Text style={styles.label}>Task name</Text>
         <TextInput ref={nameInput} onFocus={() => onKeyboardFocus(nameInput.current)} value={name} onChangeText={value => { setName(value); setError(null); }} placeholder="Guitar Practice"
           placeholderTextColor={c.textSecondary} accessibilityLabel="Task name" maxLength={80} returnKeyType="next" submitBehavior="submit"
@@ -123,7 +139,10 @@ export function TaskForm({ task }: { task?: Task }) {
           }} />
         <Text style={[t.secondary, { color: c.textSecondary, marginTop: s.md }]}>Choose 2–7 options, from lowest to highest.</Text>
       </ScrollView></GestureDetector></View>
-      <View style={styles.footer}>{error && <Text accessibilityRole="alert" style={[t.secondary, { color: c.danger, marginBottom: s.sm }]}>{error}</Text>}<Button label={busy ? 'Saving…' : task ? 'Save changes' : 'Create task'} onPress={() => void save()} disabled={busy || sorting} /></View>
+      <View style={styles.footer}>{error && !(atLimit && error === ACTIVE_TASK_LIMIT_MESSAGE) &&
+        <Text accessibilityRole="alert" style={[t.secondary, { color: c.danger, marginBottom: s.sm }]}>{error}</Text>}
+        <Button label={busy ? 'Saving…' : task ? 'Save changes' : 'Create task'}
+          onPress={() => void save()} disabled={busy || sorting || (!task && (loading || atLimit))} /></View>
     </KeyboardAvoidingView>
   </SafeAreaView></GestureHandlerRootView>;
 }
@@ -131,6 +150,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background }, topbar: { paddingHorizontal: s.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 56 },
   back: { minHeight: 44, minWidth: 76, justifyContent: 'center' }, content: { paddingHorizontal: s.xxl, paddingTop: s.xl, paddingBottom: s.xxxl },
   subtitle: { color: c.textSecondary, marginTop: s.sm, marginBottom: s.xxl }, label: { ...t.button, color: c.textPrimary, marginBottom: s.md },
+  taskCount: { ...t.caption, color: c.textSecondary, marginBottom: s.sm },
+  limitMessage: { ...t.secondary, color: c.textSecondary, marginBottom: s.lg },
   nameInput: { ...t.body, color: c.textPrimary, backgroundColor: c.surface, minHeight: 56, borderWidth: 1, borderColor: c.borderStrong, borderRadius: r.md, padding: s.lg },
   orderLabel: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: s.md }, orderText: { ...t.secondary, color: c.textSecondary },
   footer: { paddingHorizontal: s.xxl, paddingVertical: s.md, borderTopWidth: 1, borderColor: c.border, backgroundColor: c.background },

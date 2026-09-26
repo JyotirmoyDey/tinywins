@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors as c, spacing as s, typography as t } from '../../theme';
 
-interface Activity { id: string; name: string }
+interface Activity { id: string; name: string; active?: boolean }
 interface Props { tasks: Activity[]; selectedId: string; onSelect: (id: string) => void }
 
 export function ActivitySelector({ tasks, selectedId, onSelect }: Props) {
@@ -18,7 +18,7 @@ export function ActivitySelector({ tasks, selectedId, onSelect }: Props) {
     onLayout={event => { viewport.current = event.nativeEvent.layout.width; positionSelected(); }}
     contentContainerStyle={styles.content} style={styles.scroll}>
     <View onLayout={event => { widths.current.set('all', { x: event.nativeEvent.layout.x, width: event.nativeEvent.layout.width }); if (selectedId === 'all') positionSelected(); }}><Chip label="All" selected={selectedId === 'all'} onPress={() => onSelect('all')} /></View>
-    {tasks.map(task => <View key={task.id} onLayout={event => { widths.current.set(task.id, { x: event.nativeEvent.layout.x, width: event.nativeEvent.layout.width }); if (selectedId === task.id) positionSelected(); }}><Chip label={task.name} selected={selectedId === task.id} onPress={() => onSelect(task.id)} /></View>)}
+    {tasks.map(task => <View key={task.id} onLayout={event => { widths.current.set(task.id, { x: event.nativeEvent.layout.x, width: event.nativeEvent.layout.width }); if (selectedId === task.id) positionSelected(); }}><Chip label={task.active === false ? `${task.name} · Archived` : task.name} selected={selectedId === task.id} onPress={() => onSelect(task.id)} /></View>)}
   </ScrollView>;
 }
 

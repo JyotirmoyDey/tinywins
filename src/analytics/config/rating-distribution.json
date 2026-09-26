@@ -1,9 +1,11 @@
 {
   "id": "rating-distribution",
-  "title": "Rating distribution",
+  "title": "Your Rating Mix",
+  "subtitle": "Discover which levels you record most often.",
   "type": "horizontal-bar",
   "calculator": "ratingDistribution",
   "location": "task-insights",
+  "section": "everyday",
   "scaleVersion": "current",
   "groupBy": "optionId",
   "metric": "count",

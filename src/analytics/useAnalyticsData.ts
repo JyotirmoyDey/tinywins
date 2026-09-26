@@ -21,8 +21,11 @@ export function useAnalyticsData(useDemo = false) {
         next = loadDemoDataset();
       } else {
         const repos = await getRepositories();
-        const [tasks, entries, versions] = await Promise.all([repos.tasks.getAll(), repos.entries.getAll(), repos.tasks.getScaleVersions()]);
-        next = getAnalyticsDataset(tasks.filter(task => task.active), entries, versions);
+        const [tasks, entries, versions, lifecycle] = await Promise.all([
+          repos.tasks.getAll(), repos.entries.getAll(), repos.tasks.getScaleVersions(),
+          repos.tasks.getLifecycleTransitions(),
+        ]);
+        next = getAnalyticsDataset(tasks, entries, versions, lifecycle);
       }
       if (request.current === current) { setDataset(next); setLoadedSource(useDemo); }
     } finally {

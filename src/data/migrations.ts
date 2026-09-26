@@ -1,4 +1,6 @@
 import { Connection } from './connection';
+import { localDate } from '../domain/task';
+import { colorsByTaskId, nextTaskColor } from '../analytics/taskColors';
 const migrations = [
   `CREATE TABLE tasks (
     id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL CHECK(length(trim(name)) > 0),
@@ -40,6 +42,20 @@ const migrations = [
      optionsJson TEXT NOT NULL
    );
    CREATE INDEX scale_versions_by_task ON rating_scale_versions(taskId, createdAt);`,
+  `ALTER TABLE tasks ADD COLUMN createdLocalDate TEXT;
+   ALTER TABLE tasks ADD COLUMN archivedAt TEXT;
+   CREATE TABLE task_lifecycle_transitions (
+     id TEXT PRIMARY KEY NOT NULL,
+     taskId TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+     type TEXT NOT NULL CHECK(type IN ('archived','restored')),
+     occurredAt TEXT NOT NULL,
+     localDate TEXT NOT NULL CHECK(length(localDate) = 10),
+     utcOffsetMinutes INTEGER NOT NULL,
+     timeZone TEXT NOT NULL,
+     inferred INTEGER NOT NULL DEFAULT 0 CHECK(inferred IN (0,1))
+   );
+   CREATE INDEX lifecycle_by_task_date ON task_lifecycle_transitions(taskId, localDate, occurredAt);`,
+  `ALTER TABLE tasks ADD COLUMN chartColor TEXT;`,
 ];
 export async function migrate(connection: Connection) {
   await connection.run(db => db.execAsync('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;'));
@@ -80,6 +96,35 @@ export async function migrate(connection: Connection) {
             SELECT 1 FROM rating_scale_versions WHERE id = NEW.scaleVersionIdAtEntry
             AND taskId = NEW.taskId AND trendEpochId = NEW.trendEpochIdAtEntry)
           BEGIN SELECT RAISE(ABORT, 'Invalid historical rating-scale identity'); END;`);
+      } else if (index === 3) {
+        await db.execAsync(migrations[index]);
+        const tasks = await db.getAllAsync<{ id: string; createdAt: string; updatedAt: string; active: number }>(
+          'SELECT id, createdAt, updatedAt, active FROM tasks');
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+        for (const task of tasks) {
+          const created = new Date(task.createdAt);
+          const createdDay = Number.isNaN(created.getTime()) ? null : localDate(created);
+          const archived = new Date(task.updatedAt);
+          const inferredArchive = Number.isNaN(archived.getTime()) ? new Date() : archived;
+          await db.runAsync('UPDATE tasks SET createdLocalDate = ?, archivedAt = ? WHERE id = ?',
+            createdDay, task.active ? null : inferredArchive.toISOString(), task.id);
+          if (!task.active) await db.runAsync(`INSERT INTO task_lifecycle_transitions
+            (id, taskId, type, occurredAt, localDate, utcOffsetMinutes, timeZone, inferred)
+            VALUES (?, ?, 'archived', ?, ?, ?, ?, 1)`,
+            `${task.id}:migration-archive`, task.id, inferredArchive.toISOString(),
+            localDate(inferredArchive), -inferredArchive.getTimezoneOffset(), timeZone);
+        }
+      } else if (index === 4) {
+        await db.execAsync(migrations[index]);
+        const tasks = await db.getAllAsync<{ id: string }>('SELECT id FROM tasks ORDER BY id');
+        const previous = colorsByTaskId(tasks.map(task => task.id));
+        const used = new Set<string>();
+        for (const task of tasks) {
+          const suggested = previous.get(task.id);
+          const color = suggested && !used.has(suggested) ? suggested : nextTaskColor(used);
+          await db.runAsync('UPDATE tasks SET chartColor = ? WHERE id = ?', color, task.id);
+          used.add(color);
+        }
       } else await db.execAsync(migrations[index]);
       await db.execAsync(`PRAGMA user_version = ${index + 1}`);
     }

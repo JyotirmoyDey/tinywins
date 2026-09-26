@@ -1,8 +1,55 @@
 import React, {useState} from 'react';
-import {Pressable, StyleSheet, Text, View, useWindowDimensions} from 'react-native';
+import {Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import Svg,{Circle,Line,Path,Text as SvgText} from 'react-native-svg';
 import {colors as c, spacing as s, typography as t} from '../../theme';
-export function AnalyticsCard({title,description,children,footer,headerAction}:{title:string;description?:string;children:React.ReactNode;footer?:string;headerAction?:React.ReactNode}){return <View style={styles.card}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:s.sm}}><Text style={[t.sectionTitle,{flex:1,minWidth:0}]}>{title}</Text>{headerAction}</View>{description&&<Text style={styles.desc}>{description}</Text>}{children}{footer&&<Text style={styles.footer}>{footer}</Text>}</View>}
+export function AnalyticsCard({title,description,detail,contextLabel,children,footer,headerAction}:{
+  title:string;description?:string;detail?:string;contextLabel?:string;children:React.ReactNode;
+  footer?:string;headerAction?:React.ReactNode;
+}){
+  const [infoOpen,setInfoOpen]=useState(false);
+  return <View style={styles.card}>
+    <View style={styles.cardHeader}>
+      <View style={styles.cardHeading}>
+        <Text style={styles.cardTitle}>{title}</Text>
+        {description&&<Pressable accessibilityRole="button" accessibilityLabel={`About ${title}`}
+          accessibilityHint="Opens a description of this chart" accessibilityState={{expanded:infoOpen}}
+          hitSlop={6} onPress={()=>setInfoOpen(true)} style={styles.infoTrigger}>
+          <Svg width={18} height={18} viewBox="0 0 24 24" accessible={false}>
+            <Circle cx={12} cy={12} r={9} fill="none" stroke={c.textSecondary} strokeWidth={1.6}/>
+            <Circle cx={12} cy={7.5} r={1} fill={c.textSecondary}/>
+            <Path d="M12 11v6" stroke={c.textSecondary} strokeWidth={1.6} strokeLinecap="round"/>
+          </Svg>
+        </Pressable>}
+      </View>
+      {headerAction}
+    </View>
+    {contextLabel&&<Text style={styles.contextLabel}>{contextLabel}</Text>}
+    {children}
+    {footer&&<Text style={styles.footer}>{footer}</Text>}
+    {description&&<Modal visible={infoOpen} transparent animationType="fade"
+      onRequestClose={()=>setInfoOpen(false)}>
+      <SafeAreaView style={styles.infoOverlay} edges={['top','bottom']}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={()=>setInfoOpen(false)}
+          accessibilityRole="button" accessibilityLabel="Dismiss chart information"/>
+        <View style={styles.infoPanel} accessibilityViewIsModal>
+          <View style={styles.infoPanelHeader}>
+            <Text style={styles.infoTitle}>{title}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close chart information"
+              onPress={()=>setInfoOpen(false)} style={styles.infoClose}>
+              <Text style={styles.infoCloseText}>×</Text>
+            </Pressable>
+          </View>
+          <ScrollView bounces={false} style={styles.infoBody}
+            contentContainerStyle={styles.infoBodyContent}>
+            <Text style={styles.infoDescription}>{description}</Text>
+            {detail&&<Text style={styles.infoDetail}>{detail}</Text>}
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    </Modal>}
+  </View>;
+}
 export function RangeControl({value,onChange}:{value:string;onChange:(v:any)=>void}){return <View style={styles.range}>{(['30D','3M','6M','1Y'] as const).map(x=><Pressable key={x} onPress={()=>onChange(x)} style={[styles.rangeItem,value===x&&styles.rangeSelected]}><Text style={[t.caption,{color:value===x?c.selectedText:c.textSecondary}]}>{x}</Text></Pressable>)}</View>}
 function coords(values:(number|null)[],w:number,h:number){const min=0,max=100;return values.map((v,i)=>v===null?null:{x:8+(i/(Math.max(1,values.length-1)))*(w-16),y:h-12-(v-min)/(max-min)*(h-24)});}
 export function LineChart({values,color,labels=[],showDots=true}:{values:(number|null)[];color:string;labels?:string[];showDots?:boolean}){const w=Math.max(260,useWindowDimensions().width-64),h=180;const pts=coords(values,w,h);let d='';let open=false;pts.forEach((p)=>{if(!p){open=false;return;} d+=(open?' L ':' M ')+`${p.x} ${p.y}`;open=true;});return <Svg width={w} height={h} accessibilityLabel="Analytics line chart"><Line x1="8" y1="12" x2="8" y2={h-12} stroke="#E4E4DF"/><Line x1="8" y1={h-12} x2={w-8} y2={h-12} stroke="#E4E4DF"/><Path d={d} fill="none" stroke={color} strokeWidth={2}/>{showDots&&pts.map((p,i)=>p&&<Circle key={i} cx={p.x} cy={p.y} r={3.5} fill={color}/>) }{labels.length>0&&<><SvgText x="8" y={h-1} fill="#74746F" fontSize="10">{labels[0]}</SvgText><SvgText x={w-8} y={h-1} fill="#74746F" fontSize="10" textAnchor="end">{labels.at(-1)}</SvgText></>}</Svg>}
@@ -11,4 +58,31 @@ export function BarChart({items,color}:{items:{label:string;value:number|null;co
 export function Heatmap({cells,color}:{cells:{date:string;weight:number|null;label?:string}[];color:string}){const [selected,setSelected]=useState<typeof cells[number]|null>(null);return <View><View style={styles.heatGrid}>{cells.map((x,i)=><Pressable accessibilityLabel={`${x.date}${x.label?`, ${x.label}`:', no entry'}`} key={x.date} onPress={()=>setSelected(x)} style={[styles.cell,{backgroundColor:x.weight===null?'#D7D7D2':color,opacity:x.weight===null?.5:.15+(x.weight/100)*.85}]}/>)}</View>{selected&&<Text style={styles.tooltip}>{selected.date}  {selected.label||'—'}</Text>}</View>}
 export function ScatterPlot({points,color}:{points:{x:number;y:number;date?:string}[];color:string}){const w=Math.max(260,useWindowDimensions().width-64),h=180;return <Svg width={w} height={h} accessibilityLabel="Analytics scatter plot"><Line x1="8" y1="12" x2="8" y2={h-12} stroke="#E4E4DF"/><Line x1="8" y1={h-12} x2={w-8} y2={h-12} stroke="#E4E4DF"/>{points.map((p,i)=><Circle key={i} cx={8+(p.x/100)*(w-16)} cy={h-12-(p.y/100)*(h-24)} r={4} fill={color}/>)}</Svg>}
 export function Placeholder({children}:{children:string}){return <View style={styles.placeholder}><Text style={styles.placeholderText}>{children}</Text></View>}
-const styles=StyleSheet.create({card:{backgroundColor:c.surface,borderColor:c.border,borderWidth:1,borderRadius:16,padding:s.lg,gap:s.sm},desc:{...t.secondary,color:c.textSecondary},footer:{...t.caption,color:c.textSecondary,marginTop:s.sm},range:{flexDirection:'row',backgroundColor:c.surfaceSecondary,borderRadius:10,padding:3,alignSelf:'flex-start'},rangeItem:{paddingVertical:7,paddingHorizontal:12,borderRadius:8},rangeSelected:{backgroundColor:c.selected},bars:{gap:10},barRow:{flexDirection:'row',alignItems:'center',gap:8},barLabel:{width:72,...t.caption,color:c.textPrimary},barPercent:{width:38,textAlign:'right',...t.caption,color:c.textSecondary},barTrack:{flex:1,height:12,backgroundColor:c.surfaceSecondary,borderRadius:6,overflow:'hidden'},barFill:{height:'100%',borderRadius:6},barValue:{width:42,textAlign:'right',...t.caption,color:c.textSecondary},heatGrid:{flexDirection:'row',flexWrap:'wrap',gap:4},cell:{width:16,height:16,borderRadius:4},tooltip:{...t.secondary,color:c.textPrimary,marginTop:s.sm},placeholder:{backgroundColor:c.surfaceSecondary,borderRadius:10,padding:s.lg},placeholderText:{...t.secondary,color:c.textSecondary}});
+const styles=StyleSheet.create({
+  card:{backgroundColor:c.surface,borderColor:c.border,borderWidth:1,borderRadius:16,padding:s.lg,gap:s.sm},
+  cardHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:s.sm,minWidth:0},
+  cardHeading:{flex:1,minWidth:0,flexDirection:'row',alignItems:'center',gap:s.xs},
+  cardTitle:{...t.sectionTitle,color:c.textPrimary,flexShrink:1,minWidth:0},
+  infoTrigger:{width:32,height:32,alignItems:'center',justifyContent:'center',flexShrink:0},
+  contextLabel:{...t.secondary,color:c.textSecondary},
+  infoOverlay:{flex:1,justifyContent:'center',paddingHorizontal:s.xl,backgroundColor:'rgba(30,30,28,0.24)'},
+  infoPanel:{alignSelf:'center',width:'100%',maxWidth:360,maxHeight:'80%',backgroundColor:c.surface,
+    borderWidth:1,borderColor:c.borderStrong,borderRadius:16,padding:s.lg,gap:s.sm},
+  infoPanelHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:s.sm},
+  infoTitle:{...t.sectionTitle,color:c.textPrimary,flex:1,minWidth:0},
+  infoClose:{width:44,height:44,alignItems:'center',justifyContent:'center'},
+  infoCloseText:{fontSize:25,lineHeight:29,color:c.textSecondary},
+  infoBody:{flexGrow:0},infoBodyContent:{gap:s.md,paddingBottom:s.xs},
+  infoDescription:{...t.body,color:c.textPrimary},infoDetail:{...t.secondary,color:c.textSecondary},
+  footer:{...t.caption,color:c.textSecondary,marginTop:s.sm},
+  range:{flexDirection:'row',backgroundColor:c.surfaceSecondary,borderRadius:10,padding:3,alignSelf:'flex-start'},
+  rangeItem:{paddingVertical:7,paddingHorizontal:12,borderRadius:8},rangeSelected:{backgroundColor:c.selected},
+  bars:{gap:10},barRow:{flexDirection:'row',alignItems:'center',gap:8},
+  barLabel:{width:72,...t.caption,color:c.textPrimary},barPercent:{width:38,textAlign:'right',...t.caption,color:c.textSecondary},
+  barTrack:{flex:1,height:12,backgroundColor:c.surfaceSecondary,borderRadius:6,overflow:'hidden'},
+  barFill:{height:'100%',borderRadius:6},barValue:{width:42,textAlign:'right',...t.caption,color:c.textSecondary},
+  heatGrid:{flexDirection:'row',flexWrap:'wrap',gap:4},cell:{width:16,height:16,borderRadius:4},
+  tooltip:{...t.secondary,color:c.textPrimary,marginTop:s.sm},
+  placeholder:{backgroundColor:c.surfaceSecondary,borderRadius:10,padding:s.lg},
+  placeholderText:{...t.secondary,color:c.textSecondary},
+});

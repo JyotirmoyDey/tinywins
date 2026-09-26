@@ -1,0 +1,36 @@
+{
+  "id": "recording-consistency-individual",
+  "title": "Check-in Rhythm",
+  "subtitle": "Explore how regularly you record your activity.",
+  "calculator": "recordingConsistency",
+  "type": "adaptive-vertical-bar",
+  "location": "task-insights",
+  "section": "patterns",
+  "scope": "individual",
+  "displayOrder": 2,
+  "visible": true,
+  "dataSource": "daily-entries",
+  "timeline": "shared",
+  "calculation": {
+    "metric": "recorded-eligible-days",
+    "weekStartsOn": "monday",
+    "eligibilityFallback": "first-recorded-date",
+    "excludeFuture": true,
+    "countLowestAsRecorded": true
+  },
+  "presentation": {
+    "dailyMaxDays": 7,
+    "customMonthlyMinDays": 112,
+    "maxWeeklyBars": 16,
+    "plotHeight": 150,
+    "dailyPlotHeight": 58,
+    "maxDateLabels": 4,
+    "minDateLabelGap": 64
+  },
+  "style": {
+    "barColor": "#398F80",
+    "gridColor": "#E9E9E5",
+    "emptyColor": "#D7D7D2",
+    "barRadius": 5
+  }
+}

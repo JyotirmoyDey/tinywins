@@ -145,7 +145,7 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
   return <View style={styles.card}>
     <View style={styles.heading}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, insights`}
-        onPress={() => router.navigate({ pathname: '/insights', params: { task: task.id } })} style={styles.taskLink}>
+        onPress={() => router.navigate({ pathname: '/insights', params: { task: task.id, mode: 'normal' } })} style={styles.taskLink}>
         <Text numberOfLines={2} style={styles.taskName}>{task.name}</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, ${label}. Show full rating label`} onPress={() => Alert.alert(task.name, label)} style={styles.labelTouch}>

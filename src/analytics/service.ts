@@ -1,7 +1,8 @@
-import { RatingScaleVersion, parseLocalDate, localDate } from '../domain/task';
+import { RatingScaleVersion, TaskLifecycleTransition, parseLocalDate, localDate } from '../domain/task';
 import { AnalyticsDataset, AnalyticsEntry, AnalyticsTask, RangeKey, TimelinePoint } from './types';
+import { createTaskDayEligibility } from '../domain/taskLifecycle';
+import { colorsByTaskId, fallbackTaskColor } from './taskColors';
 export const RANGE_DAYS: Record<RangeKey, number> = {'30D':30,'3M':90,'6M':180,'1Y':365};
-export const analyticsColors = ['#C96A5A','#5B5BD6','#2A9D8F','#C49335'];
 export function rangeDates(endDate: string, range: RangeKey): string[] { const d=parseLocalDate(endDate), n=RANGE_DAYS[range]; return Array.from({length:n},(_,i)=>{const x=new Date(d);x.setDate(d.getDate()-n+1+i);return localDate(x);}); }
 function inRange(date:string, dates:Set<string>){return dates.has(date)}
 function entriesFor(taskId:string, entries:AnalyticsEntry[], dates?:Set<string>){return entries.filter(e=>e.taskId===taskId && (!dates||inRange(e.localDate,dates))).sort((a,b)=>a.localDate.localeCompare(b.localDate));}
@@ -19,18 +20,19 @@ export function getActivityBalance(tasks:AnalyticsTask[],entries:AnalyticsEntry[
 export function getCrossTaskWeekdayPattern(tasks:AnalyticsTask[],entries:AnalyticsEntry[],endDate:string,range:RangeKey){return Array.from({length:7},(_,i)=>({weekday:i,label:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],series:tasks.map(t=>{const x=getWeekdayPattern(t.id,entries,endDate,range)[i];return {taskId:t.id,name:t.name,color:t.color,value:x.value};})}));}
 export function getPairedEntries(taskA:string,taskB:string,entries:AnalyticsEntry[],lag=0){const a=new Map(entriesFor(taskA,entries).map(e=>[e.localDate,e]));const b=new Map(entriesFor(taskB,entries).map(e=>[e.localDate,e]));const out:{date:string,x:number,y:number}[]=[];for(const [date,e] of a){const d=parseLocalDate(date);d.setDate(d.getDate()+lag);const target=localDate(d), other=b.get(target);if(other)out.push({date,x:e.normalizedWeightAtEntry,y:other.normalizedWeightAtEntry});}return out.sort((x,y)=>x.date.localeCompare(y.date));}
 export function getCorrelation(points:{x:number,y:number}[]){if(points.length<2)return null;const mx=points.reduce((a,p)=>a+p.x,0)/points.length,my=points.reduce((a,p)=>a+p.y,0)/points.length;const num=points.reduce((a,p)=>a+(p.x-mx)*(p.y-my),0),dx=Math.sqrt(points.reduce((a,p)=>a+(p.x-mx)**2,0)),dy=Math.sqrt(points.reduce((a,p)=>a+(p.y-my)**2,0));return dx&&dy?num/(dx*dy):null;}
-export function getAnalyticsDataset(tasks:TaskLike[],entries:AnalyticsEntry[],scaleVersions:RatingScaleVersion[] = []):AnalyticsDataset{return {tasks:tasks.map((t,i)=>({...t,color:analyticsColors[i%analyticsColors.length]})),entries,scaleVersions};}
-type TaskLike=Pick<AnalyticsTask,'id'|'name'|'options'|'createdAt'|'updatedAt'|'active'|'currentScaleVersionId'|'currentTrendEpochId'>;
+export function getAnalyticsDataset(tasks:TaskLike[],entries:AnalyticsEntry[],scaleVersions:RatingScaleVersion[] = [],lifecycle:TaskLifecycleTransition[] = []):AnalyticsDataset{const colorMap=colorsByTaskId(tasks.map(task=>task.id));return {tasks:tasks.map(t=>({...t,color:t.chartColor??colorMap.get(t.id)??fallbackTaskColor(t.id)})),entries,scaleVersions,lifecycle};}
+type TaskLike=Pick<AnalyticsTask,'id'|'name'|'options'|'createdAt'|'updatedAt'|'active'|'currentScaleVersionId'|'currentTrendEpochId'> & Pick<AnalyticsTask,'createdLocalDate'|'archivedAt'|'chartColor'>;
 
-export function getRecordingConsistency(tasks: AnalyticsTask[], entries: AnalyticsEntry[], period: {startDate:string;endDate:string}) {
+export function getRecordingConsistency(tasks: AnalyticsTask[], entries: AnalyticsEntry[], period: {startDate:string;endDate:string}, lifecycle:TaskLifecycleTransition[] = [], today = localDate()) {
   const start = parseLocalDate(period.startDate), end = parseLocalDate(period.endDate);
-  const days: string[] = []; const cursor = new Date(start); while (cursor <= end) { days.push(localDate(cursor)); cursor.setDate(cursor.getDate()+1); }
-  const rows = tasks.map(task => { const eligible = days.filter(day => !task.createdAt || day >= task.createdAt.slice(0,10)); const recorded = new Set(entries.filter(entry => entry.taskId===task.id && eligible.includes(entry.localDate)).map(entry=>entry.localDate)); return {taskId:task.id,name:task.name,color:task.color,eligibleDays:eligible.length,recordedDays:recorded.size,coverage:eligible.length?recorded.size/eligible.length:0}; });
+  const days: string[] = []; const cursor = new Date(start); while (cursor <= end && localDate(cursor) <= today) { days.push(localDate(cursor)); cursor.setDate(cursor.getDate()+1); }
+  const rows = tasks.map(task => { const recorded = new Set(entries.filter(entry=>entry.taskId===task.id).map(entry=>entry.localDate)); const eligibility = createTaskDayEligibility(task,lifecycle,recorded,today); const eligible=days.filter(eligibility.eligible); const recordedDays=eligible.filter(day=>recorded.has(day)).length; return {taskId:task.id,name:task.name,color:task.color,eligibleDays:eligible.length,recordedDays,coverage:eligible.length?recordedDays/eligible.length:0}; });
   const eligibleDays = rows.reduce((sum,row)=>sum+row.eligibleDays,0); const recordedDays = rows.reduce((sum,row)=>sum+row.recordedDays,0);
   return {rows, eligibleDays, recordedDays, coverage: eligibleDays ? recordedDays/eligibleDays : 0};
 }
-export function getCombinedRecordingCalendar(tasks: AnalyticsTask[], entries: AnalyticsEntry[], period: {startDate:string;endDate:string}) {
+export function getCombinedRecordingCalendar(tasks: AnalyticsTask[], entries: AnalyticsEntry[], period: {startDate:string;endDate:string}, lifecycle:TaskLifecycleTransition[] = [], today = localDate()) {
   const start=parseLocalDate(period.startDate), end=parseLocalDate(period.endDate); const cells:{date:string;recorded:number;eligible:number;ratio:number}[]=[]; const cursor=new Date(start);
-  while(cursor<=end){const date=localDate(cursor);const eligible=tasks.filter(task=>!task.createdAt||date>=task.createdAt.slice(0,10)).length;const recorded=new Set(entries.filter(entry=>entry.localDate===date).map(entry=>entry.taskId)).size;cells.push({date,recorded,eligible,ratio:eligible?recorded/eligible:0});cursor.setDate(cursor.getDate()+1);} return cells;
+  const eligibility=tasks.map(task=>({task,check:createTaskDayEligibility(task,lifecycle,entries.filter(entry=>entry.taskId===task.id).map(entry=>entry.localDate),today)}));
+  while(cursor<=end){const date=localDate(cursor);const relevant=eligibility.filter(item=>item.check.eligible(date));const eligible=relevant.length;const recordedIds=new Set(entries.filter(entry=>entry.localDate===date).map(entry=>entry.taskId));const recorded=relevant.filter(item=>recordedIds.has(item.task.id)).length;cells.push({date,recorded,eligible,ratio:eligible?recorded/eligible:0});cursor.setDate(cursor.getDate()+1);} return cells;
 }
 export function getWeekdayRecordingPattern(tasks: AnalyticsTask[], entries: AnalyticsEntry[], period: {startDate:string;endDate:string}) { return ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((label,index)=>{const dates=entries.filter(entry=>{const d=parseLocalDate(entry.localDate);return entry.localDate>=period.startDate&&entry.localDate<=period.endDate&&(d.getDay()+6)%7===index;}).map(entry=>entry.localDate);return {label,recorded: new Set(dates).size, observations: dates.length};}); }

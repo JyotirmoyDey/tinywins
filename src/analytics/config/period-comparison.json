@@ -1,0 +1,33 @@
+{
+  "id": "period-comparison",
+  "title": "Then & Now",
+  "subtitle": "See how this period compares with the last.",
+  "calculator": "periodComparison",
+  "type": "paired-horizontal-bar",
+  "location": "task-insights",
+  "section": "patterns",
+  "scope": "individual",
+  "displayOrder": 1,
+  "visible": true,
+  "dataSource": "daily-entries",
+  "timeline": "shared",
+  "calculation": {
+    "previousPeriod": "immediately-preceding-equal-days",
+    "groupBy": "optionId",
+    "metric": "percentage-of-recorded-days",
+    "excludeMissing": true,
+    "requireCompatibleScale": true
+  },
+  "presentation": {
+    "oneDay": "observation-summary",
+    "showRecordingCoverage": true,
+    "showCounts": true,
+    "showLegend": true,
+    "barMaximum": 100
+  },
+  "style": {
+    "currentColor": "#2A9D8F",
+    "previousColor": "#B8B8B3",
+    "barRadius": 6
+  }
+}

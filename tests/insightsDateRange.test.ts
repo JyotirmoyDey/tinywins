@@ -45,9 +45,9 @@ test('recorded-date bounds use the selected task or all entries without inventin
 
 test('picker bounds use reliable task creation dates in My Data and Demo Data', () => {
   const demo = loadDemoDataset();
-  assert.equal(earliestAvailableDate(demo.tasks, demo.entries, '2026-09-25'), '2026-06-25');
+  assert.equal(earliestAvailableDate(demo.tasks, demo.entries, '2026-09-25'), '2025-09-27');
   for (const task of demo.tasks) {
-    assert.equal(earliestAvailableDate(demo.tasks, demo.entries, '2026-09-25', task.id), '2026-06-25');
+    assert.equal(earliestAvailableDate(demo.tasks, demo.entries, '2026-09-25', task.id), '2025-09-27');
   }
   const tasks = [{ id: 'study', createdAt: '2026-09-18T15:00:00.000Z' }];
   const entries = [{ taskId: 'study', localDate: '2026-09-22' }];

@@ -1,10 +1,12 @@
 {
   "id": "rating-trend",
-  "title": "Rating trend",
+  "title": "How It's Going",
+  "subtitle": "See how your ratings change over time.",
   "calculator": "ratingTrend",
   "type": "adaptive-categorical",
   "location": "task-insights",
   "scope": "individual",
+  "section": "everyday",
   "displayOrder": 1,
   "visible": true,
   "dataSource": "daily-entries",

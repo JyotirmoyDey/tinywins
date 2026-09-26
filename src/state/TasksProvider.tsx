@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useSyncExternalStore } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { randomUUID } from 'expo-crypto';
-import { Task, createEntrySnapshot, localDate } from '../domain/task';
+import { Task, TaskLifecycleTransition, createEntrySnapshot, localDate } from '../domain/task';
 import { TaskRepository } from '../data/repository';
-import { getRepositories } from '../data/runtime';
+import { getRepositories, replaceLocalWithOneYearTestData } from '../data/runtime';
+import { resetLocalData } from '../data/resetLocalData';
 import { EntryStore } from './EntryStore';
 const entryStore = new EntryStore();
 interface Actions {
@@ -12,20 +13,37 @@ interface Actions {
   select: (task: Task, date: string, optionId: string | null, haptic?: boolean) => Promise<void>;
   loadHistory: (taskId: string, dates: string[]) => Promise<void>;
   reload: () => Promise<void>;
+  announce: (message: string) => void;
+  clearLocalData: () => Promise<void>;
+  loadOneYearTestData: () => Promise<void>;
 }
-interface TaskState { data: { tasks: Task[] }; today: string; loading: boolean; error: string | null }
+interface TaskState { data: { tasks: Task[]; lifecycle: TaskLifecycleTransition[] };
+  today: string; loading: boolean; error: string | null; notice: string | null }
 const StateContext = createContext<TaskState | null>(null);
 const ActionsContext = createContext<Actions | null>(null);
 export function TasksProvider({ children }: React.PropsWithChildren) {
-  const [tasks, setTasks] = useState<Task[]>([]); const [today, setToday] = useState(localDate());
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [lifecycle, setLifecycle] = useState<TaskLifecycleTransition[]>([]);
+  const [today, setToday] = useState(localDate());
   const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announce = useCallback((message: string) => {
+    setNotice(message);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), 3500);
+  }, []);
+  useEffect(() => () => { if (noticeTimer.current) clearTimeout(noticeTimer.current); }, []);
   const reload = useCallback(async () => {
     try {
       const checkpoint = entryStore.checkpoint();
       const repos = await getRepositories(); const date = localDate();
-      const nextTasks = await repos.tasks.getAll(); const entries = await repos.entries.getForDate(date);
+      const nextTasks = await repos.tasks.getAll();
+      const nextLifecycle = await repos.tasks.getLifecycleTransitions();
+      const entries = await repos.entries.getForDate(date);
       entryStore.hydrateDate(date, entries, checkpoint);
       setTasks(current => JSON.stringify(current) === JSON.stringify(nextTasks) ? current : nextTasks);
+      setLifecycle(current => JSON.stringify(current) === JSON.stringify(nextLifecycle) ? current : nextLifecycle);
       setToday(date); setError(null);
     } catch { setError('Your saved data could not be loaded. Please try again. Your existing data has not been cleared.'); }
     finally { setLoading(false); }
@@ -61,8 +79,19 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
     const repos = await getRepositories();
     entryStore.hydrateHistory(taskId, dates, await repos.entries.getHistoryForTask(taskId, { from: dates[dates.length - 1], to: dates[0] }), checkpoint);
   }, []);
-  const actions = useMemo(() => ({ mutate, select, loadHistory, reload }), [mutate, select, loadHistory, reload]);
-  const state = useMemo(() => ({ data: { tasks }, today, loading, error }), [tasks, today, loading, error]);
+  const clearLocalData = useCallback(async () => {
+    try { await resetLocalData(); }
+    finally { entryStore.clear(); await reload(); }
+  }, [reload]);
+  const loadOneYearTestData = useCallback(async () => {
+    try { await replaceLocalWithOneYearTestData(); }
+    finally { entryStore.clear(); await reload(); }
+  }, [reload]);
+  const actions = useMemo(() => ({ mutate, select, loadHistory, reload, announce,
+    clearLocalData, loadOneYearTestData }),
+    [mutate, select, loadHistory, reload, announce, clearLocalData, loadOneYearTestData]);
+  const state = useMemo(() => ({ data: { tasks, lifecycle }, today, loading, error, notice }),
+    [tasks, lifecycle, today, loading, error, notice]);
   return <ActionsContext.Provider value={actions}><StateContext.Provider value={state}>{children}</StateContext.Provider></ActionsContext.Provider>;
 }
 export function useTaskActions() {

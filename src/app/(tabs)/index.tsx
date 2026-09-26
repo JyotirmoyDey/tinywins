@@ -11,7 +11,7 @@ import { useTasks } from '../../state/TasksProvider';
 import { colors as c, spacing as s, typography as t } from '../../theme';
 
 export default function Home() {
-  const router = useRouter(); const { data, today, loading, error, reload } = useTasks();
+  const router = useRouter(); const { data, today, loading, error, notice, reload } = useTasks();
   const { design, ready: designReady, choose } = useHomeDesign();
   useFocusEffect(useCallback(() => { void reload(); }, [reload]));
   const tasks = useMemo(() => data.tasks.filter(task => task.active), [data.tasks]);
@@ -21,6 +21,7 @@ export default function Home() {
     <View style={styles.header}>
       <View style={styles.headerText}><Text style={styles.title}>TinyWins</Text><Text style={styles.date}>{formattedDate}</Text></View>
     </View>
+    {notice && <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text>}
     {__DEV__ && designReady && <View style={styles.designControl} accessibilityLabel="Home design comparison">{(['classic','slider'] as HomeDesign[]).map(choice => <Pressable key={choice} accessibilityRole="button" accessibilityState={{ selected: design === choice }} accessibilityLabel={`${choice === 'classic' ? 'Classic' : 'Slider'} Home design`} onPress={() => choose(choice)} style={[styles.designChoice, design === choice && styles.designSelected]}><Text style={[styles.designText, design === choice && styles.designTextSelected]}>{choice === 'classic' ? 'Classic' : 'Slider'}</Text></Pressable>)}</View>}
     {loading || !designReady ? <Loading /> : error ? <View style={styles.message}><Text style={[t.body, { color: c.textPrimary }]}>{error}</Text><Button label="Try again" onPress={() => void reload()} /></View>
       : !tasks.length ? <View style={styles.empty}>
@@ -40,6 +41,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   root: { flex: 1 }, screen: { flex: 1, backgroundColor: c.background },
   designControl: { alignSelf: 'center', flexDirection: 'row', padding: 3, borderRadius: 11, backgroundColor: c.surfaceSecondary, borderWidth: 1, borderColor: c.border, marginBottom: s.sm },
+  notice: { ...t.secondary, color: c.textSecondary, paddingHorizontal: s.xl, paddingBottom: s.sm },
   designChoice: { minWidth: 90, minHeight: 44, paddingHorizontal: s.md, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   designSelected: { backgroundColor: c.selected },
   designText: { ...t.caption, color: c.textSecondary }, designTextSelected: { color: c.selectedText },

@@ -46,7 +46,7 @@ export const TaskCard = memo(function TaskCard({ task, date }: { task: Task; dat
   return <View style={styles.card}>
     <View style={styles.heading}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, insights`}
-        onPress={() => router.navigate({ pathname: '/insights', params: { task: task.id } })} style={{ flex: 1, minHeight: 44, justifyContent: 'center' }}>
+        onPress={() => router.navigate({ pathname: '/insights', params: { task: task.id, mode: 'normal' } })} style={{ flex: 1, minHeight: 44, justifyContent: 'center' }}>
         <Text style={[t.taskTitle, { color: c.textPrimary }]}>{task.name}</Text></Pressable>
       <TaskActionsMenu task={task} onBusyChange={setBusy} />
     </View>

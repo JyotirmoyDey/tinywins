@@ -1,0 +1,35 @@
+{
+  "id": "weekday-patterns",
+  "title": "Your Weekly Rhythm",
+  "subtitle": "Discover how your ratings vary throughout the week.",
+  "calculator": "weekdayPatterns",
+  "type": "weekday-rating-heatmap",
+  "location": "task-insights",
+  "section": "patterns",
+  "scope": "individual",
+  "displayOrder": 3,
+  "visible": true,
+  "dataSource": "daily-entries",
+  "timeline": "shared",
+  "calculation": {
+    "groupBy": "optionId",
+    "denominator": "recorded-weekday-entries",
+    "weekStartsOn": "monday",
+    "excludeMissing": true,
+    "trendEpoch": "current",
+    "limitedSampleBelow": 14
+  },
+  "presentation": {
+    "shortRangeMaxDays": 7,
+    "weekdayColumnWidth": 43,
+    "minimumCellWidth": 49,
+    "totalColumnWidth": 48,
+    "rowHeight": 44,
+    "cellRadius": 7
+  },
+  "style": {
+    "emptyColor": "#F1F1EE",
+    "lowFrequencyColor": "#DAEEE9",
+    "highFrequencyColor": "#398F80"
+  }
+}

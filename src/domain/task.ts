@@ -4,9 +4,20 @@ export interface TaskOption {
 }
 export interface Task {
   id: string; name: string; createdAt: string; updatedAt: string; active: boolean;
+  /** Saved local creation day; older records are backfilled best-effort. */
+  createdLocalDate?: string | null; archivedAt?: string | null;
+  /** Assigned once; archiving, restoring, and task ordering never change it. */
+  chartColor?: string | null;
   currentScaleVersionId: string; currentTrendEpochId: string;
   /** Current choices only. Retired options remain in the database. */
   options: TaskOption[];
+}
+export interface TaskLifecycleTransition {
+  id: string; taskId: string; type: 'archived' | 'restored';
+  occurredAt: string; localDate: string; utcOffsetMinutes: number; timeZone: string;
+  sequence?: number;
+  /** Earlier archive dates inferred from pre-lifecycle data are approximate. */
+  inferred?: boolean;
 }
 export interface OptionDraft { id: string; label: string }
 export interface TaskDraft { name: string; options: OptionDraft[] }
