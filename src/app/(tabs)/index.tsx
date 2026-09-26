@@ -25,15 +25,15 @@ export default function Home() {
     {__DEV__ && designReady && <View style={styles.designControl} accessibilityLabel="Home design comparison">{(['classic','slider'] as HomeDesign[]).map(choice => <Pressable key={choice} accessibilityRole="button" accessibilityState={{ selected: design === choice }} accessibilityLabel={`${choice === 'classic' ? 'Classic' : 'Slider'} Home design`} onPress={() => choose(choice)} style={[styles.designChoice, design === choice && styles.designSelected]}><Text style={[styles.designText, design === choice && styles.designTextSelected]}>{choice === 'classic' ? 'Classic' : 'Slider'}</Text></Pressable>)}</View>}
     {loading || !designReady ? <Loading /> : error ? <View style={styles.message}><Text style={[t.body, { color: c.textPrimary }]}>{error}</Text><Button label="Try again" onPress={() => void reload()} /></View>
       : !tasks.length ? <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>Create your first task</Text>
-          <Text style={styles.emptyBody}>Track the things that matter to you, one check-in at a time.</Text>
-          <Button label="Add task" onPress={add} />
+          <Text style={styles.emptyTitle}>Nothing here yet.</Text>
+          <Text style={styles.emptyBody}>{"Start by adding something you'd like to track."}</Text>
+          <Button label="Add New" onPress={add} />
         </View>
         : <FlatList data={tasks} keyExtractor={item => item.id} renderItem={({ item }) => design === 'slider' ? <TaskSliderCard task={item} date={today} /> : <TaskCard task={item} date={today} />} extraData={design}
           contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled" />}
     {data.tasks.some(task => !task.active) && !loading && designReady && <View style={styles.archived}>
       <Pressable accessibilityRole="button" onPress={() => router.push('/archived')} style={styles.archivedAction}>
-        <Text style={styles.archivedText}>Archived tasks</Text>
+        <Text style={styles.archivedText}>Archived</Text>
       </Pressable>
     </View>}
   </SafeAreaView></GestureHandlerRootView>;

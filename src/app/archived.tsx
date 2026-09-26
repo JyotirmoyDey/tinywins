@@ -24,22 +24,22 @@ export default function ArchivedActivities() {
     if (pending.current.has(id)) return;
     pending.current.add(id); setPendingIds([...pending.current]);
     try { await mutate(repo => repo.restore(id)); }
-    catch (error) { Alert.alert('Could not restore activity', error instanceof ActiveTaskLimitError
-      ? 'You already have 10 active activities. Archive one to make room for this activity.'
-      : 'Please try again. Your archived activity has not changed.'); }
+    catch (error) { Alert.alert('Could not restore', error instanceof ActiveTaskLimitError
+      ? 'You can track up to 10 things at once. Archive one to make room.'
+      : 'Please try again. This item is still archived.'); }
     finally { pending.current.delete(id); setPendingIds([...pending.current]); }
   };
   const deleteArchived = async () => {
     if (deletingArchived.current) return;
     deletingArchived.current = true; setDeleting(true);
     try { await mutate(repo => repo.deleteArchivedTasks()); }
-    catch { Alert.alert('Could not delete archived tasks', 'Please try again. Your active tasks have not changed.'); }
+    catch { Alert.alert('Could not delete archived items', 'Please try again. What you’re currently tracking has not changed.'); }
     finally { deletingArchived.current = false; setDeleting(false); }
   };
-  const confirmDeleteArchived = () => Alert.alert('Delete all archived tasks?',
-    'This permanently deletes every archived task and its recorded history. Active tasks will stay.',
+  const confirmDeleteArchived = () => Alert.alert('Delete all archived items?',
+    'This permanently deletes everything in Archived and its recorded history. What you’re currently tracking will stay.',
     [{ text: 'Cancel', style: 'cancel' },
-      { text: 'Delete archived tasks', style: 'destructive', onPress: () => void deleteArchived() }]);
+      { text: 'Delete archived items', style: 'destructive', onPress: () => void deleteArchived() }]);
   return <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel="Back to Profile"
@@ -51,17 +51,17 @@ export default function ArchivedActivities() {
         </Svg>
         <Text style={styles.backLabel}>Profile</Text>
       </Pressable>
-      <Text style={styles.title}>Archived Activities</Text>
+      <Text style={styles.title}>Archived</Text>
       {!loading && atLimit && archived.length > 0 && <Text style={styles.limitNote}>
-        You already have 10 active activities. Archive one to make room for a restore.
+        You can track up to 10 things at once. Archive one to make room.
       </Text>}
     </View>
     {loading ? <Loading /> : <FlatList data={archived} keyExtractor={task => task.id}
       contentContainerStyle={styles.list}
       ListFooterComponent={archived.length > 0 ? <Pressable accessibilityRole="button"
-        accessibilityLabel="Delete all archived tasks" accessibilityState={{ disabled: deleting }}
+        accessibilityLabel="Delete all archived items" accessibilityState={{ disabled: deleting }}
         disabled={deleting} onPress={confirmDeleteArchived} style={styles.deleteArchived}>
-        <Text style={styles.deleteArchivedText}>{deleting ? 'Deleting…' : 'Delete all archived tasks'}</Text>
+        <Text style={styles.deleteArchivedText}>{deleting ? 'Deleting…' : 'Delete all archived items'}</Text>
       </Pressable> : null}
       ListEmptyComponent={<View style={styles.empty}>
         <Svg width={30} height={30} viewBox="0 0 24 24" accessible={false}>
@@ -69,8 +69,8 @@ export default function ArchivedActivities() {
           <Path d="M5 9v10h14V9M10 13h4" fill="none" stroke={c.textSecondary}
             strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
-        <Text style={styles.emptyTitle}>No archived tasks yet.</Text>
-        <Text style={styles.emptyDetail}>Activities you archive will appear here.</Text>
+        <Text style={styles.emptyTitle}>No archived items yet.</Text>
+        <Text style={styles.emptyDetail}>Anything you archive will appear here.</Text>
       </View>}
       renderItem={({ item }) => {
         const transition = data.lifecycle.filter(event => event.taskId === item.id && event.type === 'archived').at(-1);

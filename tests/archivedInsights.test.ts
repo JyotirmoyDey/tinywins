@@ -8,6 +8,7 @@ import { AnalyticsDataset } from '../src/analytics/types';
 test('Archived Activities selects My Data by stable ID even when Demo Data is selected', () => {
   const demo = loadDemoDataset();
   const realTask = { ...demo.tasks[0], id: 'real-workout', active: false };
+  const secondArchivedTask = { ...demo.tasks[1], id: 'real-study', active: false };
   assert.equal(realTask.name, demo.tasks[0].name);
   assert.equal(insightsSourceForEntry('demo', 'archivedTask'), 'my');
   assert.equal(insightsSourceForEntry('demo'), 'demo');
@@ -16,9 +17,13 @@ test('Archived Activities selects My Data by stable ID even when Demo Data is se
   assert.equal(selectedInsightsTask(demo.tasks, realTask.id), undefined);
   assert.equal(selectedInsightsTask([realTask], demo.tasks[0].id), undefined);
   assert.equal(archivedInsightsTask([realTask], realTask.id, 'archivedTask')?.id, realTask.id);
+  assert.equal(archivedInsightsTask([realTask, secondArchivedTask], secondArchivedTask.id,
+    'archivedTask')?.id, secondArchivedTask.id);
   assert.equal(archivedInsightsTask([realTask], demo.tasks[0].id, 'archivedTask'), undefined);
   assert.equal(archivedInsightsTask([realTask], realTask.id, 'normal'), undefined);
   assert.equal(archivedInsightsTask(demo.tasks, demo.tasks[0].id, 'archivedTask'), undefined);
+  assert.equal(archivedInsightsTask([{ ...realTask, active: true }], realTask.id,
+    'archivedTask'), undefined);
 });
 
 test('archived tasks appear only for recorded or eligible tracking periods', () => {

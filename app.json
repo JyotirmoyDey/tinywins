@@ -1,20 +1,21 @@
+
 {
   "expo": {
     "name": "TinyWins",
     "slug": "tinywins",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/branding/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourdevelopername.tinywins"
     },
     "android": {
+      "package": "com.yourdevelopername.tinywins",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/branding/adaptive-icon.png",
+        "backgroundColor": "#F7F7F4"
       },
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize"
@@ -22,12 +23,39 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      ["expo-screen-orientation", { "initialOrientation": "PORTRAIT_UP" }]
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/branding/splash-logo.png",
+          "imageWidth": 250,
+          "backgroundColor": "#F7F7F4"
+        }
+      ]
     ],
     "scheme": "tinywins",
     "platforms": [
       "ios",
       "android"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "958008c9-4f1d-4ec6-b2a6-2fc99d54122a"
+      },
+      "updatePolicyUrl": "https://tinywins-dev.github.io/tinywins-config/version.json"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/958008c9-4f1d-4ec6-b2a6-2fc99d54122a"
+    }
   }
 }
+

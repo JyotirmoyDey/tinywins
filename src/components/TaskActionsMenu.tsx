@@ -19,9 +19,9 @@ export function TaskActionsMenu({ task, onClear, onBusyChange }: { task: Task; o
     setOpen(false); onBusyChange?.(true);
     try {
       await mutate(repo => archive ? repo.archiveTask(task.id) : repo.deleteTask(task.id));
-      if (archive) announce('Activity archived. You can restore it from Profile.');
+      if (archive) announce('Archived. You can restore it from Profile.');
     }
-    catch { Alert.alert('Could not update task', 'Please try again.'); }
+    catch { Alert.alert('Could not make this change', 'Please try again.'); }
     finally { pending.current = false; onBusyChange?.(false); }
   };
   return <>
@@ -30,24 +30,24 @@ export function TaskActionsMenu({ task, onClear, onBusyChange }: { task: Task; o
     </Pressable>
     <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
       <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close task actions" onPress={() => setOpen(false)} />
+        <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close actions" onPress={() => setOpen(false)} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, s.lg) }]} accessibilityViewIsModal>
           <Text style={styles.taskName}>{task.name}</Text>
-          <MenuItem label="Edit task" onPress={() => { setOpen(false); router.push(`/task/${task.id}`); }} />
+          <MenuItem label="Edit" onPress={() => { setOpen(false); router.push(`/task/${task.id}`); }} />
           {onClear && <MenuItem label="Clear today's rating" onPress={() => { setOpen(false); onClear(); }} />}
-          <MenuItem label="Archive task" onPress={() => {
+          <MenuItem label="Archive" onPress={() => {
             setOpen(false);
-            Alert.alert('Archive this activity?',
-              'This activity will disappear from your daily list, but your ratings and progress will stay safe. You can restore it whenever you’re ready.', [
+            Alert.alert(`Archive ${task.name}?`,
+              'It will disappear from your daily list. Your ratings and history will still be available in Archived.', [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Archive', onPress: () => void remove(true) },
               ]);
           }} />
-          <MenuItem label="Delete task" danger onPress={() => {
+          <MenuItem label="Delete" danger onPress={() => {
             setOpen(false);
-            Alert.alert(`Delete ${task.name}?`, 'This permanently removes the task and its check-ins from this device.', [
-              { text: 'Keep task', style: 'cancel' },
-              { text: 'Delete task', style: 'destructive', onPress: () => void remove(false) },
+            Alert.alert(`Delete ${task.name}?`, 'This permanently removes its ratings and history from this device.', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete', style: 'destructive', onPress: () => void remove(false) },
             ]);
           }} />
           <MenuItem label="Cancel" onPress={() => setOpen(false)} />

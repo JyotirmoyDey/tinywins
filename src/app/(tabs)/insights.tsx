@@ -67,7 +67,7 @@ export default function Insights(){
     [archivedMode,tasks,activeTasks,dataset.entries,today,isAll,selectedTask?.id]);
   const customBoundaryIssue=timeline==='CUSTOM'?
     (earliest ? validateCustomRange(custom,today,earliest) :
-      custom.startDate!==today || custom.endDate!==today ? 'No dates are available for this activity yet.' : null):null;
+      custom.startDate!==today || custom.endDate!==today ? 'No dates are available yet.' : null):null;
   const period=useMemo(()=>getInsightsPeriod(today,timeline,custom),[today,timeline,custom]);
   const allTasks=activeTasks;
   const journey=useMemo(()=>isAll?getJourneyTogether({dataset:regularDataset,period,
@@ -151,9 +151,9 @@ export default function Insights(){
   const individualSections=organizeIndividualCharts(individualCharts);
   const pageRef=useRef<ScrollView>(null); const headerHeight=useRef(58);
   const [collapsed,setCollapsed]=useState(false); const [collapsedOpacity]=useState(()=>new Animated.Value(0));
-  useEffect(()=>{if(archivedMode)setCollapsed(false);},[archivedMode]);
+  const toolbarCollapsed=collapsed&&!archivedMode;
   const expandedOpacity=collapsedOpacity.interpolate({inputRange:[0,1],outputRange:[1,0]});
-  useEffect(()=>{Animated.timing(collapsedOpacity,{toValue:collapsed?1:0,duration:140,useNativeDriver:true}).start();},[collapsed,collapsedOpacity]);
+  useEffect(()=>{Animated.timing(collapsedOpacity,{toValue:toolbarCollapsed?1:0,duration:140,useNativeDriver:true}).start();},[toolbarCollapsed,collapsedOpacity]);
   const selectActivity=(id:string)=>{
     if(archivedMode)return;
     if(id===(isAll?'all':selectedId))return;
@@ -169,15 +169,15 @@ export default function Insights(){
     }} contentContainerStyle={styles.page}>
       <View style={styles.header} onLayout={event=>{headerHeight.current=event.nativeEvent.layout.height;}}>
         {archivedMode?<View style={styles.archivedHeader}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back to Archived Activities"
+          <Pressable accessibilityRole="button" accessibilityLabel="Back to Archived"
             onPress={()=>router.canGoBack()?router.back():router.navigate('/archived')}
-            style={styles.archivedBack}><Text style={styles.archivedBackText}>‹ Archived Activities</Text></Pressable>
+            style={styles.archivedBack}><Text style={styles.archivedBackText}>‹ Archived</Text></Pressable>
           <View style={styles.archivedTitleRow}>
-            <Text style={styles.archivedTitle} numberOfLines={2}>{selectedTask?.name||'Activity unavailable'}</Text>
+            <Text style={styles.archivedTitle} numberOfLines={2}>{selectedTask?.name||'Not available'}</Text>
             {selectedTask&&<Text style={styles.archivedBadge}>Archived</Text>}
           </View>
         </View>:<Text style={styles.title}>Insights</Text>}
-        <View importantForAccessibility={collapsed?'no-hide-descendants':'auto'}>{dateMenu()}</View>
+        <View importantForAccessibility={toolbarCollapsed?'no-hide-descendants':'auto'}>{dateMenu()}</View>
       </View>
       {!archivedMode&&<View style={styles.toolbar}>
         <Animated.View pointerEvents={collapsed?'none':'auto'}
@@ -194,20 +194,20 @@ export default function Insights(){
       </View>}
       <View style={styles.charts}>
         {customBoundaryIssue&&<View style={styles.rangeNotice}>
-          <Text style={styles.rangeNoticeText}>{customBoundaryIssue} Choose a range for this activity.</Text>
+          <Text style={styles.rangeNoticeText}>{customBoundaryIssue} Choose another range.</Text>
           <Pressable accessibilityRole="button" onPress={()=>setCustomOpen(true)} style={styles.rangeNoticeAction}>
             <Text style={styles.rangeNoticeLink}>Adjust range</Text>
           </Pressable>
         </View>}
-        {loading?<Placeholder>Loading your insights…</Placeholder>:archivedMode&&!selectedTask?<Placeholder>This archived activity is no longer available. Return to Archived Activities.</Placeholder>:isAll?<>
+        {loading?<Placeholder>Loading your insights…</Placeholder>:archivedMode&&!selectedTask?<Placeholder>This archived item is no longer available. Return to Archived.</Placeholder>:isAll?<>
           <AnalyticsCard title={journeyTogetherConfig.title} description={journeyTogetherConfig.subtitle}
-            detail="Each activity keeps its own rating scale. The lines share calendar dates, but ratings are never combined into one score.">
+            detail="Each thing you track keeps its own rating scale. The lines share calendar dates, but ratings are never combined into one score.">
             {journey&&<JourneyTogetherChart data={journey} onSelectTask={selectActivity}/>}
           </AnalyticsCard>
           <AnalyticsCard title={combinedConsistencyConfig.title} description={combinedConsistencyConfig.subtitle}
-            detail="An explicitly recorded lowest rating counts as a check-in. A day without an entry does not.">{consistency.recordedDays?<><Text style={styles.summary}>{consistency.recordedDays} recorded activity-days · {consistency.eligibleDays} eligible activity-days</Text><BarChart items={consistency.rows.filter(row=>row.eligibleDays>0).map(row=>({label:row.name,value:row.coverage*100,count:`${row.recordedDays}/${row.eligibleDays}`}))} color="#2A9D8F"/></>:<Placeholder>No entries for this period.</Placeholder>}</AnalyticsCard>
+            detail="An explicitly recorded lowest rating counts as a check-in. A day without an entry does not.">{consistency.recordedDays?<><Text style={styles.summary}>{consistency.recordedDays} recorded · {consistency.eligibleDays} available check-ins</Text><BarChart items={consistency.rows.filter(row=>row.eligibleDays>0).map(row=>({label:row.name,value:row.coverage*100,count:`${row.recordedDays}/${row.eligibleDays}`}))} color="#2A9D8F"/></>:<Placeholder>No entries for this period.</Placeholder>}</AnalyticsCard>
           <AnalyticsCard title={combinedCalendarConfig.title} description={combinedCalendarConfig.subtitle}
-            detail="Calendar shades show recording coverage, not the ratings chosen for different activities."><MonthCalendar month={month} onMonthChange={setMonth} cells={calendarCells} color="#2A9D8F" kind="coverage"/></AnalyticsCard>
+            detail="Calendar shades show recording coverage, not the ratings chosen for different things you track."><MonthCalendar month={month} onMonthChange={setMonth} cells={calendarCells} color="#2A9D8F" kind="coverage"/></AnalyticsCard>
           <AnalyticsCard title={weeklyRecordingConfig.title} description={weeklyRecordingConfig.subtitle}>{weekdays.some(row=>row.recorded>0)?<BarChart items={weekdays.map(row=>({label:row.label,value:row.recorded,count:row.observations}))} color="#2A9D8F"/>:<Placeholder>No entries for this period.</Placeholder>}</AnalyticsCard>
         </>:<>{individualSections.map(section=><InsightsAccordion key={section.id}
           title={section.title} initiallyExpanded={section.initiallyExpanded}>

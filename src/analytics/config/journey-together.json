@@ -1,7 +1,7 @@
 {
   "id": "journey-together",
   "title": "Your Journey Together",
-  "subtitle": "See how your activities change over time.",
+  "subtitle": "See how everything you track changes over time.",
   "calculator": "ratingTrend",
   "type": "categorical-small-multiples",
   "location": "all-activities",

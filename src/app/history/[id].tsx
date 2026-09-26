@@ -43,7 +43,7 @@ function DayEditor({ task, date, today, eligible, onClose }: { task: Task; date:
           {(retired || changed) && <Text style={[t.body, { color: c.textSecondary, marginBottom: s.lg }]}>Recorded: {entry.optionLabelAtEntry}{retired ? ' (retired choice)' : ' (previous label)'}. Keep this response, or select a current choice below.</Text>}
           {canChoose ? <View style={styles.choices}>{task.options.map(option => <RatingOptionButton key={option.id} label={option.label} disabled={false}
             selected={entry?.optionId === option.id && !changed} onPress={() => void save(option.id)} />)}</View>
-            : <Text style={[t.secondary, { color: c.textSecondary }]}>This activity was archived on this date. Its existing recording remains available.</Text>}
+            : <Text style={[t.secondary, { color: c.textSecondary }]}>Archived on this date. The existing recording remains available.</Text>}
           {entry && <View style={{ marginTop: s.lg }}><Button label="Clear response" subtle onPress={() => void save(null)} /></View>}
           {error && <Text accessibilityRole="alert" style={[t.body, { color: c.danger, marginTop: s.md }]}>{error}</Text>}
           <View style={{ marginTop: s.lg }}><Button label="Done" onPress={onClose} /></View>
@@ -67,9 +67,9 @@ export default function ActivityHistory() {
   useFocusEffect(load);
   return <SafeAreaView style={styles.screen}>
     <View style={{ paddingHorizontal: s.xxl }}><Button label="‹ Back" subtle onPress={() => router.back()} />
-      <ScreenHeader title={task?.name ?? 'Activity history'} subtitle="Past 30 days · tap a day to edit" /></View>
+      <ScreenHeader title={task?.name ?? 'History'} subtitle="Past 30 days · tap a day to edit" /></View>
     {error ? <View style={{ padding: s.xxl, gap: s.lg }}><Text style={t.body}>History could not be loaded.</Text><Button label="Try again" onPress={() => { load(); }} /></View>
-      : loading || loaded !== `${id}:${today}` ? <Loading /> : !task ? <Text style={{ padding: s.xxl }}>Task not found.</Text>
+      : loading || loaded !== `${id}:${today}` ? <Loading /> : !task ? <Text style={{ padding: s.xxl }}>Not found.</Text>
       : <FlatList style={{ marginHorizontal: s.xxl, backgroundColor: c.surface, borderRadius: r.lg, borderWidth: 1, borderColor: c.border }} data={dates} keyExtractor={date => date} contentContainerStyle={{ paddingHorizontal: s.md, paddingBottom: s.md }}
         renderItem={({ item }) => <HistoryRow taskId={id} date={item} today={today}
           eligible={!!eligibility?.eligible(item) && (task.active || item < today)} onEdit={setEditing} />}

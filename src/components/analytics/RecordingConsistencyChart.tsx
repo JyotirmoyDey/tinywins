@@ -21,7 +21,7 @@ export function RecordingConsistencyChart({ data }: { data: RecordingConsistency
     config.presentation.maxDateLabels, config.presentation.minDateLabelGap);
 
   if (data.status === 'unknown-start') return <Text style={styles.notice}>
-    Recording coverage is unavailable because this task&apos;s start date is unknown.
+    Recording coverage is unavailable because the start date is unknown.
   </Text>;
   if (data.status === 'no-eligible-days') return <Text style={styles.notice}>
     No eligible days in this period.

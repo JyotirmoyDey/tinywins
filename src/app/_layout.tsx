@@ -5,11 +5,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TasksProvider } from '../state/TasksProvider';
 import { colors } from '../theme';
 import { PortraitOrientationGuard } from '../navigation/PortraitOrientationGuard';
+import { UpdateGate } from '../update/UpdateGate';
 
 export const unstable_settings = { anchor: '(tabs)' };
 export default function RootLayout() {
   return <GestureHandlerRootView style={{ flex: 1 }}><SafeAreaProvider><TasksProvider><StatusBar style="dark" />
     <PortraitOrientationGuard />
+    <UpdateGate>
     <Stack screenOptions={{ headerShown: false,
       contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right', animationDuration: 220 }}>
       <Stack.Screen name="(tabs)" />
@@ -20,5 +22,6 @@ export default function RootLayout() {
       <Stack.Screen name="history/[id]" />
       <Stack.Screen name="archived" />
     </Stack>
+    </UpdateGate>
   </TasksProvider></SafeAreaProvider></GestureHandlerRootView>;
 }

@@ -1,7 +1,7 @@
 {
   "id": "recording-consistency-individual",
   "title": "Check-in Rhythm",
-  "subtitle": "Explore how regularly you record your activity.",
+  "subtitle": "Explore how regularly you check in.",
   "calculator": "recordingConsistency",
   "type": "adaptive-vertical-bar",
   "location": "task-insights",

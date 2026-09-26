@@ -10,12 +10,12 @@ interface Props { tasks: Activity[]; selectedId: string; onSelect: (id: string) 
 export function InsightsActivityMenu({ tasks, selectedId, onSelect }: Props) {
   const [open, setOpen] = useState(false);
   const { height } = useWindowDimensions();
-  const selectedName = selectedId === 'all' ? 'All Activities' :
-    tasks.find(task => task.id === selectedId)?.name || 'All Activities';
-  const choices = [{ id: 'all', name: 'All Activities', active: true }, ...tasks];
+  const selectedName = selectedId === 'all' ? 'All' :
+    tasks.find(task => task.id === selectedId)?.name || 'All';
+  const choices = [{ id: 'all', name: 'All', active: true }, ...tasks];
   return <>
-    <Pressable accessibilityRole="button" accessibilityLabel={'Activity, ' + selectedName}
-      accessibilityHint="Choose an activity" onPress={() => setOpen(true)} style={styles.button}>
+    <Pressable accessibilityRole="button" accessibilityLabel={'Showing ' + selectedName}
+      accessibilityHint="Choose what to view" onPress={() => setOpen(true)} style={styles.button}>
       <Text style={styles.label} numberOfLines={1} maxFontSizeMultiplier={1.5}>{selectedName}</Text>
       <Svg width={12} height={12} viewBox="0 0 12 12" accessible={false}>
         <Path d="m2 4 4 4 4-4" fill="none" stroke={c.textSecondary} strokeWidth={1.5}
@@ -25,11 +25,11 @@ export function InsightsActivityMenu({ tasks, selectedId, onSelect }: Props) {
     <Modal transparent visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button"
-          accessibilityLabel="Close activity selector" onPress={() => setOpen(false)}/>
+          accessibilityLabel="Close selector" onPress={() => setOpen(false)}/>
         <SafeAreaView style={styles.sheet} edges={['bottom']}>
           <View style={styles.header}>
-            <Text style={styles.heading}>Activities</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Close activity selector"
+            <Text style={styles.heading}>What to view</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close selector"
               onPress={() => setOpen(false)} style={styles.close}>
               <Text style={styles.closeText}>Done</Text>
             </Pressable>

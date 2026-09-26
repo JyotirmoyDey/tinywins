@@ -22,13 +22,13 @@ export default function Profile() {
     try {
       await clearLocalData();
       setDevInsightsSource('my');
-      Alert.alert('Local data cleared', 'Your tasks and recordings have been removed from this device.');
+      Alert.alert('Local data cleared', 'Your tracked items and recordings have been removed from this device.');
     } catch {
       Alert.alert('Could not finish clearing data', 'Please try again. Some local data may remain.');
     } finally { resetPending.current = false; setResetting(false); }
   };
   const confirmReset = () => Alert.alert('Delete all local TinyWins data?',
-    'This permanently removes your tasks, rating choices, recordings, and archived activities from this device.',
+    'This permanently removes everything you track, your rating choices, recordings, and archived items from this device.',
     [{ text: 'Cancel', style: 'cancel' },
       { text: 'Delete data', style: 'destructive', onPress: () => void reset() }]);
   const importTestData = async () => {
@@ -37,27 +37,27 @@ export default function Profile() {
     try {
       await loadOneYearTestData();
       setDevInsightsSource('my');
-      Alert.alert('Test data ready', 'Eight activities and their recordings are now stored in My Data.');
+      Alert.alert('Test data ready', 'Eight items and their recordings are now stored in My Data.');
     } catch {
       Alert.alert('Could not load test data', 'Your previous local records were kept. Please try again.');
     } finally { importPending.current = false; setImporting(false); }
   };
   const confirmImport = () => Alert.alert('Use one-year test data?',
-    'This replaces all local tasks and recordings on this device with the eight activities in the test file.',
+    'This replaces everything you track and its recordings on this device with the eight items in the test file.',
     [{ text: 'Cancel', style: 'cancel' },
       { text: 'Load test data', onPress: () => void importTestData() }]);
   return <SafeAreaView style={styles.screen} edges={['top']}>
     <View style={styles.content}>
       <Text style={styles.title}>Profile</Text>
-      <Text style={styles.description}>Your tasks and check-ins are saved on this device.</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Archived Activities, ${archivedCount}`} onPress={() => router.push('/archived')}
+      <Text style={styles.description}>What you track and your check-ins are saved on this device.</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Archived, ${archivedCount}`} onPress={() => router.push('/archived')}
         style={({ pressed }) => [styles.row, pressed && { opacity: 0.65 }]}>
         <View style={styles.rowLeading}>
           <Svg width={21} height={21} viewBox="0 0 24 24" accessible={false}>
             <Path d="M3.5 5h17v4h-17zM5 9v10h14V9M10 13h4" fill="none" stroke={c.textPrimary}
               strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"/>
           </Svg>
-          <Text style={styles.rowTitle}>Archived Activities</Text>
+          <Text style={styles.rowTitle}>Archived</Text>
         </View>
         <Text style={styles.rowDetail}>{archivedCount}  ›</Text>
       </Pressable>

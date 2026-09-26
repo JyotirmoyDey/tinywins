@@ -18,11 +18,11 @@ export function EmptyState({ onAdd }: { onAdd: () => void }) {
     <View style={styles.mark}><Text style={{ fontSize: 22, color: c.textPrimary }}>✓</Text></View>
     <Text style={[t.sectionTitle, styles.center]}>{'Small moments.\nMeaningful progress.'}</Text>
     <Text style={[t.body, styles.center, { color: c.textSecondary }]}>Track the things that matter to you, one small check-in at a time.</Text>
-    <Button label="Create your first task" onPress={onAdd} />
+    <Button label="Add New" onPress={onAdd} />
     <Text style={[t.secondary, { color: c.textSecondary }]}>Your pace. Your choices.</Text>
   </View>;
 }
-export function Loading() { return <View style={styles.empty}><ActivityIndicator color={c.primary} accessibilityLabel="Loading tasks" /></View>; }
+export function Loading() { return <View style={styles.empty}><ActivityIndicator color={c.primary} accessibilityLabel="Loading" /></View>; }
 const styles = StyleSheet.create({
   button: { minHeight: 50, borderRadius: r.md, backgroundColor: c.primary, paddingHorizontal: s.xl, alignItems: 'center', justifyContent: 'center' },
   subtle: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.borderStrong }, header: { flexDirection: 'row', alignItems: 'center', gap: s.md, paddingVertical: s.xxl },

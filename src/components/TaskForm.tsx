@@ -79,12 +79,12 @@ export function TaskForm({ task }: { task?: Task }) {
     const persist = async (confirmTrendReset: boolean) => {
       try {
         await mutate(repo => task ? repo.updateTask(task.id, draft, confirmTrendReset) : repo.createTask(draft));
-        AccessibilityInfo.announceForAccessibility(task ? 'Task updated' : 'Task created'); setSaved(true);
+        AccessibilityInfo.announceForAccessibility(task ? 'Changes saved' : 'Created'); setSaved(true);
       } catch (failure) {
         if (failure instanceof ActiveTaskLimitError) {
           setError(ACTIVE_TASK_LIMIT_MESSAGE);
           void reload();
-        } else setError('Your task could not be saved. Please try again.');
+        } else setError('Could not save your changes. Please try again.');
         setBusy(false);
       }
     };
@@ -93,13 +93,13 @@ export function TaskForm({ task }: { task?: Task }) {
         const needsReset = await mutateCheck(task.id, draft);
         if (needsReset) {
           Alert.alert('Reset your trend?',
-            'Changing the order of your rating levels will restart the trend graph for this task. Your previously recorded ratings will be preserved, but your new trend will begin with the updated rating scale.',
+            'Changing the order of your rating levels will restart the trend graph. Your previous ratings will be preserved, but the new trend will begin with the updated rating scale.',
             [{ text: 'Cancel', style: 'cancel', onPress: () => setBusy(false) },
               { text: 'Reorder and reset', onPress: () => void persist(true) }],
             { cancelable: false });
           return;
         }
-      } catch { setError('Your task could not be checked. Please try again.'); setBusy(false); return; }
+      } catch { setError('Could not check these changes. Please try again.'); setBusy(false); return; }
     }
     await persist(false);
   };
@@ -107,18 +107,18 @@ export function TaskForm({ task }: { task?: Task }) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.topbar}><Pressable accessibilityRole="button" accessibilityLabel="Cancel editing" onPress={back} disabled={busy} style={styles.back}>
         <Text style={[t.button, { color: c.textSecondary }]}>‹  Cancel</Text></Pressable>
-        <Text style={[t.button, { color: c.textSecondary }]}>{task ? 'EDIT TASK' : 'NEW TASK'}</Text><View style={{ width: 76 }} /></View>
+        <Text style={[t.button, { color: c.textSecondary }]}>{task ? 'Edit' : 'New'}</Text><View style={{ width: 76 }} /></View>
       <View ref={setViewport} style={{ flex: 1 }} onLayout={onKeyboardLayout}><GestureDetector gesture={scrollGesture}><ScrollView ref={setScrollView} onScroll={event => onKeyboardScroll(event.nativeEvent.contentOffset.y)} scrollEventThrottle={16} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
         contentContainerStyle={styles.content} onContentSizeChange={() => {
           if (newOption.current) { const id = newOption.current; newOption.current = null; scrollToEnd({ animated: true }); inputs.current[id]?.focus(); }
         }}>
-        <Text style={[t.screenTitle, { color: c.textPrimary }]}>{task ? 'Make it yours.' : 'A little starts here.'}</Text>
-        <Text style={[t.body, styles.subtitle]}>{task ? 'Adjust your task to fit your day.' : 'What would you like to check in on?'}</Text>
-        {!task && !loading && <Text style={styles.taskCount}>{activeCount} of {MAX_ACTIVE_TASKS} tasks</Text>}
+        <Text style={[t.screenTitle, { color: c.textPrimary }]}>{task ? `Edit · ${task.name}` : 'What would you like to track?'}</Text>
+        <Text style={[t.body, styles.subtitle]}>{task ? 'Update the name or rating choices.' : 'Give it a name and choose how you’ll rate it.'}</Text>
+        {!task && !loading && <Text style={styles.taskCount}>{activeCount} of {MAX_ACTIVE_TASKS}</Text>}
         {atLimit && <Text style={styles.limitMessage} accessibilityRole="alert">{ACTIVE_TASK_LIMIT_MESSAGE}</Text>}
-        <Text style={styles.label}>Task name</Text>
+        <Text style={styles.label}>Name</Text>
         <TextInput ref={nameInput} onFocus={() => onKeyboardFocus(nameInput.current)} value={name} onChangeText={value => { setName(value); setError(null); }} placeholder="Guitar Practice"
-          placeholderTextColor={c.textSecondary} accessibilityLabel="Task name" maxLength={80} returnKeyType="next" submitBehavior="submit"
+          placeholderTextColor={c.textSecondary} accessibilityLabel="Name" maxLength={80} returnKeyType="next" submitBehavior="submit"
           onSubmitEditing={() => inputs.current[options[0].id]?.focus()} style={styles.nameInput} editable={!busy && !sorting} />
         <Text style={[t.sectionTitle, { color: c.textPrimary, marginTop: s.xxxl }]}>How would you like to rate it?</Text>
         <Text style={[t.secondary, styles.subtitle]}>Use your own words. Drag the handles to order your choices.</Text>
@@ -141,7 +141,7 @@ export function TaskForm({ task }: { task?: Task }) {
       </ScrollView></GestureDetector></View>
       <View style={styles.footer}>{error && !(atLimit && error === ACTIVE_TASK_LIMIT_MESSAGE) &&
         <Text accessibilityRole="alert" style={[t.secondary, { color: c.danger, marginBottom: s.sm }]}>{error}</Text>}
-        <Button label={busy ? 'Saving…' : task ? 'Save changes' : 'Create task'}
+        <Button label={busy ? 'Saving…' : task ? 'Save Changes' : 'Create'}
           onPress={() => void save()} disabled={busy || sorting || (!task && (loading || atLimit))} /></View>
     </KeyboardAvoidingView>
   </SafeAreaView></GestureHandlerRootView>;

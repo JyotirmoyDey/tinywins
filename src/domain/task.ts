@@ -55,10 +55,10 @@ export function normalizeOptions(taskId: string, options: OptionDraft[], now = n
     active: true, createdAt: now, updatedAt: now }));
 }
 export function validateDraft(draft: TaskDraft): string | null {
-  if (!draft.name.trim()) return 'Give your task a name.';
+  if (!draft.name.trim()) return 'Please enter a name.';
   if (draft.options.length < 2 || draft.options.length > 7) return 'Choose between 2 and 7 options.';
   if (draft.options.some(option => !option.label.trim() || !option.id)) return 'Give every option a label.';
-  if (new Set(draft.options.map(option => option.id)).size !== draft.options.length) return 'Option IDs must be unique.';
+  if (new Set(draft.options.map(option => option.id)).size !== draft.options.length) return 'Could not save these options. Please try again.';
   return null;
 }
 export function localDate(date = new Date()): string {

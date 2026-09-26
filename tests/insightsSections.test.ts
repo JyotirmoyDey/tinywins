@@ -52,7 +52,7 @@ test('all six chart names and subtitles change without changing their identifier
     ['rating-distribution', 'Your Rating Mix', 'Discover which levels you record most often.'],
     ['activity-calendar', 'Your Days', 'Look back at your daily journey.'],
     ['period-comparison', 'Then & Now', 'See how this period compares with the last.'],
-    ['recording-consistency-individual', 'Check-in Rhythm', 'Explore how regularly you record your activity.'],
+    ['recording-consistency-individual', 'Check-in Rhythm', 'Explore how regularly you check in.'],
     ['weekday-patterns', 'Your Weekly Rhythm', 'Discover how your ratings vary throughout the week.'],
   ]);
   const sections = organizeIndividualCharts(charts.map(chart => ({ id: chart.id,

@@ -6,6 +6,9 @@ import { colorsByTaskId, getJourneyTogether, journeyTogetherConfig,
   visibleJourneyTasks } from '../src/analytics/journeyTogether';
 import { setup } from './sqlite';
 import { getAnalyticsDataset } from '../src/analytics/service';
+import { journeyIsolatedFragments, journeyLinePath, journeyXAt, journeyYAt } from '../src/components/analytics/journeyPlotGeometry';
+import { getRatingTrend, ratingTrendConfig } from '../src/analytics/ratingTrend';
+import { getAdaptiveTrend } from '../src/analytics/ratingTrendPresentation';
 
 const demo = loadDemoDataset();
 const today = '2026-09-22';
@@ -61,6 +64,53 @@ test('7D and 30D use daily observations; 90D and long custom ranges reuse groupe
     period: { startDate: '2026-06-01', endDate: today } });
   assert.equal(longer.kind, 'grouped');
   assert.ok(longer.dates.length <= 15);
+});
+
+test('miniature trends reuse the individual monotone curve without moving points or bridging gaps', () => {
+  assert.equal(ratingTrendConfig.style.curve, 'monotoneX');
+  const ranges = [period('7D'), period('30D'), period('90D'), custom];
+  const width = 280;
+  for (const range of ranges) {
+    const result = getJourneyTogether({ dataset: demo, period: range });
+    for (const series of result.series) {
+      const task = demo.tasks.find(item => item.id === series.taskId)!;
+      const individual = getRatingTrend({ task, entries: demo.entries,
+        versions: demo.scaleVersions, period: range });
+      const expected = result.kind === 'grouped'
+        ? getAdaptiveTrend(individual, 'CUSTOM').groupedPoints.map(point => ({
+          date: result.dates[point.slotIndex], levelIndex: point.medianLevelIndex,
+          connectsToPrevious: point.connectsToPrevious }))
+        : individual.observations.map(point => ({ date: point.date,
+          levelIndex: point.levelIndex, connectsToPrevious: point.connectsToPrevious }));
+      assert.deepEqual(series.points.map(point => ({ date: point.date,
+        levelIndex: point.levelIndex, connectsToPrevious: point.connectsToPrevious })), expected);
+      const path = journeyLinePath(series, result.dates.length, width);
+      const expectedLinks = series.points.filter((point, index) => index > 0 &&
+        point.connectsToPrevious && point.slotIndex > series.points[index - 1].slotIndex).length;
+      assert.equal((path.match(/ C /g) ?? []).length, expectedLinks);
+      assert.equal((path.match(/ L /g) ?? []).length, 0);
+      for (const point of series.points) {
+        const x = journeyXAt(point.slotIndex, result.dates.length, width);
+        const y = journeyYAt(point.levelIndex, series.levelCount);
+        const inset = journeyTogetherConfig.presentation.horizontalInset +
+          journeyTogetherConfig.presentation.markerRadius;
+        assert.ok(x >= inset && x <= width - inset);
+        assert.ok(y >= 0 && y <= journeyTogetherConfig.presentation.miniPlotHeight);
+        if (series.points.length > 1 &&
+          (point.connectsToPrevious || series.points.some(next => next.connectsToPrevious &&
+            next.slotIndex === point.slotIndex + 1))) {
+          assert.ok(path.includes(`${x} ${y}`));
+        }
+      }
+    }
+  }
+  const broken = getJourneyTogether({ dataset: { ...demo, tasks: [demo.tasks[0]],
+    entries: demo.entries.filter(entry => entry.taskId === demo.tasks[0].id &&
+      (entry.localDate === '2026-09-19' || entry.localDate === '2026-09-22')) },
+    period: { startDate: '2026-09-19', endDate: '2026-09-22' } });
+  assert.equal(journeyLinePath(broken.series[0], broken.dates.length, width), '');
+  assert.equal((journeyIsolatedFragments(broken.series[0], broken.dates.length, width)
+    .match(/ M |^M /g) ?? []).length, broken.series[0].points.length);
 });
 
 test('gaps and incompatible scales interrupt only the affected activity', () => {

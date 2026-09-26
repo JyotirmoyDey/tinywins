@@ -80,8 +80,8 @@ export default function ExpandedTrendScreen() {
         loading ? <Text style={styles.message}>Loading chart…</Text> :
         data && view ? <ExpandedRatingTrendChart
           key={`${period.startDate}-${period.endDate}-${Math.round(bounds.width)}-${Math.round(bounds.height)}`}
-          data={data} view={view} taskName={task?.name ?? 'Activity'} height={Math.floor(bounds.height)}/> :
-          <Text style={styles.message}>This activity is unavailable.</Text>}
+          data={data} view={view} taskName={task?.name ?? 'Insights'} height={Math.floor(bounds.height)}/> :
+          <Text style={styles.message}>This is no longer available.</Text>}
     </View>
   </SafeAreaView>;
 }
