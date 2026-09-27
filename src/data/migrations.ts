@@ -56,6 +56,8 @@ const migrations = [
    );
    CREATE INDEX lifecycle_by_task_date ON task_lifecycle_transitions(taskId, localDate, occurredAt);`,
   `ALTER TABLE tasks ADD COLUMN chartColor TEXT;`,
+  `ALTER TABLE tasks ADD COLUMN includeInCombinedInsights INTEGER NOT NULL DEFAULT 0
+     CHECK(includeInCombinedInsights IN (0,1));`,
 ];
 export async function migrate(connection: Connection) {
   await connection.run(db => db.execAsync('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;'));
@@ -125,6 +127,14 @@ export async function migrate(connection: Connection) {
           await db.runAsync('UPDATE tasks SET chartColor = ? WHERE id = ?', color, task.id);
           used.add(color);
         }
+      } else if (index === 5) {
+        await db.execAsync(migrations[index]);
+        // The old app had no preference. Initialize once, using Home order.
+        const active = await db.getAllAsync<{ id: string }>(`SELECT id FROM tasks WHERE active = 1 ORDER BY
+          COALESCE((SELECT MAX(occurredAt) FROM task_lifecycle_transitions
+            WHERE taskId = tasks.id AND type = 'restored'), createdAt), id LIMIT 5`);
+        for (const task of active) await db.runAsync(
+          'UPDATE tasks SET includeInCombinedInsights = 1 WHERE id = ?', task.id);
       } else await db.execAsync(migrations[index]);
       await db.execAsync(`PRAGMA user_version = ${index + 1}`);
     }

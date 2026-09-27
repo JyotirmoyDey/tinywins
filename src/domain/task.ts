@@ -1,9 +1,12 @@
+import { characterCount, MAX_NAME_CHARACTERS, MAX_OPTION_CHARACTERS } from './inputLimits';
+
 export interface TaskOption {
   id: string; taskId: string; label: string; position: number; rank: number; normalizedWeight: number;
   active: boolean; createdAt: string; updatedAt: string;
 }
 export interface Task {
   id: string; name: string; createdAt: string; updatedAt: string; active: boolean;
+  includeInCombinedInsights: boolean;
   /** Saved local creation day; older records are backfilled best-effort. */
   createdLocalDate?: string | null; archivedAt?: string | null;
   /** Assigned once; archiving, restoring, and task ordering never change it. */
@@ -20,7 +23,7 @@ export interface TaskLifecycleTransition {
   inferred?: boolean;
 }
 export interface OptionDraft { id: string; label: string }
-export interface TaskDraft { name: string; options: OptionDraft[] }
+export interface TaskDraft { name: string; options: OptionDraft[]; includeInCombinedInsights?: boolean }
 /** Historical truth. Analytics and history must use these snapshots, never current TaskOption metadata. */
 export interface DailyEntry {
   id: string; taskId: string; optionId: string; localDate: string;
@@ -54,10 +57,15 @@ export function normalizeOptions(taskId: string, options: OptionDraft[], now = n
     position: i + 1, rank: i + 1, normalizedWeight: Math.round((i / (options.length - 1)) * 100),
     active: true, createdAt: now, updatedAt: now }));
 }
-export function validateDraft(draft: TaskDraft): string | null {
+export function validateDraft(draft: TaskDraft, existing?: Task, allowLegacyOverLimit = false): string | null {
   if (!draft.name.trim()) return 'Please enter a name.';
+  if (!allowLegacyOverLimit && characterCount(draft.name.trim()) > MAX_NAME_CHARACTERS && draft.name !== existing?.name)
+    return `Keep the name to ${MAX_NAME_CHARACTERS} characters or fewer.`;
   if (draft.options.length < 2 || draft.options.length > 7) return 'Choose between 2 and 7 options.';
   if (draft.options.some(option => !option.label.trim() || !option.id)) return 'Give every option a label.';
+  if (!allowLegacyOverLimit && draft.options.some(option => characterCount(option.label.trim()) > MAX_OPTION_CHARACTERS &&
+    option.label !== existing?.options.find(saved => saved.id === option.id)?.label))
+    return `Keep each rating name to ${MAX_OPTION_CHARACTERS} characters or fewer.`;
   if (new Set(draft.options.map(option => option.id)).size !== draft.options.length) return 'Could not save these options. Please try again.';
   return null;
 }

@@ -129,12 +129,12 @@ test('demo 90-day workout keeps all daily records while presenting weekly summar
   assert.ok(view.weeklyPoints.every(point => point.observations.every(day => day.scaleVersionId === point.scaleVersionId)));
 });
 
-test('portrait grouping uses daily, two-day, and calendar-week slots with at most 15 points', () => {
+test('named 30D keeps daily observations; custom ranges retain capped grouping', () => {
   const demo = loadDemoDataset();
   const task = demo.tasks.find(item => item.id === 'workout')!;
   for (const [range, startDate, expectedSlots, subtitle] of [
     ['7D', '2026-09-16', 7, 'Daily trend'],
-    ['30D', '2026-08-24', 15, '2-day median'],
+    ['30D', '2026-08-24', 30, 'Daily trend'],
     ['90D', '2026-06-25', 14, 'Weekly median'],
   ] as const) {
     const data = getRatingTrend({ task, entries: demo.entries, versions: demo.scaleVersions,
@@ -142,7 +142,7 @@ test('portrait grouping uses daily, two-day, and calendar-week slots with at mos
     const view = getAdaptiveTrend(data, range);
     assert.equal(view.slots.length, expectedSlots);
     assert.equal(view.subtitle, subtitle);
-    assert.ok(view.groupedPoints.length <= 15);
+    assert.ok(view.groupedPoints.length <= (range === '30D' ? 30 : 15));
     assert.ok(view.groupedPoints.every(point => point.slotIndex < view.slots.length));
     assert.ok(view.groupedPoints.every(point => Number.isInteger(point.medianLevelIndex)));
     assert.equal(view.recordedCount, data.observations.length);
@@ -155,7 +155,7 @@ test('portrait medians exclude missing days and use the lower actual rating for 
     { day: 6, level: 2 },
     { day: 8, level: 1 }, { day: 9, level: 2 },
   ]);
-  const view = getAdaptiveTrend(data, '30D');
+  const view = getAdaptiveTrend(data, 'CUSTOM');
   assert.equal(view.slots.length, 15);
   assert.deepEqual(view.groupedPoints.map(point => [point.slotIndex, point.medianLevelIndex, point.recordedCount]),
     [[0, 0, 2], [3, 2, 1], [4, 1, 2]]);
@@ -169,7 +169,7 @@ test('a two-day slot spanning incompatible scales stays blank while expanded obs
     { day: 2, level: 1, version: 'new' }, { day: 3, level: 2, version: 'new' },
     { day: 4, level: 0, version: 'new' },
   ]);
-  const view = getAdaptiveTrend(data, '30D');
+  const view = getAdaptiveTrend(data, 'CUSTOM');
   assert.equal(view.mixedScaleSlots, 1);
   assert.deepEqual(view.groupedPoints.map(point => point.slotIndex), [1, 2]);
   assert.deepEqual(view.groupedPoints.map(point => point.connectsToPrevious), [false, true]);

@@ -9,6 +9,7 @@ import { Task } from '../domain/task';
 import { useEntry, useTaskActions } from '../state/TasksProvider';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
 import { TaskActionsMenu } from './TaskActionsMenu';
+import { CombinedInsightsToggle } from './CombinedInsightsToggle';
 import { SLIDER_INSET, sliderColor, sliderDisplay, sliderIndexFromX, sliderXForIndex } from './sliderMath';
 
 const trackColor = '#E9E9E5';
@@ -151,6 +152,7 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
       <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, ${label}. Show full rating label`} onPress={() => Alert.alert(task.name, label)} style={styles.labelTouch}>
         <Text numberOfLines={2} style={[styles.selectedLabel, !entry && previewIndex === null && styles.unrecordedLabel]}>{label}</Text>
       </Pressable>
+      <CombinedInsightsToggle task={task} />
       <TaskActionsMenu task={task} onClear={entry ? clear : undefined} onBusyChange={setBusy} />
     </View>
     <GestureDetector gesture={gesture}>
@@ -175,7 +177,7 @@ const styles = StyleSheet.create({
   heading: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: s.xs },
   taskLink: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
   taskName: { ...t.taskTitle, color: c.textPrimary },
-  labelTouch: { maxWidth: '42%', minHeight: 44, minWidth: 0, justifyContent: 'center', alignItems: 'flex-end' },
+  labelTouch: { maxWidth: '32%', minHeight: 44, minWidth: 0, justifyContent: 'center', alignItems: 'flex-end' },
   selectedLabel: { ...t.secondary, color: c.textPrimary, fontWeight: '600', textAlign: 'right' },
   unrecordedLabel: { color: c.textSecondary, fontWeight: '400' },
   sliderTouch: { height: 44, justifyContent: 'center' },

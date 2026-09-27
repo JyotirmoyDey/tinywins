@@ -30,7 +30,7 @@ test('historical snapshots keep position and weight across reorder, rename, and 
   assert.equal((await entries.getForTaskAndDate(task.id, '2026-09-19'))?.optionLabelAtEntry, 'Good');
   assert.equal((await entries.getForTaskAndDate(task.id, '2026-09-20'))?.optionLabelAtEntry, 'Good');
   assert.equal(future.optionLabelAtEntry, 'Excellent');
-  const expanded = await tasks.update(task.id, { name: task.name, options: [...renamed.options, { id: 'new-option', label: 'Outstanding' }] });
+  const expanded = await tasks.update(task.id, { name: task.name, options: [...renamed.options, { id: 'new-option', label: 'Amazing' }] });
   const afterAdd = await entries.upsert(task.id, '2026-09-22', expanded.options.find(option => option.id === task.options[2].id)!.id);
   assert.equal((await entries.getForTaskAndDate(task.id, '2026-09-20'))?.normalizedWeightAtEntry, 100);
   assert.equal(afterAdd.normalizedWeightAtEntry, 75);

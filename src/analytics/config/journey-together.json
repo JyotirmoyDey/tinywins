@@ -12,7 +12,6 @@
   "displayOrder": 1,
   "presentation": {
     "initialActivities": 4,
-    "dailyThroughDays": 30,
     "miniPlotHeight": 56,
     "horizontalInset": 5,
     "verticalInset": 6,

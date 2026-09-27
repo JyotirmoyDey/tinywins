@@ -8,7 +8,7 @@ import { setup } from './sqlite';
 import { getAnalyticsDataset } from '../src/analytics/service';
 import { journeyIsolatedFragments, journeyLinePath, journeyXAt, journeyYAt } from '../src/components/analytics/journeyPlotGeometry';
 import { getRatingTrend, ratingTrendConfig } from '../src/analytics/ratingTrend';
-import { getAdaptiveTrend } from '../src/analytics/ratingTrendPresentation';
+import { getAdaptiveTrend, getTaskTrendData, TrendRange } from '../src/analytics/ratingTrendPresentation';
 
 const demo = loadDemoDataset();
 const today = '2026-09-22';
@@ -64,6 +64,59 @@ test('7D and 30D use daily observations; 90D and long custom ranges reuse groupe
     period: { startDate: '2026-06-01', endDate: today } });
   assert.equal(longer.kind, 'grouped');
   assert.ok(longer.dates.length <= 15);
+});
+
+test('individual and miniature trends have identical slots, medians, gaps and category positions', () => {
+  const ranges: { range: TrendRange; dates: { startDate: string; endDate: string } }[] = [
+    { range: '1D', dates: period('1D') }, { range: '7D', dates: period('7D') },
+    { range: '30D', dates: period('30D') }, { range: '90D', dates: period('90D') },
+    { range: 'CUSTOM', dates: { startDate: '2026-08-09', endDate: today } },
+    { range: 'CUSTOM', dates: period('30D') },
+  ];
+  for (const { range, dates } of ranges) {
+    const combined = getJourneyTogether({ dataset: demo, period: dates, range });
+    for (const series of combined.series) {
+      const task = demo.tasks.find(item => item.id === series.taskId)!;
+      const { trend, view } = getTaskTrendData({ task, entries: demo.entries,
+        versions: demo.scaleVersions, period: dates }, range);
+      assert.deepEqual(combined.dates, view.slots.map(slot => slot.axisDate));
+      assert.equal(series.levelCount, trend.levels.length);
+      const expectedPoints = view.presentation === 'today' || view.presentation === 'sparse'
+        ? trend.observations.map(observation => ({
+          slotIndex: view.slots.findIndex(slot => observation.date >= slot.startDate &&
+            observation.date <= slot.endDate),
+          date: observation.date, label: observation.labelAtEntry,
+          levelIndex: observation.levelIndex, recordedCount: 1,
+          connectsToPrevious: observation.connectsToPrevious,
+        })) : view.groupedPoints.map(point => ({
+        slotIndex: point.slotIndex, date: view.slots[point.slotIndex].axisDate,
+        label: point.medianLabel, levelIndex: point.medianLevelIndex,
+        recordedCount: point.recordedCount,
+        connectsToPrevious: point.connectsToPrevious,
+      }));
+      assert.deepEqual(series.points, expectedPoints);
+      const occupied = new Set(series.points.map(point => point.slotIndex));
+      for (let index = 0; index < view.slots.length; index++) {
+        if (!occupied.has(index)) assert.ok(!series.points.some(point => point.slotIndex === index));
+      }
+    }
+  }
+});
+
+test('a sparse miniature keeps the original recording date inside its shared weekly slot', () => {
+  const task = demo.tasks[0];
+  const dates = period('90D');
+  const entry = demo.entries.find(item => item.taskId === task.id &&
+    item.localDate >= dates.startDate && item.localDate <= dates.endDate)!;
+  const sparse = { ...demo, tasks: [task], entries: [entry] };
+  const combined = getJourneyTogether({ dataset: sparse, period: dates, range: '90D' });
+  const { trend, view } = getTaskTrendData({ task, entries: [entry],
+    versions: demo.scaleVersions, period: dates }, '90D');
+  assert.equal(view.presentation, 'sparse');
+  assert.equal(combined.series[0].points[0].date, trend.observations[0].date);
+  assert.equal(combined.series[0].points[0].levelIndex, trend.observations[0].levelIndex);
+  const slot = view.slots[combined.series[0].points[0].slotIndex];
+  assert.ok(entry.localDate >= slot.startDate && entry.localDate <= slot.endDate);
 });
 
 test('miniature trends reuse the individual monotone curve without moving points or bridging gaps', () => {

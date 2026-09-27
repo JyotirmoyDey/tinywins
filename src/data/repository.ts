@@ -3,7 +3,8 @@ import { changesScaleStructure, reordersExistingOptions } from '../domain/rating
 import { Connection, SqlDatabase } from './connection';
 import { ACTIVE_TASK_LIMIT_MESSAGE, MAX_ACTIVE_TASKS } from '../config/taskLimits';
 import { nextTaskColor } from '../analytics/taskColors';
-type TaskRow = Omit<Task, 'options' | 'active'> & { active: number };
+import { COMBINED_INSIGHTS_LIMIT_MESSAGE, MAX_COMBINED_INSIGHTS_ITEMS } from '../config/combinedInsights';
+type TaskRow = Omit<Task, 'options' | 'active' | 'includeInCombinedInsights'> & { active: number; includeInCombinedInsights: number };
 type OptionRow = Omit<TaskOption, 'active'> & { active: number };
 type VersionRow = Omit<RatingScaleVersion, 'options'> & { optionsJson: string };
 export class TrendResetConfirmationRequired extends Error {
@@ -12,9 +13,17 @@ export class TrendResetConfirmationRequired extends Error {
 export class ActiveTaskLimitError extends Error {
   constructor() { super(ACTIVE_TASK_LIMIT_MESSAGE); this.name = 'ActiveTaskLimitError'; }
 }
+export class CombinedInsightsLimitError extends Error {
+  constructor() { super(COMBINED_INSIGHTS_LIMIT_MESSAGE); this.name = 'CombinedInsightsLimitError'; }
+}
 async function assertActiveTaskCapacity(db: SqlDatabase) {
   const row = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM tasks WHERE active = 1');
   if ((row?.count ?? 0) >= MAX_ACTIVE_TASKS) throw new ActiveTaskLimitError();
+}
+async function selectedCount(db: SqlDatabase) {
+  const row = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM tasks WHERE active = 1 AND includeInCombinedInsights = 1');
+  return row?.count ?? 0;
 }
 function toVersion(row: VersionRow): RatingScaleVersion {
   return { id: row.id, taskId: row.taskId, trendEpochId: row.trendEpochId,
@@ -28,7 +37,8 @@ export async function readTask(db: SqlDatabase, id: string): Promise<Task | unde
   const row = await db.getFirstAsync<TaskRow>('SELECT * FROM tasks WHERE id = ?', id);
   if (!row) return undefined;
   const options = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE taskId = ? AND active = 1 ORDER BY position', id);
-  return { ...row, active: !!row.active, options: options.map(option => ({ ...option, active: !!option.active })) };
+  return { ...row, active: !!row.active, includeInCombinedInsights: !!row.includeInCombinedInsights,
+    options: options.map(option => ({ ...option, active: !!option.active })) };
 }
 export class TaskRepository {
   constructor(private connection: Connection, private id: () => string) {}
@@ -38,7 +48,9 @@ export class TaskRepository {
         COALESCE((SELECT MAX(occurredAt) FROM task_lifecycle_transitions
           WHERE taskId = tasks.id AND type = 'restored'), createdAt), id`);
       const options = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE active = 1 ORDER BY position');
-      return tasks.map(task => ({ ...task, active: !!task.active, options: options.filter(o => o.taskId === task.id).map(o => ({ ...o, active: !!o.active })) }));
+      return tasks.map(task => ({ ...task, active: !!task.active,
+        includeInCombinedInsights: !!task.includeInCombinedInsights,
+        options: options.filter(o => o.taskId === task.id).map(o => ({ ...o, active: !!o.active })) }));
     });
   }
   getById(id: string) { return this.connection.run(db => readTask(db, id)); }
@@ -69,13 +81,16 @@ export class TaskRepository {
     return this.connection.transaction(async db => {
       const error = validateDraft(draft); if (error) throw new Error(error);
       await assertActiveTaskCapacity(db);
+      const occupied = await selectedCount(db);
+      const include = draft.includeInCombinedInsights ?? occupied < MAX_COMBINED_INSIGHTS_ITEMS;
+      if (include && occupied >= MAX_COMBINED_INSIGHTS_ITEMS) throw new CombinedInsightsLimitError();
       const id = this.id(); const now = new Date().toISOString();
       const scaleId = this.id(); const epochId = this.id();
       const usedColors = await db.getAllAsync<{ chartColor: string }>(
         'SELECT chartColor FROM tasks WHERE chartColor IS NOT NULL');
       const chartColor = nextTaskColor(usedColors.map(row => row.chartColor));
-      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, currentScaleVersionId, currentTrendEpochId) VALUES (?, ?, ?, ?, 1, ?, NULL, ?, ?, ?)',
-        id, draft.name.trim(), now, now, localDate(), chartColor, scaleId, epochId);
+      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, currentScaleVersionId, currentTrendEpochId, includeInCombinedInsights) VALUES (?, ?, ?, ?, 1, ?, NULL, ?, ?, ?, ?)',
+        id, draft.name.trim(), now, now, localDate(), chartColor, scaleId, epochId, Number(include));
       const options = normalizeOptions(id, draft.options, now);
       for (const option of options) await insertOption(db, option);
       await insertVersion(db, { id: scaleId, taskId: id, trendEpochId: epochId, createdAt: now, effectiveLocalDate: localDate(),
@@ -85,9 +100,9 @@ export class TaskRepository {
   }
   update(id: string, draft: TaskDraft, confirmTrendReset = false) {
     return this.connection.transaction(async db => {
-      const error = validateDraft(draft); if (error) throw new Error(error);
       const current = await readTask(db, id);
       if (!current) throw new Error('Task not found.');
+      const error = validateDraft(draft, current); if (error) throw new Error(error);
       const reorder = reordersExistingOptions(current.options, draft.options);
       const structural = changesScaleStructure(current.options, draft.options);
       const hasHistory = reorder && !!await db.getFirstAsync('SELECT 1 FROM daily_entries WHERE taskId = ? LIMIT 1', id);
@@ -125,13 +140,25 @@ export class TaskRepository {
       const moment = new Date(); const now = moment.toISOString();
       const day = localDate(moment);
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
-      await db.runAsync('UPDATE tasks SET active = ?, archivedAt = ?, updatedAt = ? WHERE id = ?',
-        Number(active), active ? null : now, now, id);
+      await db.runAsync('UPDATE tasks SET active = ?, archivedAt = ?, includeInCombinedInsights = ?, updatedAt = ? WHERE id = ?',
+        Number(active), active ? null : now, active ? Number(task.includeInCombinedInsights) : 0, now, id);
       await db.runAsync(`INSERT INTO task_lifecycle_transitions
         (id, taskId, type, occurredAt, localDate, utcOffsetMinutes, timeZone, inferred)
         VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
         this.id(), id, active ? 'restored' : 'archived', now, day,
         -moment.getTimezoneOffset(), timeZone);
+    });
+  }
+  setCombinedInsightsSelection(id: string, selected: boolean) {
+    return this.connection.transaction(async db => {
+      const task = await db.getFirstAsync<{ active: number; includeInCombinedInsights: number }>(
+        'SELECT active, includeInCombinedInsights FROM tasks WHERE id = ?', id);
+      if (!task) throw new Error('Item not found.');
+      if (!task.active) throw new Error('Archived items cannot be added to combined Insights.');
+      if (!!task.includeInCombinedInsights === selected) return;
+      if (selected && await selectedCount(db) >= MAX_COMBINED_INSIGHTS_ITEMS)
+        throw new CombinedInsightsLimitError();
+      await db.runAsync('UPDATE tasks SET includeInCombinedInsights = ? WHERE id = ?', Number(selected), id);
     });
   }
   delete(id: string) { return this.connection.transaction(async db => { await db.runAsync('DELETE FROM tasks WHERE id = ?', id); }); }

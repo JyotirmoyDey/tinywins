@@ -28,7 +28,7 @@ test('archive and restore repeatedly preserve identity, configuration, entries, 
     assert.equal((await db.tasks.getById(task.id))?.active, false);
     assert.ok((await db.tasks.getById(task.id))?.archivedAt);
     assert.ok((await db.tasks.getById(task.id))?.chartColor);
-    await assert.rejects(db.entries.upsert(task.id, '2026-09-26', task.options[0].id),
+    await assert.rejects(db.entries.upsert(task.id, localDate(), task.options[0].id),
       /Restore this activity/);
     await db.tasks.restore(task.id);
     await db.tasks.restore(task.id);
@@ -231,6 +231,7 @@ test('v3 migration preserves existing archived tasks and backfills an inferred t
       ALTER TABLE tasks DROP COLUMN archivedAt;
       ALTER TABLE tasks DROP COLUMN createdLocalDate;
       ALTER TABLE tasks DROP COLUMN chartColor;
+      ALTER TABLE tasks DROP COLUMN includeInCombinedInsights;
       PRAGMA user_version = 3;`);
     await migrate(db.connection);
     assert.equal((await db.tasks.getById(task.id))?.active, false);

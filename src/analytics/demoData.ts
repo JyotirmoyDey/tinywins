@@ -1,5 +1,6 @@
 import { AnalyticsDataset } from './types';
 import { colorsByTaskId, fallbackTaskColor } from './taskColors';
+import { initialCombinedTaskIds } from '../config/combinedInsights';
 const raw = require('../assets/demo/tinywins_dummy_1year_8tasks_organic.json');
 type DemoOption = { id:string; label:string; position:number; weight:number };
 type DemoTask = { id:string; name:string; options: DemoOption[] };
@@ -10,8 +11,10 @@ export function loadDemoDataset(): AnalyticsDataset {
   const colorMap = colorsByTaskId(data.tasks.map(task => task.id));
   const createdAt = `${data.period.startDate}T12:00:00.000Z`;
   const updatedAt = `${data.period.endDate}T12:00:00.000Z`;
+  const initialGraphIds = initialCombinedTaskIds(data.tasks.map(task => ({ ...task, active: true, createdAt })));
   return {
     tasks: data.tasks.map(task => ({ id:task.id, name:task.name, active:true,
+      includeInCombinedInsights: initialGraphIds.has(task.id),
       createdAt, createdLocalDate:data.period.startDate, updatedAt,
       currentScaleVersionId:`demo-scale-${task.id}`, currentTrendEpochId:`demo-epoch-${task.id}`,
       color:colorMap.get(task.id)??fallbackTaskColor(task.id),

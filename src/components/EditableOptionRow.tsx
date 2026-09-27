@@ -4,6 +4,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { SharedValue, useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { OptionDraft } from '../domain/task';
+import { characterCount, MAX_OPTION_CHARACTERS } from '../domain/inputLimits';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
 import { movePosition, OPTION_ROW_HEIGHT, OptionPositions } from './optionOrdering';
 
@@ -89,9 +90,12 @@ export function EditableOptionRow({ option, index, count, onChange, onRemove, on
         onAccessibilityAction={event => onMove(option.id, Math.max(0, Math.min(count - 1, index + (event.nativeEvent.actionName === 'increment' ? 1 : -1))))}
         style={styles.handle}><Text style={{ color: c.textSecondary, fontSize: 24 }}>⠿</Text></View></GestureDetector>
       <TextInput ref={inputRef} onFocus={onFocus} editable={!disabled} value={option.label} onChangeText={onChange} placeholder={`Option ${index + 1}`}
-        accessibilityLabel={`Option ${index + 1} label`} style={styles.input} maxLength={60} maxFontSizeMultiplier={1.3}
+        accessibilityLabel={`Option ${index + 1} label`} style={styles.input} maxFontSizeMultiplier={1.3}
         placeholderTextColor={c.textSecondary} returnKeyType={index === count - 1 ? 'done' : 'next'}
         submitBehavior={index === count - 1 ? 'blurAndSubmit' : 'submit'} onSubmitEditing={onSubmit} />
+      <Text style={styles.count} accessibilityLabel={`${characterCount(option.label)} of ${MAX_OPTION_CHARACTERS} characters`}>
+        {characterCount(option.label)}/{MAX_OPTION_CHARACTERS}
+      </Text>
       <Pressable onPress={onRemove} disabled={disabled || count <= 2} accessibilityRole="button" accessibilityLabel={`Remove ${option.label || 'option'}`}
         accessibilityState={{ disabled: disabled || count <= 2 }} style={[styles.handle, { opacity: count <= 2 ? 0.25 : 1 }]}>
         <Text style={{ fontSize: 24, color: c.textSecondary }}>−</Text>
@@ -104,4 +108,5 @@ const styles = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: r.md },
   handle: { width: 44, height: 56, alignItems: 'center', justifyContent: 'center' },
   input: { ...t.body, flex: 1, color: c.textPrimary, height: 56, paddingVertical: s.sm, paddingHorizontal: s.xs },
+  count: { ...t.caption, color: c.textTertiary, minWidth: 38, textAlign: 'right' },
 });

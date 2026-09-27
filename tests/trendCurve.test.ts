@@ -89,7 +89,7 @@ test('demo 7D, 30D and 90D use the configured curve within a narrow iPhone plot'
       x: inset + point.slotIndex / Math.max(1, view.slots.length - 1) * (plotWidth - inset * 2),
       y: point.medianLevelIndex, connectsToPrevious: point.connectsToPrevious,
     }));
-    assert.ok(points.length <= 15);
+    assert.ok(points.length <= (range === '30D' ? 30 : 15));
     assert.ok(points.every(point => point.x >= inset && point.x <= plotWidth - inset));
     assert.ok(assertMonotoneGeometry(points).length > 0);
     const expandedWidth = Math.max(plotWidth, data.dates.length * 30);

@@ -17,3 +17,12 @@ test('long labels use balanced rows and retain every choice at large text sizes'
   assert.deepEqual(rows.flat(), [0, 1, 2, 3, 4]);
   assert.deepEqual(rows.map(row => row.length), [2, 2, 1]);
 });
+
+test('seven maximum-length labels remain in balanced rows across phone widths', () => {
+  const labels = Array.from({ length: 7 }, (_, index) => `${index}abcdefghi`);
+  for (const screenWidth of [320, 375, 430]) {
+    const rows = planHomeOptionRows(labels, screenWidth - 44, 1.2);
+    assert.deepEqual(rows.flat(), [0, 1, 2, 3, 4, 5, 6]);
+    assert.ok(rows.every(row => row.length >= 2 && row.length <= 3));
+  }
+});

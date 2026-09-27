@@ -14,12 +14,18 @@ import { getRepositories } from '../data/runtime';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
 import { Button } from './ui';
 import { EditableOptionRow } from './EditableOptionRow';
-import { ActiveTaskLimitError } from '../data/repository';
+import { ActiveTaskLimitError, CombinedInsightsLimitError } from '../data/repository';
 import { ACTIVE_TASK_LIMIT_MESSAGE, MAX_ACTIVE_TASKS } from '../config/taskLimits';
+import { COMBINED_INSIGHTS_LIMIT_MESSAGE, MAX_COMBINED_INSIGHTS_ITEMS } from '../config/combinedInsights';
+import { characterCount, constrainTextInput, MAX_NAME_CHARACTERS, MAX_OPTION_CHARACTERS } from '../domain/inputLimits';
 export function TaskForm({ task }: { task?: Task }) {
   const router = useRouter(); const navigation = useNavigation(); const { data, loading, mutate, reload } = useTasks();
   const activeCount = data.tasks.filter(item => item.active).length;
+  const selectedCount = data.tasks.filter(item => item.active && item.includeInCombinedInsights).length;
+  const graphSlotsFull = selectedCount >= MAX_COMBINED_INSIGHTS_ITEMS;
   const atLimit = !task && !loading && activeCount >= MAX_ACTIVE_TASKS;
+  const [includeChoice, setIncludeChoice] = useState<boolean | null>(null);
+  const includeInCombinedInsights = includeChoice ?? !graphSlotsFull;
   const [name, setName] = useState(task?.name ?? '');
   const [options, setOptions] = useState(() => task?.options.map(({ id, label }) => ({ id, label })) ?? ['Low', 'Medium', 'High'].map(label => ({ id: randomUUID(), label })));
   const positions = useSharedValue(positionsForIds(options.map(option => option.id)));
@@ -31,12 +37,14 @@ export function TaskForm({ task }: { task?: Task }) {
   const [busy, setBusy] = useState(false);
   const scrollGesture = useMemo(() => Gesture.Native(), []);
   const [error, setError] = useState<string | null>(null);
+  const [limitNotice, setLimitNotice] = useState<string | null>(null);
   const reducedMotion = useRef(false); const inputs = useRef<Record<string, TextInput | null>>({});
   const nameInput = useRef<TextInput>(null);
   const { setViewport, setScrollView, onLayout: onKeyboardLayout, onScroll: onKeyboardScroll, onFocus: onKeyboardFocus, scrollTo, scrollToEnd } = useKeyboardFocus();
   const newOption = useRef<string | null>(null);
   const [initial] = useState(() => JSON.stringify({ name, options }));
-  const dirty = initial !== JSON.stringify({ name, options });
+  const dirty = initial !== JSON.stringify({ name, options }) ||
+    (includeChoice !== null && includeChoice !== !graphSlotsFull);
   usePreventRemove(!saved && (dirty || busy || sorting), ({ data }) => {
     if (busy || sorting) return;
     Alert.alert('Discard changes?', 'Your changes have not been saved.', [
@@ -68,7 +76,8 @@ export function TaskForm({ task }: { task?: Task }) {
       if (atLimit) setError(ACTIVE_TASK_LIMIT_MESSAGE);
       return;
     }
-    const draft: TaskDraft = { name, options }; const message = validateDraft(draft);
+    const draft: TaskDraft = { name, options,
+      ...(!task ? { includeInCombinedInsights } : {}) }; const message = validateDraft(draft, task);
     if (message) {
       setError(message); AccessibilityInfo.announceForAccessibility(message);
       if (!name.trim()) { scrollTo({ y: 0, animated: true }); nameInput.current?.focus(); }
@@ -83,6 +92,9 @@ export function TaskForm({ task }: { task?: Task }) {
       } catch (failure) {
         if (failure instanceof ActiveTaskLimitError) {
           setError(ACTIVE_TASK_LIMIT_MESSAGE);
+          void reload();
+        } else if (failure instanceof CombinedInsightsLimitError) {
+          setError(COMBINED_INSIGHTS_LIMIT_MESSAGE);
           void reload();
         } else setError('Could not save your changes. Please try again.');
         setBusy(false);
@@ -112,14 +124,33 @@ export function TaskForm({ task }: { task?: Task }) {
         contentContainerStyle={styles.content} onContentSizeChange={() => {
           if (newOption.current) { const id = newOption.current; newOption.current = null; scrollToEnd({ animated: true }); inputs.current[id]?.focus(); }
         }}>
-        <Text style={[t.screenTitle, { color: c.textPrimary }]}>{task ? `Edit · ${task.name}` : 'What would you like to track?'}</Text>
+        <Text numberOfLines={2} style={[t.screenTitle, { color: c.textPrimary }]}>{task ? `Edit · ${task.name}` : 'What would you like to track?'}</Text>
         <Text style={[t.body, styles.subtitle]}>{task ? 'Update the name or rating choices.' : 'Give it a name and choose how you’ll rate it.'}</Text>
         {!task && !loading && <Text style={styles.taskCount}>{activeCount} of {MAX_ACTIVE_TASKS}</Text>}
         {atLimit && <Text style={styles.limitMessage} accessibilityRole="alert">{ACTIVE_TASK_LIMIT_MESSAGE}</Text>}
-        <Text style={styles.label}>Name</Text>
-        <TextInput ref={nameInput} onFocus={() => onKeyboardFocus(nameInput.current)} value={name} onChangeText={value => { setName(value); setError(null); }} placeholder="Guitar Practice"
-          placeholderTextColor={c.textSecondary} accessibilityLabel="Name" maxLength={80} returnKeyType="next" submitBehavior="submit"
+        <View style={styles.fieldHeading}><Text style={styles.label}>Name</Text><Text style={styles.characterCount}>{characterCount(name)}/{MAX_NAME_CHARACTERS}</Text></View>
+        <TextInput ref={nameInput} onFocus={() => onKeyboardFocus(nameInput.current)} value={name} onChangeText={value => {
+          const result = constrainTextInput(name, value, MAX_NAME_CHARACTERS);
+          setName(result.value); setError(null);
+          setLimitNotice(result.exceeded ? `The name can be up to ${MAX_NAME_CHARACTERS} characters.` : null);
+        }} placeholder="Guitar Practice"
+          placeholderTextColor={c.textSecondary} accessibilityLabel="Name" returnKeyType="next" submitBehavior="submit"
           onSubmitEditing={() => inputs.current[options[0].id]?.focus()} style={styles.nameInput} editable={!busy && !sorting} />
+        {!task && <View style={styles.graphSelection}>
+          <Pressable accessibilityRole="checkbox"
+            accessibilityLabel="Include in combined Insights"
+            accessibilityState={{ checked: includeInCombinedInsights, disabled: busy || (graphSlotsFull && !includeInCombinedInsights) }}
+            disabled={busy || (graphSlotsFull && !includeInCombinedInsights)}
+            onPress={() => setIncludeChoice(!includeInCombinedInsights)}
+            style={styles.graphSelectionRow}>
+            <View style={[styles.checkBox, includeInCombinedInsights && styles.checkBoxSelected]}>
+              {includeInCombinedInsights && <Text style={styles.checkMark}>✓</Text>}
+            </View>
+            <Text style={styles.graphSelectionLabel}>Include in combined Insights</Text>
+          </Pressable>
+          <Text style={styles.graphSelectionHint}>{selectedCount} of {MAX_COMBINED_INSIGHTS_ITEMS} Insights spots in use
+            {graphSlotsFull ? '. Change your selections on Home.' : ''}</Text>
+        </View>}
         <Text style={[t.sectionTitle, { color: c.textPrimary, marginTop: s.xxxl }]}>How would you like to rate it?</Text>
         <Text style={[t.secondary, styles.subtitle]}>Use your own words. Drag the handles to order your choices.</Text>
         <View style={styles.orderLabel}><Text style={styles.orderText}>Lowest ↓</Text><Text style={styles.orderText}>{options.length} of 7 options</Text></View>
@@ -129,7 +160,12 @@ export function TaskForm({ task }: { task?: Task }) {
           option={option} index={index} count={options.length} scrollGesture={scrollGesture}
           inputRef={input => { inputs.current[option.id] = input; }}
           onSubmit={() => index < options.length - 1 ? inputs.current[options[index + 1].id]?.focus() : Keyboard.dismiss()}
-          onChange={label => { setOptions(current => current.map(o => o.id === option.id ? { ...o, label } : o)); setError(null); }}
+          onChange={label => {
+            const result = constrainTextInput(option.label, label, MAX_OPTION_CHARACTERS);
+            setOptions(current => current.map(o => o.id === option.id ? { ...o, label: result.value } : o));
+            setError(null);
+            setLimitNotice(result.exceeded ? `Rating names can be up to ${MAX_OPTION_CHARACTERS} characters.` : null);
+          }}
           onRemove={() => { animate(); setOptions(current => current.filter(o => o.id !== option.id)); }}
           onMove={moveOption} />)}</View>
         <Text style={[styles.orderText, { marginBottom: s.xl }]}>Highest</Text>
@@ -139,7 +175,8 @@ export function TaskForm({ task }: { task?: Task }) {
           }} />
         <Text style={[t.secondary, { color: c.textSecondary, marginTop: s.md }]}>Choose 2–7 options, from lowest to highest.</Text>
       </ScrollView></GestureDetector></View>
-      <View style={styles.footer}>{error && !(atLimit && error === ACTIVE_TASK_LIMIT_MESSAGE) &&
+      <View style={styles.footer}>{limitNotice && !error && <Text accessibilityRole="alert" style={styles.limitNotice}>{limitNotice}</Text>}
+        {error && !(atLimit && error === ACTIVE_TASK_LIMIT_MESSAGE) &&
         <Text accessibilityRole="alert" style={[t.secondary, { color: c.danger, marginBottom: s.sm }]}>{error}</Text>}
         <Button label={busy ? 'Saving…' : task ? 'Save Changes' : 'Create'}
           onPress={() => void save()} disabled={busy || sorting || (!task && (loading || atLimit))} /></View>
@@ -149,10 +186,21 @@ export function TaskForm({ task }: { task?: Task }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: c.background }, topbar: { paddingHorizontal: s.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 56 },
   back: { minHeight: 44, minWidth: 76, justifyContent: 'center' }, content: { paddingHorizontal: s.xxl, paddingTop: s.xl, paddingBottom: s.xxxl },
-  subtitle: { color: c.textSecondary, marginTop: s.sm, marginBottom: s.xxl }, label: { ...t.button, color: c.textPrimary, marginBottom: s.md },
+  subtitle: { color: c.textSecondary, marginTop: s.sm, marginBottom: s.xxl }, label: { ...t.button, color: c.textPrimary },
+  fieldHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: s.md },
+  characterCount: { ...t.caption, color: c.textSecondary },
+  limitNotice: { ...t.caption, color: c.textSecondary, marginBottom: s.sm },
   taskCount: { ...t.caption, color: c.textSecondary, marginBottom: s.sm },
   limitMessage: { ...t.secondary, color: c.textSecondary, marginBottom: s.lg },
   nameInput: { ...t.body, color: c.textPrimary, backgroundColor: c.surface, minHeight: 56, borderWidth: 1, borderColor: c.borderStrong, borderRadius: r.md, padding: s.lg },
+  graphSelection: { marginTop: s.md },
+  graphSelectionRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: s.md },
+  graphSelectionLabel: { ...t.body, color: c.textPrimary, flexShrink: 1 },
+  graphSelectionHint: { ...t.caption, color: c.textSecondary, marginLeft: 36 },
+  checkBox: { width: 24, height: 24, borderRadius: 6, borderWidth: 1, borderColor: c.borderStrong,
+    backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' },
+  checkBoxSelected: { backgroundColor: c.selected, borderColor: c.selected },
+  checkMark: { color: c.selectedText, fontWeight: '700' },
   orderLabel: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: s.md }, orderText: { ...t.secondary, color: c.textSecondary },
   footer: { paddingHorizontal: s.xxl, paddingVertical: s.md, borderTopWidth: 1, borderColor: c.border, backgroundColor: c.background },
 });

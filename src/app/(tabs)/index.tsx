@@ -9,12 +9,14 @@ import { TaskSliderCard } from '../../components/TaskSliderCard';
 import { HomeDesign, useHomeDesign } from '../../components/useHomeDesign';
 import { useTasks } from '../../state/TasksProvider';
 import { colors as c, spacing as s, typography as t } from '../../theme';
+import { MAX_COMBINED_INSIGHTS_ITEMS } from '../../config/combinedInsights';
 
 export default function Home() {
   const router = useRouter(); const { data, today, loading, error, notice, reload } = useTasks();
   const { design, ready: designReady, choose } = useHomeDesign();
   useFocusEffect(useCallback(() => { void reload(); }, [reload]));
   const tasks = useMemo(() => data.tasks.filter(task => task.active), [data.tasks]);
+  const selectedCount = tasks.filter(task => task.includeInCombinedInsights).length;
   const add = () => router.push('/task/new');
   const formattedDate = new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
   return <GestureHandlerRootView style={styles.root}><SafeAreaView style={styles.screen} edges={['top']}>
@@ -29,8 +31,10 @@ export default function Home() {
           <Text style={styles.emptyBody}>{"Start by adding something you'd like to track."}</Text>
           <Button label="Add New" onPress={add} />
         </View>
-        : <FlatList data={tasks} keyExtractor={item => item.id} renderItem={({ item }) => design === 'slider' ? <TaskSliderCard task={item} date={today} /> : <TaskCard task={item} date={today} />} extraData={design}
-          contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled" />}
+        : <><View style={styles.sectionHeading}><Text style={styles.sectionTitle}>What I&apos;m Tracking</Text>
+          <Text style={styles.insightsCount}>{selectedCount} of {MAX_COMBINED_INSIGHTS_ITEMS} in Insights</Text></View>
+          <FlatList data={tasks} keyExtractor={item => item.id} renderItem={({ item }) => design === 'slider' ? <TaskSliderCard task={item} date={today} /> : <TaskCard task={item} date={today} />} extraData={design}
+            contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled" /></>}
     {data.tasks.some(task => !task.active) && !loading && designReady && <View style={styles.archived}>
       <Pressable accessibilityRole="button" onPress={() => router.push('/archived')} style={styles.archivedAction}>
         <Text style={styles.archivedText}>Archived</Text>
@@ -47,6 +51,10 @@ const styles = StyleSheet.create({
   designText: { ...t.caption, color: c.textSecondary }, designTextSelected: { color: c.selectedText },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: s.xl, paddingTop: s.sm, paddingBottom: s.md },
   headerText: { flex: 1 }, title: { fontSize: 27, lineHeight: 31, letterSpacing: -0.6, fontWeight: '700', color: c.textPrimary },
+  sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: s.sm,
+    paddingHorizontal: s.xl, paddingBottom: s.xs },
+  sectionTitle: { ...t.secondary, color: c.textPrimary, fontWeight: '600', flexShrink: 1 },
+  insightsCount: { ...t.caption, color: c.textSecondary, flexShrink: 0 },
   date: { ...t.secondary, color: c.textSecondary, marginTop: 2 },
   list: { paddingHorizontal: s.xl, paddingTop: s.xs, paddingBottom: s.xxl },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: s.xxxl, paddingBottom: s.huge, gap: s.md },

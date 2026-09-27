@@ -1,5 +1,6 @@
 import { AnalyticsDataset } from '../analytics/types';
 import { MAX_ACTIVE_TASKS } from '../config/taskLimits';
+import { initialCombinedTaskIds } from '../config/combinedInsights';
 import { parseLocalDate } from '../domain/task';
 import { Connection } from './connection';
 
@@ -13,13 +14,15 @@ export class DemoImportService {
     return this.connection.transaction(async db => {
       // This includes previously archived tasks and their dependent history.
       await db.runAsync('DELETE FROM tasks');
+      const initialGraphIds = initialCombinedTaskIds(dataset.tasks);
       for (const task of dataset.tasks) {
         await db.runAsync(`INSERT INTO tasks
           (id,name,createdAt,updatedAt,active,createdLocalDate,archivedAt,chartColor,
-           currentScaleVersionId,currentTrendEpochId)
-          VALUES (?,?,?,?,1,?,NULL,?,?,?)`,
+           currentScaleVersionId,currentTrendEpochId,includeInCombinedInsights)
+          VALUES (?,?,?,?,1,?,NULL,?,?,?,?)`,
         task.id, task.name, task.createdAt, task.updatedAt, task.createdLocalDate ?? null,
-        task.chartColor ?? task.color, task.currentScaleVersionId, task.currentTrendEpochId);
+        task.chartColor ?? task.color, task.currentScaleVersionId, task.currentTrendEpochId,
+        Number(initialGraphIds.has(task.id)));
         for (const option of task.options) await db.runAsync(`INSERT INTO task_options
           (id,taskId,label,position,rank,normalizedWeight,active,createdAt,updatedAt)
           VALUES (?,?,?,?,?,?,1,?,?)`,

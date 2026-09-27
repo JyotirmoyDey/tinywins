@@ -1,5 +1,5 @@
 import { localDate, parseLocalDate } from '../domain/task';
-import { RatingTrendData, TrendObservation, ratingTrendConfig } from './ratingTrend';
+import { RatingTrendData, RatingTrendInput, TrendObservation, getRatingTrend, ratingTrendConfig } from './ratingTrend';
 
 export type TrendPresentation = 'empty' | 'today' | 'sparse' | 'daily-line' | 'weekly';
 export type TrendRange = '1D' | '7D' | '30D' | '90D' | 'CUSTOM';
@@ -125,11 +125,13 @@ export function weeklyLabelIndices(weeks: string[], maximum: number) {
     unique[Math.round(index * (unique.length - 1) / Math.max(1, maximum - 1))]))];
 }
 
-function portraitGroups(dates: string[]): { slots: TrendGroupSlot[]; subtitle: string; weekly: boolean } {
+function portraitGroups(dates: string[], range: TrendRange): { slots: TrendGroupSlot[]; subtitle: string; weekly: boolean } {
   if (!dates.length) return { slots: [], subtitle: 'Daily trend', weekly: false };
   const p = ratingTrendConfig.presentation;
   if (dates.length <= p.dayGroupingMaxDays) {
-    const span = dates.length <= p.shortRangeMaxDays ? 1 :
+    // The named 30D preset retains each daily observation. Longer custom
+    // ranges continue to use the configured portrait point cap.
+    const span = range === '30D' || dates.length <= p.shortRangeMaxDays ? 1 :
       Math.ceil(dates.length / p.maxPortraitPoints);
     const slots = Array.from({ length: Math.ceil(dates.length / span) }, (_, index) => {
       const startDate = dates[index * span];
@@ -183,7 +185,7 @@ function groupedMedians(data: RatingTrendData, slots: TrendGroupSlot[]) {
 export function getAdaptiveTrend(data: RatingTrendData, range: TrendRange): AdaptiveTrend {
   const recordedCount = data.observations.length;
   const p = ratingTrendConfig.presentation;
-  const groups = portraitGroups(data.dates);
+  const groups = portraitGroups(data.dates, range);
   const medians = groupedMedians(data, groups.slots);
   let presentation: TrendPresentation;
   if (recordedCount === 0) presentation = 'empty';
@@ -193,4 +195,11 @@ export function getAdaptiveTrend(data: RatingTrendData, range: TrendRange): Adap
   else presentation = 'weekly';
   const weekly = presentation === 'weekly' ? getWeeklyRatingTrend(data) : { weeks: [], weeklyPoints: [] };
   return { presentation, recordedCount, ...weekly, ...groups, ...medians };
+}
+
+/** Shared source for the individual chart and each combined-chart miniature.
+ * Neither consumer may choose its own date buckets or remap historical levels. */
+export function getTaskTrendData(input: RatingTrendInput, range: TrendRange) {
+  const trend = getRatingTrend(input);
+  return { trend, view: getAdaptiveTrend(trend, range) };
 }

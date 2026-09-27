@@ -6,6 +6,7 @@ import { useEntry, useTaskActions } from '../state/TasksProvider';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
 import { planHomeOptionRows } from './homeOptionLayout';
 import { TaskActionsMenu } from './TaskActionsMenu';
+import { CombinedInsightsToggle } from './CombinedInsightsToggle';
 
 export function RatingOptionButton({ label, selected, disabled, onPress, style, textStyle }: {
   label: string; selected: boolean; disabled: boolean; onPress: () => void;
@@ -47,7 +48,8 @@ export const TaskCard = memo(function TaskCard({ task, date }: { task: Task; dat
     <View style={styles.heading}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, insights`}
         onPress={() => router.navigate({ pathname: '/insights', params: { task: task.id, mode: 'normal' } })} style={{ flex: 1, minHeight: 44, justifyContent: 'center' }}>
-        <Text style={[t.taskTitle, { color: c.textPrimary }]}>{task.name}</Text></Pressable>
+        <Text numberOfLines={2} style={[t.taskTitle, { color: c.textPrimary, flexShrink: 1 }]}>{task.name}</Text></Pressable>
+      <CombinedInsightsToggle task={task} />
       <TaskActionsMenu task={task} onBusyChange={setBusy} />
     </View>
     <View style={styles.options}>{optionRows.map((row, index) => <View key={index} style={styles.optionRow}>

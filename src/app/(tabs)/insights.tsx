@@ -30,8 +30,8 @@ import combinedConsistencyConfig from '../../analytics/config/recording-consiste
 import combinedCalendarConfig from '../../analytics/config/combined-calendar.json';
 import weeklyRecordingConfig from '../../analytics/config/weekly-recording-patterns.json';
 import activityCalendarConfig from '../../analytics/config/activity-calendar.json';
-import { getRatingTrend, ratingTrendConfig } from '../../analytics/ratingTrend';
-import { getAdaptiveTrend } from '../../analytics/ratingTrendPresentation';
+import { ratingTrendConfig } from '../../analytics/ratingTrend';
+import { getTaskTrendData } from '../../analytics/ratingTrendPresentation';
 import { getJourneyTogether, journeyTogetherConfig } from '../../analytics/journeyTogether';
 import { JourneyTogetherChart } from '../../components/analytics/JourneyTogetherChart';
 import { Button } from '../../components/ui';
@@ -39,12 +39,15 @@ import { colors as c, spacing as s, typography as t } from '../../theme';
 import { localDate, parseLocalDate, TaskLifecycleTransition } from '../../domain/task';
 import { createTaskDayEligibility } from '../../domain/taskLifecycle';
 import { archivedInsightsTask, insightsSourceForEntry, selectedInsightsTask } from '../../analytics/insightsScope';
+import { regularInsightsTaskId, selectedCombinedDataset, selectedInsightsTasks,
+  withHomeInsightsSelection } from '../../analytics/combinedSelection';
 
 function monthPeriod(month:string){ const start=parseLocalDate(`${month}-01`); const end=new Date(start.getFullYear(),start.getMonth()+1,0,12); return {startDate:`${month}-01`,endDate:localDate(end)}; }
 function allMonthCells(tasks:{id:string;name:string;createdAt:string;createdLocalDate?:string|null;archivedAt?:string|null;active:boolean}[],entries:AnalyticsEntry[],transitions:TaskLifecycleTransition[],month:string,today:string){ const period=monthPeriod(month); const days=Number(period.endDate.slice(-2)); const checks=tasks.map(task=>({task,eligibility:createTaskDayEligibility(task,transitions,entries.filter(entry=>entry.taskId===task.id).map(entry=>entry.localDate),today)})); return Array.from({length:days},(_,i)=>{const date=`${month}-${String(i+1).padStart(2,'0')}`;const eligibleTasks=checks.filter(item=>item.eligibility.eligible(date)).map(item=>item.task);const eligible=eligibleTasks.length;const recordedIds=new Set(entries.filter(entry=>entry.localDate===date).map(entry=>entry.taskId));const recordedNames=eligibleTasks.filter(task=>recordedIds.has(task.id)).map(task=>task.name);const missingNames=eligibleTasks.filter(task=>!recordedIds.has(task.id)).map(task=>task.name);const recorded=recordedNames.length;return {date,ratio:eligible?recorded/eligible:0,recorded,eligible,detail:`Recorded: ${recordedNames.join(', ')||'none'} · Missing: ${missingNames.join(', ')||'none'}`,color:'#2A9D8F'};}); }
 
 export default function Insights(){
-  const params=useLocalSearchParams<{task?:string;mode?:string}>(); const router=useRouter(); const {today,data:taskState}=useTasks();
+  const params=useLocalSearchParams<{task?:string;mode?:string}>(); const router=useRouter();
+  const {today,data:taskState,loading:tasksLoading}=useTasks();
   const preferredSource=useDevInsightsSource();
   const archivedMode=params.mode==='archivedTask';
   const source=insightsSourceForEntry(preferredSource,params.mode);
@@ -55,29 +58,42 @@ export default function Insights(){
   const openingExpanded=useRef(false);
   useFocusEffect(useCallback(() => { openingExpanded.current=false; }, []));
   const [month,setMonth]=useState(today.slice(0,7)); const [scaleVersion,setScaleVersion]=useState('current');
-  const {dataset,loading}=useAnalyticsData(source==='demo');
+  const {dataset:storedDataset,loading:analyticsLoading}=useAnalyticsData(source==='demo');
+  const dataset=useMemo(()=>tasksLoading?storedDataset:withHomeInsightsSelection(storedDataset,
+    taskState.tasks,source==='demo'),[tasksLoading,storedDataset,taskState.tasks,source]);
+  const loading=tasksLoading||analyticsLoading;
   const tasks=useMemo(()=>dataset.tasks.slice().sort((a,b)=>a.name.localeCompare(b.name)),[dataset.tasks]);
-  const activeTasks=useMemo(()=>tasks.filter(task=>task.active),[tasks]);
+  const selectedTasks=useMemo(()=>selectedInsightsTasks(dataset).slice().sort((a,b)=>a.name.localeCompare(b.name)),[dataset]);
   const archivedTask=archivedInsightsTask(tasks,selectedId,params.mode);
-  const regularTask=selectedInsightsTask(activeTasks,selectedId);
+  const visibleId=regularInsightsTaskId(selectedId,selectedTasks);
+  const regularTask=selectedInsightsTask(selectedTasks,visibleId);
   const selectedTask=archivedMode?archivedTask:regularTask;
   const isAll=!archivedMode&&!regularTask;
-  const regularDataset=useMemo(()=>({...dataset,tasks:activeTasks}),[dataset,activeTasks]);
-  const earliest=useMemo(()=>earliestAvailableDate(archivedMode?tasks:activeTasks,dataset.entries,today,isAll?undefined:selectedTask?.id),
-    [archivedMode,tasks,activeTasks,dataset.entries,today,isAll,selectedTask?.id]);
+  useEffect(()=>{
+    if(!archivedMode&&!loading&&selectedId!==visibleId)
+      router.setParams({task:'all',mode:'normal'});
+  },[archivedMode,loading,selectedId,visibleId,router]);
+  const combinedDataset=useMemo(()=>selectedCombinedDataset(dataset),[dataset]);
+  const combinedTasks=combinedDataset.tasks;
+  const combinedEntries=combinedDataset.entries;
+  const earliest=useMemo(()=>earliestAvailableDate(archivedMode?tasks:isAll?combinedTasks:selectedTasks,
+    isAll?combinedEntries:dataset.entries,today,isAll?undefined:selectedTask?.id),
+    [archivedMode,tasks,selectedTasks,combinedTasks,combinedEntries,dataset.entries,today,isAll,selectedTask?.id]);
   const customBoundaryIssue=timeline==='CUSTOM'?
     (earliest ? validateCustomRange(custom,today,earliest) :
       custom.startDate!==today || custom.endDate!==today ? 'No dates are available yet.' : null):null;
   const period=useMemo(()=>getInsightsPeriod(today,timeline,custom),[today,timeline,custom]);
-  const allTasks=activeTasks;
-  const journey=useMemo(()=>isAll?getJourneyTogether({dataset:regularDataset,period,
+  const journey=useMemo(()=>isAll?getJourneyTogether({dataset:combinedDataset,period,range:timeline,
     colorTaskIds:source==='demo'?dataset.tasks.map(task=>task.id):[
       ...taskState.tasks.map(task=>task.id),...dataset.tasks.map(task=>task.id)]}):null,
-    [isAll,regularDataset,dataset.tasks,period,source,taskState.tasks]);
-  const consistency=useMemo(()=>getRecordingConsistency(allTasks,dataset.entries,period,dataset.lifecycle,today),[allTasks,dataset.entries,dataset.lifecycle,period,today]);
-  const weekdays=useMemo(()=>getWeekdayRecordingPattern(activeTasks,dataset.entries,period),[activeTasks,dataset.entries,period]);
-  const trend=useMemo(()=>selectedTask?getRatingTrend({task:selectedTask,entries:dataset.entries,versions:dataset.scaleVersions,period}):null,[selectedTask,dataset.entries,dataset.scaleVersions,period]);
-  const trendView=useMemo(()=>trend?getAdaptiveTrend(trend,timeline):null,[trend,timeline]);
+    [isAll,combinedDataset,dataset.tasks,period,timeline,source,taskState.tasks]);
+  const consistency=useMemo(()=>getRecordingConsistency(combinedTasks,combinedEntries,period,combinedDataset.lifecycle,today),[combinedTasks,combinedEntries,combinedDataset.lifecycle,period,today]);
+  const weekdays=useMemo(()=>getWeekdayRecordingPattern(combinedTasks,combinedEntries,period),[combinedTasks,combinedEntries,period]);
+  const taskTrend=useMemo(()=>selectedTask?getTaskTrendData({task:selectedTask,entries:dataset.entries,
+    versions:dataset.scaleVersions,period},timeline):null,
+    [selectedTask,dataset.entries,dataset.scaleVersions,period,timeline]);
+  const trend=taskTrend?.trend;
+  const trendView=taskTrend?.view;
   const scaleVersions=useMemo(()=>selectedTask?getRatingScaleVersions(selectedTask,dataset.entries,dataset.scaleVersions):[],[selectedTask,dataset.entries,dataset.scaleVersions]);
   const activeScaleVersion=scaleVersions.includes(scaleVersion)?scaleVersion:'current';
   const distribution=useMemo(()=>selectedTask?getRatingDistribution(selectedTask,dataset.entries,period,activeScaleVersion,dataset.scaleVersions):[],[selectedTask,dataset.entries,period,activeScaleVersion,dataset.scaleVersions]);
@@ -93,8 +109,8 @@ export default function Insights(){
   const individualCalendar=useMemo(()=>selectedTask&&!isAll?
     individualCalendarData(selectedTask,dataset.entries,dataset.scaleVersions,month):null,
     [selectedTask,isAll,dataset.entries,dataset.scaleVersions,month]);
-  const calendarCells=useMemo(()=>isAll?allMonthCells(activeTasks,dataset.entries,dataset.lifecycle??[],month,today):individualCalendar?.cells||[],
-    [isAll,activeTasks,dataset.entries,dataset.lifecycle,month,today,individualCalendar]);
+  const calendarCells=useMemo(()=>isAll?allMonthCells(combinedTasks,combinedEntries,combinedDataset.lifecycle??[],month,today):individualCalendar?.cells||[],
+    [isAll,combinedTasks,combinedEntries,combinedDataset.lifecycle,month,today,individualCalendar]);
   const totalRecorded=distribution.reduce((sum,row)=>sum+row.count,0);
   const individualCharts=selectedTask?[
     {id:ratingTrendConfig.id,section:ratingTrendConfig.section,
@@ -156,7 +172,7 @@ export default function Insights(){
   useEffect(()=>{Animated.timing(collapsedOpacity,{toValue:toolbarCollapsed?1:0,duration:140,useNativeDriver:true}).start();},[toolbarCollapsed,collapsedOpacity]);
   const selectActivity=(id:string)=>{
     if(archivedMode)return;
-    if(id===(isAll?'all':selectedId))return;
+    if(id===visibleId || id!=='all'&&!selectedTasks.some(task=>task.id===id))return;
     if((id==='all')!==isAll){pageRef.current?.scrollTo({y:0,animated:false});setCollapsed(false);}
     setScaleVersion('current');router.setParams({task:id,mode:'normal'});
   };
@@ -183,12 +199,12 @@ export default function Insights(){
         <Animated.View pointerEvents={collapsed?'none':'auto'}
           importantForAccessibility={collapsed?'no-hide-descendants':'auto'}
           style={[styles.expandedToolbar,{opacity:expandedOpacity}]}>
-          <ActivitySelector tasks={activeTasks} selectedId={isAll?'all':selectedId} onSelect={selectActivity}/>
+          <ActivitySelector tasks={selectedTasks} selectedId={visibleId} onSelect={selectActivity}/>
         </Animated.View>
         <Animated.View pointerEvents={collapsed?'auto':'none'}
           importantForAccessibility={collapsed?'auto':'no-hide-descendants'}
           style={[styles.compactToolbar,{opacity:collapsedOpacity}]}>
-          <InsightsActivityMenu tasks={activeTasks} selectedId={isAll?'all':selectedId} onSelect={selectActivity}/>
+          <InsightsActivityMenu tasks={selectedTasks} selectedId={visibleId} onSelect={selectActivity}/>
           <View style={styles.toolbarDate}>{dateMenu()}</View>
         </Animated.View>
       </View>}
@@ -199,7 +215,10 @@ export default function Insights(){
             <Text style={styles.rangeNoticeLink}>Adjust range</Text>
           </Pressable>
         </View>}
-        {loading?<Placeholder>Loading your insights…</Placeholder>:archivedMode&&!selectedTask?<Placeholder>This archived item is no longer available. Return to Archived.</Placeholder>:isAll?<>
+        {loading?<Placeholder>Loading your insights…</Placeholder>:archivedMode&&!selectedTask?<Placeholder>This archived item is no longer available. Return to Archived.</Placeholder>:isAll&&combinedTasks.length===0?<View style={styles.emptyCombined}>
+          <Text style={styles.emptyCombinedTitle}>Nothing selected yet.</Text>
+          <Text style={styles.emptyCombinedText}>Tap the graph icon on Home to add something to Insights.</Text>
+        </View>:isAll?<>
           <AnalyticsCard title={journeyTogetherConfig.title} description={journeyTogetherConfig.subtitle}
             detail="Each thing you track keeps its own rating scale. The lines share calendar dates, but ratings are never combined into one score.">
             {journey&&<JourneyTogetherChart data={journey} onSelectTask={selectActivity}/>}
@@ -245,4 +264,8 @@ const styles=StyleSheet.create({
   archivedTitle:{...t.sectionTitle,color:c.textPrimary,flexShrink:1},
   archivedBadge:{...t.caption,color:c.textPrimary,borderColor:c.borderStrong,
     borderWidth:1,borderRadius:6,paddingHorizontal:s.sm,paddingVertical:2,overflow:'hidden'},
+  emptyCombined:{backgroundColor:c.surface,borderWidth:1,borderColor:c.border,borderRadius:16,
+    padding:s.xxl,gap:s.sm,marginTop:s.md},
+  emptyCombinedTitle:{...t.sectionTitle,color:c.textPrimary},
+  emptyCombinedText:{...t.secondary,color:c.textSecondary},
 });
