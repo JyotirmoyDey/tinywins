@@ -18,6 +18,7 @@ import { ActiveTaskLimitError, CombinedInsightsLimitError } from '../data/reposi
 import { ACTIVE_TASK_LIMIT_MESSAGE, MAX_ACTIVE_TASKS } from '../config/taskLimits';
 import { COMBINED_INSIGHTS_LIMIT_MESSAGE, MAX_COMBINED_INSIGHTS_ITEMS } from '../config/combinedInsights';
 import { characterCount, constrainTextInput, MAX_NAME_CHARACTERS, MAX_OPTION_CHARACTERS } from '../domain/inputLimits';
+import { MAX_RATING_LEVELS, MIN_RATING_LEVELS } from '../config/ratingLevels';
 export function TaskForm({ task }: { task?: Task }) {
   const router = useRouter(); const navigation = useNavigation(); const { data, loading, mutate, reload } = useTasks();
   const activeCount = data.tasks.filter(item => item.active).length;
@@ -122,7 +123,11 @@ export function TaskForm({ task }: { task?: Task }) {
         <Text style={[t.button, { color: c.textSecondary }]}>{task ? 'Edit' : 'New'}</Text><View style={{ width: 76 }} /></View>
       <View ref={setViewport} style={{ flex: 1 }} onLayout={onKeyboardLayout}><GestureDetector gesture={scrollGesture}><ScrollView ref={setScrollView} onScroll={event => onKeyboardScroll(event.nativeEvent.contentOffset.y)} scrollEventThrottle={16} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
         contentContainerStyle={styles.content} onContentSizeChange={() => {
-          if (newOption.current) { const id = newOption.current; newOption.current = null; scrollToEnd({ animated: true }); inputs.current[id]?.focus(); }
+          if (newOption.current) {
+            const id = newOption.current; newOption.current = null;
+            scrollToEnd({ animated: false });
+            requestAnimationFrame(() => inputs.current[id]?.focus());
+          }
         }}>
         <Text numberOfLines={2} style={[t.screenTitle, { color: c.textPrimary }]}>{task ? `Edit · ${task.name}` : 'What would you like to track?'}</Text>
         <Text style={[t.body, styles.subtitle]}>{task ? 'Update the name or rating choices.' : 'Give it a name and choose how you’ll rate it.'}</Text>
@@ -153,7 +158,9 @@ export function TaskForm({ task }: { task?: Task }) {
         </View>}
         <Text style={[t.sectionTitle, { color: c.textPrimary, marginTop: s.xxxl }]}>How would you like to rate it?</Text>
         <Text style={[t.secondary, styles.subtitle]}>Use your own words. Drag the handles to order your choices.</Text>
-        <View style={styles.orderLabel}><Text style={styles.orderText}>Lowest ↓</Text><Text style={styles.orderText}>{options.length} of 7 options</Text></View>
+        <View style={styles.orderLabel}><Text style={styles.orderText}>Lowest ↓</Text>
+          <Text style={styles.orderText}>{options.length > MAX_RATING_LEVELS
+            ? `${options.length} saved levels` : `${options.length} of ${MAX_RATING_LEVELS} levels`}</Text></View>
         <View style={{ height: options.length * OPTION_ROW_HEIGHT }} pointerEvents={busy ? 'none' : 'auto'}>{options.map((option, index) => <EditableOptionRow key={option.id}
           disabled={busy || sorting} onFocus={() => onKeyboardFocus(inputs.current[option.id])}
           positions={positions} activeId={activeId} onDragStateChange={setSorting}
@@ -169,11 +176,16 @@ export function TaskForm({ task }: { task?: Task }) {
           onRemove={() => { animate(); setOptions(current => current.filter(o => o.id !== option.id)); }}
           onMove={moveOption} />)}</View>
         <Text style={[styles.orderText, { marginBottom: s.xl }]}>Highest</Text>
-        <Button label={options.length === 7 ? 'All 7 options added' : '＋ Add option'} subtle
-          disabled={busy || sorting || options.length >= 7 || options.some(o => !o.label.trim())} onPress={() => {
+        <Button label={options.length > MAX_RATING_LEVELS ? 'Remove levels to add another'
+          : options.length === MAX_RATING_LEVELS ? `Maximum of ${MAX_RATING_LEVELS} levels` : '＋ Add level'} subtle
+          disabled={busy || sorting || options.length >= MAX_RATING_LEVELS || options.some(o => !o.label.trim())} onPress={() => {
             animate(); const id = randomUUID(); newOption.current = id; setOptions(current => [...current, { id, label: '' }]);
           }} />
-        <Text style={[t.secondary, { color: c.textSecondary, marginTop: s.md }]}>Choose 2–7 options, from lowest to highest.</Text>
+        <Text style={[t.secondary, { color: c.textSecondary, marginTop: s.md }]}>
+          {options.length > MAX_RATING_LEVELS
+            ? 'Your existing levels are preserved. Remove levels to reach the current limit of 5.'
+            : `Choose ${MIN_RATING_LEVELS}–${MAX_RATING_LEVELS} levels, from lowest to highest.`}
+        </Text>
       </ScrollView></GestureDetector></View>
       <View style={styles.footer}>{limitNotice && !error && <Text accessibilityRole="alert" style={styles.limitNotice}>{limitNotice}</Text>}
         {error && !(atLimit && error === ACTIVE_TASK_LIMIT_MESSAGE) &&

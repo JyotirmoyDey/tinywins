@@ -5,7 +5,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
-import { Task } from '../domain/task';
+import { Task, localDate } from '../domain/task';
+import { characterCount } from '../domain/inputLimits';
 import { useEntry, useTaskActions } from '../state/TasksProvider';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
 import { TaskActionsMenu } from './TaskActionsMenu';
@@ -18,11 +19,11 @@ const thumbSize = 20;
 
 export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { task: Task; date: string }) {
   const router = useRouter();
-  const { select: saveSelection } = useTaskActions();
+  const { select: saveSelection, reload } = useTaskActions();
   const entry = useEntry(task.id, date);
   const options = useMemo(() => task.options.slice().sort((a, b) => a.position - b.position), [task.options]);
   const colors = useMemo(() => options.map((_, index) => sliderColor(index, options.length)), [options]);
-  const saved = sliderDisplay(options, entry);
+  const saved = sliderDisplay(options, entry, date);
   const savedIndex = saved.selectedIndex;
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [width, setWidth] = useState(0);
@@ -38,17 +39,20 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
   const savedIndexShared = useSharedValue(savedIndex);
   const dragging = useSharedValue(false);
 
+  useEffect(() => { setPreviewIndex(null); }, [date]);
+
   useEffect(() => {
     savedIndexRef.current = savedIndex;
     savedIndexShared.set(savedIndex);
-    lastCommittedId.current = entry?.trendEpochIdAtEntry === task.currentTrendEpochId ? entry?.optionId : undefined;
+    lastCommittedId.current = entry?.localDate === date && entry.trendEpochIdAtEntry === task.currentTrendEpochId
+      ? entry.optionId : undefined;
     if (dragging.get()) return;
     lastPreview.current = savedIndex;
     activeIndex.set(savedIndex);
     hasSelection.set(savedIndex >= 0);
     fillColor.set(savedIndex >= 0 ? colors[savedIndex] : unrecordedColor);
     thumbX.set(savedIndex >= 0 ? sliderXForIndex(savedIndex, width, options.length) : SLIDER_INSET);
-  }, [savedIndex, entry?.optionId, entry?.trendEpochIdAtEntry, task.currentTrendEpochId, width, options.length, colors, dragging, activeIndex, savedIndexShared, hasSelection, fillColor, thumbX]);
+  }, [date, savedIndex, entry?.localDate, entry?.optionId, entry?.trendEpochIdAtEntry, task.currentTrendEpochId, width, options.length, colors, dragging, activeIndex, savedIndexShared, hasSelection, fillColor, thumbX]);
 
   const previewStep = useCallback((index: number) => {
     if (lastPreview.current === index) return;
@@ -61,6 +65,7 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
     setPreviewIndex(null);
   }, []);
   const commitStep = useCallback((index: number) => {
+    if (date !== localDate()) { cancelPreview(); void reload(); return; }
     const option = options[index];
     setPreviewIndex(null);
     if (!option || lastCommittedId.current === option.id) return;
@@ -71,14 +76,15 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
     void saveSelection(task, date, option.id, false).catch(() => {
       setError('Could not save this check-in. Try the slider again.');
     });
-  }, [options, saveSelection, task, date]);
+  }, [options, saveSelection, task, date, cancelPreview, reload]);
   const clear = useCallback(() => {
+    if (date !== localDate()) { void reload(); return; }
     if (!entry) return;
     setError(null);
     lastCommittedId.current = undefined;
     setPreviewIndex(null);
     void saveSelection(task, date, null).catch(() => setError('Could not clear this check-in. Please try again.'));
-  }, [entry, saveSelection, task, date]);
+  }, [entry, saveSelection, task, date, reload]);
 
   const gesture = useMemo(() => {
     const moveTo = (x: number) => {
@@ -134,6 +140,7 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
   }));
   const shownIndex = previewIndex ?? savedIndex;
   const label = previewIndex !== null ? options[previewIndex]?.label : saved.label;
+  const showLabelBelowHeading = characterCount(label ?? '') > 8;
   const accessibilityValue = `${task.name}: ${label}`;
   const accessibilityChange = (action: string) => {
     if (busy) return;
@@ -149,12 +156,15 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
         onPress={() => router.navigate({ pathname: '/insights', params: { task: task.id, mode: 'normal' } })} style={styles.taskLink}>
         <Text numberOfLines={2} style={styles.taskName}>{task.name}</Text>
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, ${label}. Show full rating label`} onPress={() => Alert.alert(task.name, label)} style={styles.labelTouch}>
+      {!showLabelBelowHeading && <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, ${label}. Show full rating label`} onPress={() => Alert.alert(task.name, label)} style={styles.labelTouch}>
         <Text numberOfLines={2} style={[styles.selectedLabel, !entry && previewIndex === null && styles.unrecordedLabel]}>{label}</Text>
-      </Pressable>
+      </Pressable>}
       <CombinedInsightsToggle task={task} />
       <TaskActionsMenu task={task} onClear={entry ? clear : undefined} onBusyChange={setBusy} />
     </View>
+    {showLabelBelowHeading && <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, ${label}. Show full rating label`} onPress={() => Alert.alert(task.name, label)} style={styles.longLabelTouch}>
+      <Text style={[styles.selectedLabel, styles.longSelectedLabel, !entry && previewIndex === null && styles.unrecordedLabel]}>{label}</Text>
+    </Pressable>}
     <GestureDetector gesture={gesture}>
       <Animated.View collapsable={false} style={styles.sliderTouch} accessible accessibilityRole="adjustable"
         accessibilityLabel={`${task.name} rating`} accessibilityValue={{ text: accessibilityValue }}
@@ -178,7 +188,9 @@ const styles = StyleSheet.create({
   taskLink: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
   taskName: { ...t.taskTitle, color: c.textPrimary },
   labelTouch: { maxWidth: '32%', minHeight: 44, minWidth: 0, justifyContent: 'center', alignItems: 'flex-end' },
+  longLabelTouch: { minHeight: 44, justifyContent: 'center', alignItems: 'flex-end' },
   selectedLabel: { ...t.secondary, color: c.textPrimary, fontWeight: '600', textAlign: 'right' },
+  longSelectedLabel: { maxWidth: '100%' },
   unrecordedLabel: { color: c.textSecondary, fontWeight: '400' },
   sliderTouch: { height: 44, justifyContent: 'center' },
   track: { position: 'absolute', top: 19, left: SLIDER_INSET, right: SLIDER_INSET, height: 6, borderRadius: 3, backgroundColor: trackColor },

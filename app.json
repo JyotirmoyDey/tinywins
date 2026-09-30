@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "TinyWins",
@@ -34,9 +33,18 @@
         {
           "image": "./assets/branding/splash-logo.png",
           "imageWidth": 250,
-          "backgroundColor": "#F7F7F4"
+          "backgroundColor": "#F7F7F4",
+          "resizeMode": "contain",
+          "android": {
+            "image": "./assets/branding/adaptive-icon.png",
+            "imageWidth": 250,
+            "backgroundColor": "#F7F7F4",
+            "resizeMode": "contain"
+          }
         }
-      ]
+      ],
+      "expo-sharing",
+      "react-native-quick-crypto"
     ],
     "scheme": "tinywins",
     "platforms": [
@@ -58,4 +66,3 @@
     }
   }
 }
-

@@ -6,7 +6,7 @@ import { useEntry, useTaskActions, useTasks } from '../../state/TasksProvider';
 import { Task, parseLocalDate, recentDates } from '../../domain/task';
 import { createTaskDayEligibility } from '../../domain/taskLifecycle';
 import { Button, Loading, ScreenHeader } from '../../components/ui';
-import { RatingOptionButton } from '../../components/TaskCard';
+import { RatingOptionButton } from '../../components/RatingOptionButton';
 import { colors as c, radii as r, spacing as s, typography as t } from '../../theme';
 function dayLabel(date: string, today: string) {
   if (date === today) return 'Today';

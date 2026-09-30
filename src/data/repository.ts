@@ -111,7 +111,7 @@ export class TaskRepository {
       const existing = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE taskId = ?', id);
       // Deactivate first to avoid temporary collisions in the unique position index.
       await db.runAsync('UPDATE task_options SET active = 0, updatedAt = ? WHERE taskId = ? AND active = 1', now, id);
-      const normalized = normalizeOptions(id, draft.options, now);
+      const normalized = normalizeOptions(id, draft.options, now, Math.max(current.options.length, draft.options.length));
       for (const option of normalized) {
         if (existing.some(o => o.id === option.id)) {
           await db.runAsync('UPDATE task_options SET label = ?, position = ?, rank = ?, normalizedWeight = ?, active = 1, updatedAt = ? WHERE id = ? AND taskId = ?',

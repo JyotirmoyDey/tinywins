@@ -16,8 +16,8 @@ function optionDraft(labels: string[]) {
   return labels.map((label, index) => ({ id: `rating-${index}`, label }));
 }
 
-test('categorical trend supports 2, 3, 4, 5 and 7 user-ordered levels without scores', async () => {
-  for (const count of [2, 3, 4, 5, 7]) {
+test('categorical trend supports 2, 3, 4 and 5 newly configured user-ordered levels without scores', async () => {
+  for (const count of [2, 3, 4, 5]) {
     const db = await setup();
     const labels = Array.from({ length: count }, (_, index) => `Custom ${index + 1}`);
     const task = await db.tasks.create({ name: 'Custom', options: optionDraft(labels) });

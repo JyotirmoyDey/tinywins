@@ -7,6 +7,9 @@ import { TaskRepository } from '../data/repository';
 import { getRepositories, replaceLocalWithOneYearTestData } from '../data/runtime';
 import { resetLocalData } from '../data/resetLocalData';
 import { EntryStore } from './EntryStore';
+import { BackupPayload } from '../backup/data';
+import { restoreLocalBackup } from '../backup/service';
+import { setDevInsightsSource } from '../analytics/devDataSource';
 const entryStore = new EntryStore();
 interface Actions {
   mutate: (action: (repo: TaskRepository) => Promise<unknown>) => Promise<void>;
@@ -16,6 +19,7 @@ interface Actions {
   announce: (message: string) => void;
   clearLocalData: () => Promise<void>;
   loadOneYearTestData: () => Promise<void>;
+  restoreBackup: (payload: BackupPayload) => Promise<void>;
 }
 interface TaskState { data: { tasks: Task[]; lifecycle: TaskLifecycleTransition[] };
   today: string; loading: boolean; error: string | null; notice: string | null }
@@ -26,6 +30,7 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
   const [lifecycle, setLifecycle] = useState<TaskLifecycleTransition[]>([]);
   const [today, setToday] = useState(localDate());
   const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
+  const reloadSequence = useRef(0);
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announce = useCallback((message: string) => {
@@ -35,18 +40,27 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
   }, []);
   useEffect(() => () => { if (noticeTimer.current) clearTimeout(noticeTimer.current); }, []);
   const reload = useCallback(async () => {
+    const sequence = ++reloadSequence.current;
+    const date = localDate();
     try {
       const checkpoint = entryStore.checkpoint();
-      const repos = await getRepositories(); const date = localDate();
+      const repos = await getRepositories();
       const nextTasks = await repos.tasks.getAll();
       const nextLifecycle = await repos.tasks.getLifecycleTransitions();
       const entries = await repos.entries.getForDate(date);
+      // A query started yesterday must not repaint Home after midnight or after
+      // a newer foreground refresh has already completed.
+      if (sequence !== reloadSequence.current || date !== localDate()) return;
       entryStore.hydrateDate(date, entries, checkpoint);
       setTasks(current => JSON.stringify(current) === JSON.stringify(nextTasks) ? current : nextTasks);
       setLifecycle(current => JSON.stringify(current) === JSON.stringify(nextLifecycle) ? current : nextLifecycle);
       setToday(date); setError(null);
-    } catch { setError('Your saved data could not be loaded. Please try again. Your existing data has not been cleared.'); }
-    finally { setLoading(false); }
+    } catch {
+      if (sequence === reloadSequence.current && date === localDate())
+        setError('Your saved data could not be loaded. Please try again. Your existing data has not been cleared.');
+    } finally {
+      if (sequence === reloadSequence.current && date === localDate()) setLoading(false);
+    }
   }, []);
   useEffect(() => {
     void Promise.resolve().then(reload);
@@ -87,9 +101,15 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
     try { await replaceLocalWithOneYearTestData(); }
     finally { entryStore.clear(); await reload(); }
   }, [reload]);
+  const restoreBackup = useCallback(async (payload: BackupPayload) => {
+    await restoreLocalBackup(payload);
+    if (__DEV__) setDevInsightsSource('my');
+    entryStore.clear();
+    await reload();
+  }, [reload]);
   const actions = useMemo(() => ({ mutate, select, loadHistory, reload, announce,
-    clearLocalData, loadOneYearTestData }),
-    [mutate, select, loadHistory, reload, announce, clearLocalData, loadOneYearTestData]);
+    clearLocalData, loadOneYearTestData, restoreBackup }),
+    [mutate, select, loadHistory, reload, announce, clearLocalData, loadOneYearTestData, restoreBackup]);
   const state = useMemo(() => ({ data: { tasks, lifecycle }, today, loading, error, notice }),
     [tasks, lifecycle, today, loading, error, notice]);
   return <ActionsContext.Provider value={actions}><StateContext.Provider value={state}>{children}</StateContext.Provider></ActionsContext.Provider>;

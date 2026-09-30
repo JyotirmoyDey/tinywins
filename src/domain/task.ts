@@ -1,4 +1,5 @@
 import { characterCount, MAX_NAME_CHARACTERS, MAX_OPTION_CHARACTERS } from './inputLimits';
+import { MAX_RATING_LEVELS, MIN_RATING_LEVELS } from '../config/ratingLevels';
 
 export interface TaskOption {
   id: string; taskId: string; label: string; position: number; rank: number; normalizedWeight: number;
@@ -51,8 +52,10 @@ export function createEntrySnapshot(option: TaskOption): EntrySnapshot {
     positionAtEntry: option.position, rankAtEntry: option.rank, normalizedWeightAtEntry: option.normalizedWeight };
 }
 
-export function normalizeOptions(taskId: string, options: OptionDraft[], now = new Date().toISOString()): TaskOption[] {
-  if (options.length < 2 || options.length > 7) throw new Error('Choose between 2 and 7 options.');
+export function normalizeOptions(taskId: string, options: OptionDraft[], now = new Date().toISOString(),
+  maximum = MAX_RATING_LEVELS): TaskOption[] {
+  if (options.length < MIN_RATING_LEVELS || options.length > maximum)
+    throw new Error(`Choose between ${MIN_RATING_LEVELS} and ${MAX_RATING_LEVELS} levels.`);
   return options.map((option, i) => ({ ...option, label: option.label.trim(), taskId,
     position: i + 1, rank: i + 1, normalizedWeight: Math.round((i / (options.length - 1)) * 100),
     active: true, createdAt: now, updatedAt: now }));
@@ -61,7 +64,14 @@ export function validateDraft(draft: TaskDraft, existing?: Task, allowLegacyOver
   if (!draft.name.trim()) return 'Please enter a name.';
   if (!allowLegacyOverLimit && characterCount(draft.name.trim()) > MAX_NAME_CHARACTERS && draft.name !== existing?.name)
     return `Keep the name to ${MAX_NAME_CHARACTERS} characters or fewer.`;
-  if (draft.options.length < 2 || draft.options.length > 7) return 'Choose between 2 and 7 options.';
+  // Earlier versions allowed seven. Existing IDs may be edited or removed without
+  // forcing people to delete saved levels just to rename their item.
+  const legacyLevels = existing && existing.options.length > MAX_RATING_LEVELS &&
+    draft.options.length <= existing.options.length &&
+    draft.options.every(option => existing.options.some(saved => saved.id === option.id));
+  if (draft.options.length < MIN_RATING_LEVELS ||
+    (draft.options.length > MAX_RATING_LEVELS && !legacyLevels))
+    return `Choose between ${MIN_RATING_LEVELS} and ${MAX_RATING_LEVELS} levels.`;
   if (draft.options.some(option => !option.label.trim() || !option.id)) return 'Give every option a label.';
   if (!allowLegacyOverLimit && draft.options.some(option => characterCount(option.label.trim()) > MAX_OPTION_CHARACTERS &&
     option.label !== existing?.options.find(saved => saved.id === option.id)?.label))

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { loadDemoDataset } from '../src/analytics/demoData';
 import { createEntrySnapshot, DailyEntry, normalizeOptions } from '../src/domain/task';
 import { SLIDER_INSET, sliderColor, sliderDisplay, sliderIndexFromX, sliderXForIndex } from '../src/components/sliderMath';
+import { EntryStore } from '../src/state/EntryStore';
 
 function entryFor(option: ReturnType<typeof normalizeOptions>[number]): DailyEntry {
   return { id: 'entry', taskId: option.taskId, localDate: '2026-09-24', createdAt: '2026-09-24T12:00:00Z', updatedAt: '2026-09-24T12:00:00Z', ...createEntrySnapshot(option), scaleVersionIdAtEntry: 'scale', trendEpochIdAtEntry: 'epoch' };
@@ -47,4 +48,21 @@ test('unrecorded is distinct from the first response and a retired option keeps 
   const medium = entryFor(options[1]);
   assert.deepEqual(sliderDisplay(options.filter(option => option.id !== medium.optionId), medium), { selectedIndex: -1, label: 'Medium' });
   assert.equal(options[sliderIndexFromX(sliderXForIndex(1, 286, 3), 286, 3)].id, medium.optionId);
+});
+
+test('a new local day stays unrecorded until that date has its own entry', () => {
+  const options = normalizeOptions('study', [
+    { id: 'low-id', label: 'Low' }, { id: 'high-id', label: 'High' },
+  ]);
+  const yesterday = entryFor(options[1]);
+  const store = new EntryStore();
+  store.hydrateDate('2026-09-24', [yesterday]);
+  store.hydrateDate('2026-09-25', []);
+  assert.deepEqual(sliderDisplay(options, store.get('study', '2026-09-25'), '2026-09-25'),
+    { selectedIndex: -1, label: 'Not recorded' });
+  assert.deepEqual(sliderDisplay(options, yesterday, '2026-09-25'),
+    { selectedIndex: -1, label: 'Not recorded' });
+  assert.equal(store.get('study', '2026-09-25'), undefined);
+  assert.deepEqual(sliderDisplay(options, yesterday, '2026-09-24'),
+    { selectedIndex: 1, label: 'High' });
 });

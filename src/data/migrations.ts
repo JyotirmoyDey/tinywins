@@ -59,6 +59,7 @@ const migrations = [
   `ALTER TABLE tasks ADD COLUMN includeInCombinedInsights INTEGER NOT NULL DEFAULT 0
      CHECK(includeInCombinedInsights IN (0,1));`,
 ];
+export const CURRENT_DATABASE_VERSION = migrations.length;
 export async function migrate(connection: Connection) {
   await connection.run(db => db.execAsync('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;'));
   await connection.transaction(async db => {

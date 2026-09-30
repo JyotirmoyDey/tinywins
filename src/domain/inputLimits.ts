@@ -1,7 +1,7 @@
 import Graphemer from 'graphemer';
 
 export const MAX_NAME_CHARACTERS = 24;
-export const MAX_OPTION_CHARACTERS = 10;
+export const MAX_OPTION_CHARACTERS = 18;
 
 const splitter = new Graphemer();
 

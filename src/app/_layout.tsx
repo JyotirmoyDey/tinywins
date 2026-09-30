@@ -21,6 +21,7 @@ export default function RootLayout() {
       <Stack.Screen name="task/[id]" />
       <Stack.Screen name="history/[id]" />
       <Stack.Screen name="archived" />
+      <Stack.Screen name="backup" />
     </Stack>
     </UpdateGate>
   </TasksProvider></SafeAreaProvider></GestureHandlerRootView>;

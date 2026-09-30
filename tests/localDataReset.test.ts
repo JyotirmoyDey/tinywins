@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setup, draft } from './sqlite';
 import { clearLocalRecords, LEGACY_DATABASE_KEY } from '../src/data/localDataReset';
-import { HOME_DESIGN_KEY } from '../src/components/homeDesignPreference';
 import { EntryStore } from '../src/state/EntryStore';
 
 test('local reset removes active and archived tasks with all dependent history', async () => {
@@ -14,7 +13,7 @@ test('local reset removes active and archived tasks with all dependent history',
     await db.entries.upsert(active.id, '2026-09-20', active.options[0].id);
     await db.entries.upsert(archived.id, '2026-09-20', archived.options[1].id);
     await db.tasks.archive(archived.id);
-    const storage = new Map([[LEGACY_DATABASE_KEY, 'old backup'], [HOME_DESIGN_KEY, 'slider']]);
+    const storage = new Map([[LEGACY_DATABASE_KEY, 'old backup']]);
     await clearLocalRecords(db.tasks, { removeItem: async key => { storage.delete(key); } });
     for (const table of ['tasks', 'task_options', 'daily_entries',
       'rating_scale_versions', 'task_lifecycle_transitions']) {

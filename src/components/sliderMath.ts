@@ -37,8 +37,8 @@ export function sliderXForIndex(index: number, width: number, count: number): nu
   return SLIDER_INSET + clamp(index, 0, count - 1) / (count - 1) * Math.max(0, width - SLIDER_INSET * 2);
 }
 
-export function sliderDisplay(options: TaskOption[], entry?: DailyEntry) {
-  if (!entry) return { selectedIndex: -1, label: 'Not recorded' };
+export function sliderDisplay(options: TaskOption[], entry?: DailyEntry, date?: string) {
+  if (!entry || date && entry.localDate !== date) return { selectedIndex: -1, label: 'Not recorded' };
   const selectedIndex = options.findIndex(option => option.id === entry.optionId);
   return { selectedIndex, label: selectedIndex >= 0 ? options[selectedIndex].label : entry.optionLabelAtEntry };
 }

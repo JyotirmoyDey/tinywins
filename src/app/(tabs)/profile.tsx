@@ -61,6 +61,17 @@ export default function Profile() {
         </View>
         <Text style={styles.rowDetail}>{archivedCount}  ›</Text>
       </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Backup and restore"
+        onPress={() => router.push('/backup')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+        <View style={styles.rowLeading}>
+          <Svg width={21} height={21} viewBox="0 0 24 24" accessible={false}>
+            <Path d="M12 3v12m-4-4 4 4 4-4M4 18v3h16v-3" fill="none" stroke={c.textPrimary}
+              strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+          <Text style={styles.rowTitle}>Backup &amp; Restore</Text>
+        </View>
+        <Text style={styles.rowDetail}>›</Text>
+      </Pressable>
       {__DEV__ && <MenuView actions={[
         { id: 'my', title: 'My Data', state: insightsSource === 'my' ? 'on' : 'off' },
         { id: 'demo', title: 'Demo Data', state: insightsSource === 'demo' ? 'on' : 'off' },

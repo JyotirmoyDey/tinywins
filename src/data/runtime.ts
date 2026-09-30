@@ -9,7 +9,7 @@ import { DailyEntryRepository } from './dailyEntryRepository';
 import { DemoImportService } from './demoImport';
 import { LEGACY_DATABASE_KEY } from './localDataReset';
 let runtime: Promise<{ tasks: TaskRepository; entries: DailyEntryRepository;
-  demoImporter: DemoImportService }> | undefined;
+  demoImporter: DemoImportService; connection: Connection }> | undefined;
 export function getRepositories() {
   if (!runtime) runtime = initialize().catch(error => { runtime = undefined; throw error; });
   return runtime;
@@ -22,7 +22,7 @@ async function initialize() {
     const imported = await connection.run(db => db.getFirstAsync('SELECT value FROM app_metadata WHERE key = ?', 'legacyImported'));
     if (!imported) await importLegacy(connection, await AsyncStorage.getItem('tinywins.database.v1'),
       __DEV__ && process.env.EXPO_PUBLIC_SEED_DEMO === 'true', randomUUID);
-    return { tasks: new TaskRepository(connection, randomUUID),
+    return { connection, tasks: new TaskRepository(connection, randomUUID),
       entries: new DailyEntryRepository(connection, randomUUID),
       demoImporter: new DemoImportService(connection) };
   } catch (error) { await database.closeAsync(); throw error; }

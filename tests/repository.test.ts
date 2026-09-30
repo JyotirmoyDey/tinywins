@@ -9,14 +9,36 @@ import { normalizeOptions, validateDraft, recentDates, localDate, parseLocalDate
 import { importLegacy } from '../src/data/legacyImport';
 import { migrate } from '../src/data/migrations';
 
-test('mapping covers 2–7 choices, trims names and keeps IDs', async () => {
-  for (let n = 2; n <= 7; n++) {
+test('mapping covers 2–5 choices, trims names and keeps IDs', async () => {
+  for (let n = 2; n <= 5; n++) {
     const input = Array.from({ length: n }, (_, i) => ({ id: `id-${i}`, label: ` Choice ${i} ` }));
     const options = normalizeOptions('task', input);
     options.forEach((o, i) => { assert.equal(o.id, input[i].id); assert.equal(o.position, i + 1); assert.equal(o.rank, i + 1); assert.equal(o.normalizedWeight, Math.round(i / (n - 1) * 100)); assert.equal(o.label, `Choice ${i}`); });
   }
   assert.deepEqual(normalizeOptions('t', draft().options).map(o => o.normalizedWeight), [0, 33, 67, 100]);
+  assert.throws(() => normalizeOptions('t', Array.from({ length: 6 }, (_, i) => ({ id: `extra-${i}`, label: `${i}` }))), /2 and 5 levels/);
   const { tasks, native } = await setup(); const task = await tasks.create(draft()); assert.equal(task.name, 'Sleep'); native.close();
+});
+test('repository rejects six new levels while preserving edits to an existing seven-level configuration', async () => {
+  const { tasks, db, native } = await setup();
+  try {
+    const six = Array.from({ length: 6 }, (_, i) => ({ id: `level-${i}`, label: `Level ${i}` }));
+    await assert.rejects(tasks.create({ name: 'Too many', options: six }), /2 and 5 levels/);
+    const task = await tasks.create({ name: 'Older scale', options: six.slice(0, 5) });
+    for (let i = 5; i < 7; i++) {
+      await db.runAsync(`INSERT INTO task_options
+        (id, taskId, label, position, rank, normalizedWeight, active, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      `legacy-${i}`, task.id, `Level ${i}`, i + 1, i + 1, 100, task.createdAt, task.createdAt);
+    }
+    const legacy = (await tasks.getById(task.id))!;
+    assert.equal(legacy.options.length, 7);
+    const renamed = await tasks.update(task.id, { name: 'Renamed scale', options: legacy.options });
+    assert.equal(renamed.options.length, 7);
+    await assert.rejects(tasks.update(task.id, { name: 'No eighth', options: [...renamed.options, { id: 'new', label: 'New' }] }), /2 and 5 levels/);
+    const reduced = await tasks.update(task.id, { name: renamed.name, options: renamed.options.slice(0, 6) });
+    assert.equal(reduced.options.length, 6);
+  } finally { native.close(); }
 });
 test('historical snapshots keep position and weight across reorder, rename, and added scale points', async () => {
   const { tasks, entries, native } = await setup(); const task = await tasks.create({ name: 'Practice', options: ['Skipped', 'Poor', 'Good', 'Average'].map((label, i) => ({ id: `option-${i}`, label })) });
