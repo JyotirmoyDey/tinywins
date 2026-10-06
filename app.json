@@ -8,10 +8,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourdevelopername.tinywins"
+      "bundleIdentifier": "com.plainleaf.tinywins"
     },
     "android": {
-      "package": "com.yourdevelopername.tinywins",
+      "package": "com.plainleaf.tinywins",
       "adaptiveIcon": {
         "foregroundImage": "./assets/branding/adaptive-icon.png",
         "backgroundColor": "#F7F7F4"

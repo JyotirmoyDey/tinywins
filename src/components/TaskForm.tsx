@@ -129,7 +129,7 @@ export function TaskForm({ task }: { task?: Task }) {
             requestAnimationFrame(() => inputs.current[id]?.focus());
           }
         }}>
-        <Text numberOfLines={2} style={[t.screenTitle, { color: c.textPrimary }]}>{task ? `Edit · ${task.name}` : 'What would you like to track?'}</Text>
+        <Text testID={!task ? 'create-screen' : undefined} numberOfLines={2} style={[t.screenTitle, { color: c.textPrimary }]}>{task ? `Edit · ${task.name}` : 'What would you like to track?'}</Text>
         <Text style={[t.body, styles.subtitle]}>{task ? 'Update the name or rating choices.' : 'Give it a name and choose how you’ll rate it.'}</Text>
         {!task && !loading && <Text style={styles.taskCount}>{activeCount} of {MAX_ACTIVE_TASKS}</Text>}
         {atLimit && <Text style={styles.limitMessage} accessibilityRole="alert">{ACTIVE_TASK_LIMIT_MESSAGE}</Text>}
@@ -183,7 +183,7 @@ export function TaskForm({ task }: { task?: Task }) {
           }} />
         <Text style={[t.secondary, { color: c.textSecondary, marginTop: s.md }]}>
           {options.length > MAX_RATING_LEVELS
-            ? 'Your existing levels are preserved. Remove levels to reach the current limit of 5.'
+            ? `Your existing levels are preserved. Remove levels to reach the current limit of ${MAX_RATING_LEVELS}.`
             : `Choose ${MIN_RATING_LEVELS}–${MAX_RATING_LEVELS} levels, from lowest to highest.`}
         </Text>
       </ScrollView></GestureDetector></View>

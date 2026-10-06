@@ -1,0 +1,12 @@
+appId: com.plainleaf.tinywins
+---
+- launchApp
+- assertVisible:
+    id: "home-screen"
+- tapOn:
+    id: "add-new"
+- assertVisible:
+    id: "create-screen"
+- back
+- assertVisible:
+    id: "home-screen"

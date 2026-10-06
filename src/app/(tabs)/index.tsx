@@ -18,7 +18,7 @@ export default function Home() {
   const formattedDate = new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
   return <GestureHandlerRootView style={styles.root}><SafeAreaView style={styles.screen} edges={['top']}>
     <View style={styles.header}>
-      <View style={styles.headerText}><Text style={styles.title}>TinyWins</Text><Text style={styles.date}>{formattedDate}</Text></View>
+      <View style={styles.headerText}><Text testID="home-screen" style={styles.title}>TinyWins</Text><Text style={styles.date}>{formattedDate}</Text></View>
     </View>
     {notice && <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text>}
     {loading ? <Loading /> : error ? <View style={styles.message}><Text style={[t.body, { color: c.textPrimary }]}>{error}</Text><Button label="Try again" onPress={() => void reload()} /></View>

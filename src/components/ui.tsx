@@ -1,10 +1,10 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { colors as c, typography as t, spacing as s, radii as r } from '../theme';
-export function Button({ label, onPress, subtle = false, disabled = false }: {
-  label: string; onPress: () => void; subtle?: boolean; disabled?: boolean;
+export function Button({ label, onPress, subtle = false, disabled = false, testID }: {
+  label: string; onPress: () => void; subtle?: boolean; disabled?: boolean; testID?: string;
 }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled}
+  return <Pressable testID={testID} accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled}
     onPress={onPress} style={({ pressed }) => [styles.button, subtle && styles.subtle, { opacity: disabled ? 0.45 : pressed ? 0.75 : 1 }]}>
     <Text style={[t.button, { color: subtle ? c.textPrimary : c.selectedText }]}>{label}</Text>
   </Pressable>;
