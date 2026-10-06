@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "397805301506",
+    "project_id": "tinywins-1e6de",
+    "storage_bucket": "tinywins-1e6de.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:397805301506:android:82aac39c4a684ec4339c1b",
+        "android_client_info": {
+          "package_name": "com.plainleaf.tinywins"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBCEMyo39D2DcUsGJfhHwgM7bnpuR2kzU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

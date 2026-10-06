@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.plainleaf.tinywins",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/branding/adaptive-icon.png",
         "backgroundColor": "#F7F7F4"
@@ -44,7 +45,10 @@
         }
       ],
       "expo-sharing",
-      "react-native-quick-crypto"
+      "@react-native-firebase/app",
+      "@react-native-firebase/analytics",
+      "@react-native-firebase/crashlytics",
+      "@react-native-firebase/perf"
     ],
     "scheme": "tinywins",
     "platforms": [
