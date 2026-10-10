@@ -20,7 +20,7 @@ function Coverage({ label, startDate, endDate, recorded, days }: {
       <Text style={styles.coverageTitle}>{label}</Text>
       <Text style={styles.coverageDates}>{periodLabel(startDate, endDate)}</Text>
     </View>
-    <Text style={styles.coverageCount}>{recorded} of {days} days</Text>
+    <Text style={styles.coverageCount}>{recorded} of {days} {days === 1 ? 'day' : 'days'}</Text>
   </View>;
 }
 
@@ -38,7 +38,7 @@ function ComparisonBars({ row, selected, onSelect }: {
   return <View style={styles.optionGroup}>
     <Text style={styles.optionLabel}>{row.label}</Text>
     {bars.map(bar => <Pressable key={bar.period} accessibilityRole="button"
-      accessibilityLabel={`${row.label}, ${bar.period} period: ${bar.count} recordings, ${Math.round(bar.percentage)} percent`}
+      accessibilityLabel={`${row.label}, ${bar.period} period: ${bar.count} ${bar.count === 1 ? 'check-in' : 'check-ins'}, ${Math.round(bar.percentage)} percent`}
       accessibilityState={{ selected: selected?.optionId === row.optionId && selected.period === bar.period }}
       onPress={() => onSelect(selected?.optionId === row.optionId && selected.period === bar.period
         ? null : { optionId: row.optionId, period: bar.period })}
@@ -94,9 +94,9 @@ export function PeriodComparisonChart({ data }: { data: PeriodComparisonResult }
     </> : <Text style={styles.notice}>
       {data.status === 'incompatible'
         ? 'These periods use different rating scales. Compare dates within one scale to see a distribution.'
-        : data.status === 'no-data' ? 'No ratings recorded in either period.'
-          : data.status === 'empty-current' ? 'No ratings recorded in the selected period.'
-            : 'No ratings recorded in the previous period.'}
+        : data.status === 'no-data' ? 'Nothing recorded in either period.'
+          : data.status === 'empty-current' ? 'Nothing recorded in the selected period.'
+            : 'Nothing recorded in the previous period.'}
     </Text>}
   </View>;
 }

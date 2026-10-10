@@ -11,3 +11,8 @@ export function focusedInputScrollTarget({ viewportTop, viewportHeight, inputTop
     : inputTop < visibleTop ? inputTop - visibleTop : 0;
   return Math.abs(delta) < 2 ? null : Math.max(0, scrollOffset + delta);
 }
+
+/** Extra scroll range covers keyboards that overlap rather than resize the Android viewport. */
+export function keyboardContentPadding(base: number, keyboardInset: number, rowHeight: number, clearance: number) {
+  return base + (keyboardInset > 0 ? keyboardInset + rowHeight + clearance : 0);
+}

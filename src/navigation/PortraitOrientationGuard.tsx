@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import { logger } from '../logging/logger';
 
 /** The root layout is the only owner of orientation for both chart and app routes. */
 export function PortraitOrientationGuard() {
@@ -14,10 +15,10 @@ export function PortraitOrientationGuard() {
         // A late native completion from a previous route must not undo its successor.
         if (target !== desired.current) {
           void ScreenOrientation.lockAsync(desired.current)
-            .catch(error => console.warn('Could not restore screen orientation:', error));
+            .catch(error => logger.error('Orientation lock failed', { operation: 'orientation_lock' }, error));
         }
       })
-      .catch(error => console.warn('Could not set screen orientation:', error));
+      .catch(error => logger.error('Orientation lock failed', { operation: 'orientation_lock' }, error));
   }, []);
 
   useEffect(() => {

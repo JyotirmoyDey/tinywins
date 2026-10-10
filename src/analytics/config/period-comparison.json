@@ -1,7 +1,7 @@
 {
   "id": "period-comparison",
   "title": "Then & Now",
-  "subtitle": "See how this period compares with the last.",
+  "subtitle": "See what changed between this period and the one before it.",
   "calculator": "periodComparison",
   "type": "paired-horizontal-bar",
   "location": "task-insights",

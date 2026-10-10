@@ -1,0 +1,27 @@
+appId: com.plainleaf.tinywins
+---
+# Runs on a device with no saved activities; does not clear or modify app data.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    text: Little things, worth noticing.
+- assertVisible:
+    id: activity-example-exercise
+- assertVisible:
+    id: activity-example-reading
+- assertVisible:
+    id: activity-example-music-practice
+- assertVisible:
+    id: activity-example-learning
+- assertVisible:
+    id: create-my-own-activity
+- takeScreenshot: first-time-home-grid
+- tapOn:
+    id: activity-example-reading
+- assertVisible:
+    id: activity-editor-screen
+- assertVisible:
+    id: activity-name-input
+    text: Reading
+- stopApp

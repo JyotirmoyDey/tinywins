@@ -41,6 +41,9 @@ import { createTaskDayEligibility } from '../../domain/taskLifecycle';
 import { archivedInsightsTask, insightsSourceForEntry, selectedInsightsTask } from '../../analytics/insightsScope';
 import { regularInsightsTaskId, selectedCombinedDataset, selectedInsightsTasks,
   withHomeInsightsSelection } from '../../analytics/combinedSelection';
+import { trackDateRangeChanged, trackInsightsOpened } from '../../telemetry';
+import { ChartVisibility, checkVisibleCharts } from '../../telemetry/ChartVisibility';
+import { logger } from '../../logging/logger';
 
 function monthPeriod(month:string){ const start=parseLocalDate(`${month}-01`); const end=new Date(start.getFullYear(),start.getMonth()+1,0,12); return {startDate:`${month}-01`,endDate:localDate(end)}; }
 function allMonthCells(tasks:{id:string;name:string;createdAt:string;createdLocalDate?:string|null;archivedAt?:string|null;active:boolean}[],entries:AnalyticsEntry[],transitions:TaskLifecycleTransition[],month:string,today:string){ const period=monthPeriod(month); const days=Number(period.endDate.slice(-2)); const checks=tasks.map(task=>({task,eligibility:createTaskDayEligibility(task,transitions,entries.filter(entry=>entry.taskId===task.id).map(entry=>entry.localDate),today)})); return Array.from({length:days},(_,i)=>{const date=`${month}-${String(i+1).padStart(2,'0')}`;const eligibleTasks=checks.filter(item=>item.eligibility.eligible(date)).map(item=>item.task);const eligible=eligibleTasks.length;const recordedIds=new Set(entries.filter(entry=>entry.localDate===date).map(entry=>entry.taskId));const recordedNames=eligibleTasks.filter(task=>recordedIds.has(task.id)).map(task=>task.name);const missingNames=eligibleTasks.filter(task=>!recordedIds.has(task.id)).map(task=>task.name);const recorded=recordedNames.length;return {date,ratio:eligible?recorded/eligible:0,recorded,eligible,detail:`Recorded: ${recordedNames.join(', ')||'none'} · Missing: ${missingNames.join(', ')||'none'}`,color:'#2A9D8F'};}); }
@@ -69,6 +72,12 @@ export default function Insights(){
   const regularTask=selectedInsightsTask(selectedTasks,visibleId);
   const selectedTask=archivedMode?archivedTask:regularTask;
   const isAll=!archivedMode&&!regularTask;
+  const focusScope = useRef<'all'|'activity'>('all');
+  useEffect(() => { focusScope.current = archivedMode || selectedId !== 'all' ? 'activity' : 'all'; }, [archivedMode, selectedId]);
+  useFocusEffect(useCallback(() => {
+    trackInsightsOpened(focusScope.current);
+    logger.info('Insights opened', { screen: 'insights', scope: focusScope.current });
+  }, []));
   useEffect(()=>{
     if(!archivedMode&&!loading&&selectedId!==visibleId)
       router.setParams({task:'all',mode:'normal'});
@@ -119,9 +128,6 @@ export default function Insights(){
         description={ratingTrendConfig.subtitle}
         contextLabel={trendView?.subtitle && trendView.subtitle !== 'Daily trend'
           ? trendView.subtitle : undefined}
-        detail={trendView?.subtitle.includes('median')
-          ? 'Each point shows the middle recorded rating for its interval, using your own rating order. Missing dates are excluded; gaps and scale changes break the line.'
-          : 'Missing dates remain gaps. Changes to your rating scale do not rewrite recorded ratings.'}
         headerAction={<Pressable accessibilityRole="button" accessibilityLabel={`Expand ${ratingTrendConfig.title} chart`}
           onPress={()=>{
             if(openingExpanded.current)return;
@@ -136,7 +142,7 @@ export default function Insights(){
           data={trend} view={trendView} taskName={selectedTask.name}/>}</AnalyticsCard>},
     {id:ratingDistributionConfig.id,section:ratingDistributionConfig.section,
       order:ratingDistributionConfig.displayOrder,visible:ratingDistributionConfig.visible,
-      content:<AnalyticsCard key={ratingDistributionConfig.id} title={ratingDistributionConfig.title} description={ratingDistributionConfig.subtitle}>{scaleVersions.length>1&&<View style={styles.scaleSelector}>{scaleVersions.map(version=><Button key={version} label={version==='current'?'Current scale':`Previous scale ${scaleVersions.indexOf(version)}`} onPress={()=>setScaleVersion(version)} subtle={activeScaleVersion!==version}/>)}</View>}{timeline==='1D'?(totalRecorded?<View style={styles.todayRating}><Text style={styles.todayLabel}>Today</Text><Text style={styles.todayValue}>{distribution.find(row=>row.count>0)?.label||'Recorded'}</Text></View>:<Placeholder>No entries for this period.</Placeholder>):totalRecorded===0?<Placeholder>No entries for this period.</Placeholder>:<><Text style={styles.summary}>{totalRecorded} recorded entries</Text><BarChart items={distribution.map(row=>({label:row.label,value:row.count/totalRecorded*100,count:row.count,percentage:row.percentage}))} color={ratingDistributionConfig.style.color}/></>}</AnalyticsCard>},
+      content:<AnalyticsCard key={ratingDistributionConfig.id} title={ratingDistributionConfig.title} description={ratingDistributionConfig.subtitle}>{scaleVersions.length>1&&<View style={styles.scaleSelector}>{scaleVersions.map(version=><Button key={version} label={version==='current'?'Current scale':`Previous scale ${scaleVersions.indexOf(version)}`} onPress={()=>setScaleVersion(version)} subtle={activeScaleVersion!==version}/>)}</View>}{timeline==='1D'?(totalRecorded?<View style={styles.todayRating}><Text style={styles.todayLabel}>Today</Text><Text testID="insights-today-rating" style={styles.todayValue}>{distribution.find(row=>row.count>0)?.label||'Recorded'}</Text></View>:<Placeholder>Nothing recorded in this period.</Placeholder>):totalRecorded===0?<Placeholder>Nothing recorded in this period.</Placeholder>:<><Text style={styles.summary}>{totalRecorded} {totalRecorded===1?'check-in':'check-ins'}</Text><BarChart items={distribution.map(row=>({label:row.label,value:row.count/totalRecorded*100,count:row.count,percentage:row.percentage}))} color={ratingDistributionConfig.style.color}/></>}</AnalyticsCard>},
     {id:activityCalendarConfig.id,section:activityCalendarConfig.section,
       order:activityCalendarConfig.displayOrder,visible:activityCalendarConfig.visible,
       content:<AnalyticsCard key={activityCalendarConfig.id} title={activityCalendarConfig.title}
@@ -176,9 +182,13 @@ export default function Insights(){
     if((id==='all')!==isAll){pageRef.current?.scrollTo({y:0,animated:false});setCollapsed(false);}
     setScaleVersion('current');router.setParams({task:id,mode:'normal'});
   };
-  const dateMenu=()=> <InsightsDateMenu value={timeline} custom={custom} onPreset={setTimeline} onCustom={()=>setCustomOpen(true)}/>;
+  const dateMenu=()=> <InsightsDateMenu value={timeline} custom={custom} onPreset={next=>{
+    if(next!==timeline){setTimeline(next);trackDateRangeChanged(next.toLowerCase());
+      logger.info('Date range changed', { date_range: next.toLowerCase() as '1d' | '7d' | '30d' | '90d' | 'custom' });}
+  }} onCustom={()=>setCustomOpen(true)}/>;
   return <SafeAreaView style={styles.screen} edges={['top']}>
     <ScrollView ref={pageRef} stickyHeaderIndices={archivedMode?[]:[1]} scrollEventThrottle={16} onScroll={event=>{
+      checkVisibleCharts();
       if(archivedMode)return;
       const next=event.nativeEvent.contentOffset.y>=headerHeight.current-6;
       if(next!==collapsed)setCollapsed(next);
@@ -189,7 +199,7 @@ export default function Insights(){
             onPress={()=>router.canGoBack()?router.back():router.navigate('/archived')}
             style={styles.archivedBack}><Text style={styles.archivedBackText}>‹ Archived</Text></Pressable>
           <View style={styles.archivedTitleRow}>
-            <Text style={styles.archivedTitle} numberOfLines={2}>{selectedTask?.name||'Not available'}</Text>
+            <Text testID="archived-insights-title" style={styles.archivedTitle} numberOfLines={2}>{selectedTask?.name||'Not available'}</Text>
             {selectedTask&&<Text style={styles.archivedBadge}>Archived</Text>}
           </View>
         </View>:<Text style={styles.title}>Insights</Text>}
@@ -219,23 +229,20 @@ export default function Insights(){
           <Text style={styles.emptyCombinedTitle}>Nothing selected yet.</Text>
           <Text style={styles.emptyCombinedText}>Tap the graph icon on Home to add something to Insights.</Text>
         </View>:isAll?<>
-          <AnalyticsCard title={journeyTogetherConfig.title} description={journeyTogetherConfig.subtitle}
-            detail="Each thing you track keeps its own rating scale. The lines share calendar dates, but ratings are never combined into one score.">
+          <ChartVisibility key={`all-${journeyTogetherConfig.id}`} chartType={journeyTogetherConfig.id} scope="all"><AnalyticsCard title={journeyTogetherConfig.title} description={journeyTogetherConfig.subtitle}>
             {journey&&<JourneyTogetherChart data={journey} onSelectTask={selectActivity}/>}
-          </AnalyticsCard>
-          <AnalyticsCard title={combinedConsistencyConfig.title} description={combinedConsistencyConfig.subtitle}
-            detail="An explicitly recorded lowest rating counts as a check-in. A day without an entry does not.">{consistency.recordedDays?<><Text style={styles.summary}>{consistency.recordedDays} recorded · {consistency.eligibleDays} available check-ins</Text><BarChart items={consistency.rows.filter(row=>row.eligibleDays>0).map(row=>({label:row.name,value:row.coverage*100,count:`${row.recordedDays}/${row.eligibleDays}`}))} color="#2A9D8F"/></>:<Placeholder>No entries for this period.</Placeholder>}</AnalyticsCard>
-          <AnalyticsCard title={combinedCalendarConfig.title} description={combinedCalendarConfig.subtitle}
-            detail="Calendar shades show recording coverage, not the ratings chosen for different things you track."><MonthCalendar month={month} onMonthChange={setMonth} cells={calendarCells} color="#2A9D8F" kind="coverage"/></AnalyticsCard>
-          <AnalyticsCard title={weeklyRecordingConfig.title} description={weeklyRecordingConfig.subtitle}>{weekdays.some(row=>row.recorded>0)?<BarChart items={weekdays.map(row=>({label:row.label,value:row.recorded,count:row.observations}))} color="#2A9D8F"/>:<Placeholder>No entries for this period.</Placeholder>}</AnalyticsCard>
+          </AnalyticsCard></ChartVisibility>
+          <ChartVisibility key={`all-${combinedConsistencyConfig.id}`} chartType={combinedConsistencyConfig.id} scope="all"><AnalyticsCard title={combinedConsistencyConfig.title} description={combinedConsistencyConfig.subtitle}>{consistency.recordedDays?<><Text style={styles.summary}>{consistency.recordedDays} of {consistency.eligibleDays} {consistency.eligibleDays===1?'day':'days'} recorded</Text><BarChart items={consistency.rows.filter(row=>row.eligibleDays>0).map(row=>({label:row.name,value:row.coverage*100,count:`${row.recordedDays}/${row.eligibleDays}`}))} color="#2A9D8F"/></>:<Placeholder>{consistency.eligibleDays===0?'There were no days to track in this period.':'Nothing recorded on the days tracked in this period.'}</Placeholder>}</AnalyticsCard></ChartVisibility>
+          <ChartVisibility key={`all-${combinedCalendarConfig.id}`} chartType={combinedCalendarConfig.id} scope="all"><AnalyticsCard title={combinedCalendarConfig.title} description={combinedCalendarConfig.subtitle}><MonthCalendar month={month} onMonthChange={setMonth} cells={calendarCells} color="#2A9D8F" kind="coverage"/></AnalyticsCard></ChartVisibility>
+          <ChartVisibility key={`all-${weeklyRecordingConfig.id}`} chartType={weeklyRecordingConfig.id} scope="all"><AnalyticsCard title={weeklyRecordingConfig.title} description={weeklyRecordingConfig.subtitle}>{weekdays.some(row=>row.recorded>0)?<BarChart items={weekdays.map(row=>({label:row.label,value:row.recorded,count:row.observations}))} color="#2A9D8F"/>:<Placeholder>Nothing recorded in this period.</Placeholder>}</AnalyticsCard></ChartVisibility>
         </>:<>{individualSections.map(section=><InsightsAccordion key={section.id}
           title={section.title} initiallyExpanded={section.initiallyExpanded}>
-          {section.charts.map(chart=>chart.content)}
+          {section.charts.map(chart=><ChartVisibility key={`${source}-${selectedTask?.id}-${chart.id}`} chartType={chart.id} scope="activity">{chart.content}</ChartVisibility>)}
         </InsightsAccordion>)}</>}
       </View>
     </ScrollView>
     {customOpen&&<NativeDateRangePicker applied={custom} today={today} earliest={earliest}
-      onCancel={()=>setCustomOpen(false)} onApply={range=>{setCustom(range);setTimeline('CUSTOM');setCustomOpen(false);}}/>}
+      onCancel={()=>setCustomOpen(false)} onApply={range=>{const changed=timeline!=='CUSTOM'||range.startDate!==custom.startDate||range.endDate!==custom.endDate;setCustom(range);setTimeline('CUSTOM');setCustomOpen(false);if(changed){trackDateRangeChanged('custom');logger.info('Date range changed',{date_range:'custom'});}}}/>}
   </SafeAreaView>;
 }
 const styles=StyleSheet.create({

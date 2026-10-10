@@ -1,0 +1,38 @@
+appId: com.plainleaf.tinywins
+---
+# Exercises draft-only removal; this flow never saves an activity.
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+- scrollUntilVisible:
+    element:
+      id: level-template-time-spent
+    direction: DOWN
+- tapOn:
+    id: level-template-time-spent
+- scrollUntilVisible:
+    element:
+      id: remove-level-1
+    direction: DOWN
+- takeScreenshot: level-remove-top-right
+- tapOn:
+    id: remove-level-1
+- assertVisible:
+    id: level-removed-snackbar
+- tapOn:
+    id: undo-level-removal
+- scrollUntilVisible:
+    element:
+      id: level-description-input-1
+    direction: DOWN
+- assertVisible:
+    id: level-input-1
+    text: A little
+- assertVisible:
+    id: level-description-input-1
+    text: Spent a few minutes on it.
+- stopApp

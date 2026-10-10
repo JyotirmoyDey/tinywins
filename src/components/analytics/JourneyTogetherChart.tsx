@@ -32,13 +32,13 @@ const MiniTrend = memo(function MiniTrend({ series, dateCount, kind, width, onOp
       <Text style={styles.activityName} numberOfLines={1}>{series.taskName}</Text>
       {series.archived && <Text style={styles.archivedLabel}>Archived</Text>}
       <Text style={styles.latest} numberOfLines={1} accessibilityLabel={series.latestRating
-        ? `Latest rating, ${series.latestRating}` : 'No recordings'}>
-        {series.latestRating ?? 'No recordings'}
+        ? `Latest rating, ${series.latestRating}` : 'Nothing recorded'}>
+        {series.latestRating ?? 'Nothing recorded'}
       </Text>
     </View>
     {series.points.length === 0 ? <Pressable onPress={() => onOpen(series.taskId)}
-      accessibilityRole="button" accessibilityLabel={`Open ${series.taskName} insights. No recordings in this period.`}
-      style={styles.emptyPlot}><Text style={styles.emptyText}>No recordings</Text></Pressable> :
+      accessibilityRole="button" accessibilityLabel={`Open ${series.taskName} insights. Nothing recorded in this period.`}
+      style={styles.emptyPlot}><Text style={styles.emptyText}>Nothing recorded</Text></Pressable> :
       kind === 'today' ? <Pressable onPress={() => onOpen(series.taskId)}
         accessibilityRole="button" accessibilityLabel={`Open ${series.taskName} insights. Today: ${series.points[0].label}.`}
         style={styles.todayPlot}>

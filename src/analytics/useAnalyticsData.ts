@@ -4,6 +4,8 @@ import { getRepositories } from '../data/runtime';
 import { useTasks } from '../state/TasksProvider';
 import { AnalyticsDataset } from './types';
 import { getAnalyticsDataset } from './service';
+import { withPerformanceTrace } from '../telemetry';
+import { logger } from '../logging/logger';
 export function useAnalyticsData(useDemo = false) {
   const { data } = useTasks();
   const [dataset, setDataset] = useState<AnalyticsDataset>({ tasks: [], entries: [], scaleVersions: [] });
@@ -15,19 +17,22 @@ export function useAnalyticsData(useDemo = false) {
     const current = ++request.current;
     if (!loaded.current) setLoading(true);
     try {
-      let next: AnalyticsDataset;
+      const next = await withPerformanceTrace('insights_load', async (): Promise<AnalyticsDataset> => {
       if (useDemo) {
         const { loadDemoDataset } = await import('./demoData');
-        next = loadDemoDataset();
+        return loadDemoDataset();
       } else {
         const repos = await getRepositories();
         const [tasks, entries, versions, lifecycle] = await Promise.all([
           repos.tasks.getAll(), repos.entries.getAll(), repos.tasks.getScaleVersions(),
           repos.tasks.getLifecycleTransitions(),
         ]);
-        next = getAnalyticsDataset(tasks, entries, versions, lifecycle);
+        return getAnalyticsDataset(tasks, entries, versions, lifecycle);
       }
-      if (request.current === current) { setDataset(next); setLoadedSource(useDemo); }
+      });
+      if (request.current === current) { setDataset(next); setLoadedSource(useDemo); logger.info('Insights data loaded', { screen: 'insights' }); }
+    } catch (cause) {
+      logger.error('Insights data load failed', { operation: 'analytics_read', screen: 'insights' }, cause);
     } finally {
       if (request.current === current) { loaded.current = true; setLoading(false); }
     }

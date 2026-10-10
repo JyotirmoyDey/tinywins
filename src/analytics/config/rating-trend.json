@@ -1,7 +1,7 @@
 {
   "id": "rating-trend",
   "title": "How It's Going",
-  "subtitle": "See how your ratings change over time.",
+  "subtitle": "See how your days have unfolded, one check-in at a time.",
   "calculator": "ratingTrend",
   "type": "adaptive-categorical",
   "location": "task-insights",

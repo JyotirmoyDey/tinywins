@@ -34,21 +34,21 @@ export function WeekdayPatternsChart({ data }: { data: WeekdayPatternsResult }) 
 
   if (data.status === 'today' || data.status === 'single-day') return <View style={styles.notice}>
     <Text style={styles.noticeTitle}>{data.singleDayEntry?.optionLabelAtEntry ?? 'Not recorded'}</Text>
-    <Text style={styles.noticeText}>{data.status === 'today' ? 'Today' : formatLocalDate(data.singleDate!)} · One day cannot show a weekday pattern.</Text>
+    <Text style={styles.noticeText}>{data.status === 'today' ? 'Today' : formatLocalDate(data.singleDate!)} · One day is too soon to see a weekly pattern.</Text>
   </View>;
   if (data.status === 'insufficient-range') return <View style={styles.notice}>
     <Text style={styles.noticeText}>Choose a longer period to explore weekday patterns.</Text>
-    <Text style={styles.subtle}>{data.recordedCount} recorded {data.recordedCount === 1 ? 'day' : 'days'} in this range.</Text>
+    <Text style={styles.subtle}>{data.recordedCount} {data.recordedCount === 1 ? 'day' : 'days'} recorded in this range.</Text>
     {!!data.excludedHistoryCount && <Text style={styles.subtle}>
-      {data.excludedHistoryCount} from a previous rating order excluded.
+      {data.excludedHistoryCount} earlier {data.excludedHistoryCount === 1 ? 'check-in uses' : 'check-ins use'} a previous level order.
     </Text>}
   </View>;
   if (data.status === 'no-data') return <View style={styles.notice}>
     <Text style={styles.noticeText}>{data.excludedHistoryCount
-      ? 'No ratings from the current rating order in this period.'
-      : 'No ratings recorded in this period.'}</Text>
+      ? 'Earlier check-ins used a different level order. Try a later period.'
+      : 'Nothing recorded in this period.'}</Text>
     {!!data.excludedHistoryCount && <Text style={styles.subtle}>
-      {data.excludedHistoryCount} earlier {data.excludedHistoryCount === 1 ? 'rating uses' : 'ratings use'} a previous order.
+      {data.excludedHistoryCount} earlier {data.excludedHistoryCount === 1 ? 'check-in uses' : 'check-ins use'} a previous level order.
     </Text>}
   </View>;
 
@@ -56,10 +56,10 @@ export function WeekdayPatternsChart({ data }: { data: WeekdayPatternsResult }) 
     const measured = event.nativeEvent.layout.width;
     setWidth(previous => previous === measured ? previous : measured);
   }}>
-    <Text style={styles.caption}>{data.recordedCount} recorded {data.recordedCount === 1 ? 'day' : 'days'} · Cell shade shows frequency</Text>
-    {data.limitedSample && <Text style={styles.subtle}>A limited sample; patterns may change with more recordings.</Text>}
+    <Text style={styles.caption}>{data.recordedCount} {data.recordedCount === 1 ? 'day' : 'days'} recorded · Darker cells mean more frequent</Text>
+    {data.limitedSample && <Text style={styles.subtle}>Every pattern starts somewhere. A few more check-ins will help you see yours.</Text>}
     {!!data.excludedHistoryCount && <Text style={styles.subtle}>
-      {data.excludedHistoryCount} {data.excludedHistoryCount === 1 ? 'rating' : 'ratings'} from a previous rating order excluded.
+      {data.excludedHistoryCount} earlier {data.excludedHistoryCount === 1 ? 'check-in uses' : 'check-ins use'} a previous level order.
     </Text>}
     <View style={styles.table}>
       <View style={{ width: config.presentation.weekdayColumnWidth }}>
@@ -86,7 +86,7 @@ export function WeekdayPatternsChart({ data }: { data: WeekdayPatternsResult }) 
               const selected = selection?.weekday === row.weekday && selection.optionId === cell.optionId;
               const percentage = cell.percentage === null ? null : Math.round(cell.percentage);
               return <Pressable key={cell.optionId} accessibilityRole="button"
-                accessibilityLabel={`${row.label}, ${cell.label}: ${row.total ? `${cell.count} of ${row.total} recordings, ${percentage} percent` : 'no recordings'}`}
+                accessibilityLabel={`${row.label}, ${cell.label}: ${row.total ? `${cell.count} of ${row.total} ${row.total === 1 ? 'check-in' : 'check-ins'}, ${percentage} percent` : 'nothing recorded'}`}
                 accessibilityState={{ selected }}
                 onPress={() => setSelection(selected ? null : { weekday: row.weekday, optionId: cell.optionId })}
                 style={[styles.cellTouch, { width: cellWidth, height: config.presentation.rowHeight }]}>
@@ -109,8 +109,8 @@ export function WeekdayPatternsChart({ data }: { data: WeekdayPatternsResult }) 
     {selectedRow && selectedCell && <View style={styles.detail} accessibilityLiveRegion="polite">
       <Text style={styles.detailTitle}>{selectedRow.label} · {selectedCell.label}</Text>
       <Text style={styles.detailText}>{selectedRow.total
-        ? `${selectedCell.count} of ${selectedRow.total} recorded observations · ${Math.round(selectedCell.percentage ?? 0)}%`
-        : 'No recorded observations on this weekday.'}</Text>
+        ? `${selectedCell.count} of ${selectedRow.total} ${selectedRow.total === 1 ? 'check-in' : 'check-ins'} · ${Math.round(selectedCell.percentage ?? 0)}%`
+        : 'Nothing recorded on this weekday.'}</Text>
       {selectedCell.historicalLabels.some(label => label !== selectedCell.label) &&
         <Text style={styles.subtle}>Recorded as: {selectedCell.historicalLabels.join(', ')}</Text>}
     </View>}

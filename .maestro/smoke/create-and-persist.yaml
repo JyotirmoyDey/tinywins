@@ -1,0 +1,30 @@
+appId: com.plainleaf.tinywins
+---
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: add-activity-button
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+- tapOn:
+    id: activity-name-input
+- inputText: Maestro Persistence Test
+# A new activity already has three valid default levels: Low, Medium, High.
+- hideKeyboard
+- tapOn:
+    id: save-activity-button
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: .*activity-name-.+
+    text: ^Maestro Persistence Test$
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: .*activity-name-.+
+    text: ^Maestro Persistence Test$

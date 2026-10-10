@@ -21,14 +21,14 @@ export function RecordingConsistencyChart({ data }: { data: RecordingConsistency
     config.presentation.maxDateLabels, config.presentation.minDateLabelGap);
 
   if (data.status === 'unknown-start') return <Text style={styles.notice}>
-    Recording coverage is unavailable because the start date is unknown.
+    We can’t show this rhythm because the start date is unknown.
   </Text>;
   if (data.status === 'no-eligible-days') return <Text style={styles.notice}>
-    No eligible days in this period.
+    There were no days to track in this period.
   </Text>;
 
   return <View style={styles.wrap}>
-    <Text style={styles.summary}>{data.recordedDays} of {data.eligibleDays} eligible
+    <Text style={styles.summary}>{data.recordedDays} of {data.eligibleDays}
       {data.eligibleDays === 1 ? ' day' : ' days'} recorded</Text>
     {data.mode === 'status' ? <View style={styles.status} accessibilityLabel={
       data.recordedDays ? 'Recorded for this day' : 'Not recorded for this day'}>
@@ -50,7 +50,7 @@ export function RecordingConsistencyChart({ data }: { data: RecordingConsistency
             { top: fraction * (plotHeight - 1), borderColor: config.style.gridColor }]} />)}
           <View style={styles.columns}>
             {data.groups.map(group => <Pressable key={group.id} accessibilityRole="button"
-              accessibilityLabel={`${rangeLabel(group)}: ${group.recordedDays} of ${group.eligibleDays} eligible days recorded${group.percentage === null ? '' : `, ${Math.round(group.percentage)} percent`}`}
+              accessibilityLabel={`${rangeLabel(group)}: ${group.recordedDays} of ${group.eligibleDays} ${group.eligibleDays === 1 ? 'day' : 'days'} recorded${group.percentage === null ? '' : `, ${Math.round(group.percentage)} percent`}`}
               accessibilityState={{ selected: group.id === selectedId }}
               onPress={() => setSelectedId(group.id === selectedId ? null : group.id)}
               style={[styles.column, group.id === selectedId && styles.columnSelected]}>
@@ -70,8 +70,8 @@ export function RecordingConsistencyChart({ data }: { data: RecordingConsistency
     {selected && data.mode !== 'status' && <View style={styles.detail} accessible>
       <Text style={styles.detailDate}>{rangeLabel(selected)}</Text>
       <Text style={styles.detailValue}>{selected.eligibleDays
-        ? `${selected.recordedDays} of ${selected.eligibleDays} eligible days · ${Math.round(selected.percentage ?? 0)}% recorded`
-        : 'No eligible days'}</Text>
+        ? `${selected.recordedDays} of ${selected.eligibleDays} ${selected.eligibleDays === 1 ? 'day' : 'days'} · ${Math.round(selected.percentage ?? 0)}% recorded`
+        : 'No days to track'}</Text>
     </View>}
   </View>;
 }

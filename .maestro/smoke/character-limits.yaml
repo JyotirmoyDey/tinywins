@@ -1,0 +1,105 @@
+appId: com.plainleaf.tinywins
+---
+# Non-saving check of the actual Android TextInputs. Existing app data is untouched.
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+
+- evalScript: ${output.nameAtLimit = 'A'.repeat(24)}
+- evalScript: ${output.nameTooLong = 'A'.repeat(30)}
+- tapOn:
+    id: activity-name-input
+- inputText: ${output.nameAtLimit}
+- assertVisible:
+    id: activity-name-input
+    text: ^A{24}$
+- inputText: AAAAAA
+- assertVisible:
+    id: activity-name-input
+    text: ^A{24}$
+- eraseText: 100
+- inputText: ${output.nameTooLong}
+- assertVisible:
+    id: activity-name-input
+    text: ^A{24}$
+
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-input-0
+    direction: DOWN
+- evalScript: ${output.levelAtLimit = 'B'.repeat(18)}
+- evalScript: ${output.levelTooLong = 'B'.repeat(25)}
+- tapOn:
+    id: level-input-0
+- eraseText: 100
+- inputText: ${output.levelAtLimit}
+- assertVisible:
+    id: level-input-0
+    text: ^B{18}$
+- inputText: BBBBBBB
+- assertVisible:
+    id: level-input-0
+    text: ^B{18}$
+- eraseText: 100
+- inputText: ${output.levelTooLong}
+- assertVisible:
+    id: level-input-0
+    text: ^B{18}$
+
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-description-input-0
+    direction: DOWN
+- evalScript: ${output.descriptionAtLimit = 'C'.repeat(150)}
+- evalScript: ${output.descriptionTooLong = 'C'.repeat(160)}
+- tapOn:
+    id: level-description-input-0
+- inputText: ${output.descriptionAtLimit}
+- assertVisible:
+    id: level-description-input-0
+    text: ^C{150}$
+- inputText: CCCCCCCCCC
+- assertVisible:
+    id: level-description-input-0
+    text: ^C{150}$
+- eraseText: 100
+- eraseText: 100
+- inputText: ${output.descriptionTooLong}
+- assertVisible:
+    id: level-description-input-0
+    text: ^C{150}$
+
+# A newly added bottom row uses the same limit even after the form scrolls.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-template-time-spent
+    direction: UP
+- tapOn:
+    id: level-template-time-spent
+- scrollUntilVisible:
+    element:
+      id: add-level-button
+    direction: DOWN
+- tapOn:
+    id: add-level-button
+- scrollUntilVisible:
+    element:
+      id: level-input-4
+    direction: DOWN
+- tapOn:
+    id: level-input-4
+- evalScript: ${output.bottomLevelTooLong = 'D'.repeat(25)}
+- inputText: ${output.bottomLevelTooLong}
+- assertVisible:
+    id: level-input-4
+    text: ^D{18}$
+
+# No Create/Save step: this flow cannot change the user's activities.
+- stopApp

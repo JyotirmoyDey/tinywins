@@ -58,6 +58,7 @@ const migrations = [
   `ALTER TABLE tasks ADD COLUMN chartColor TEXT;`,
   `ALTER TABLE tasks ADD COLUMN includeInCombinedInsights INTEGER NOT NULL DEFAULT 0
      CHECK(includeInCombinedInsights IN (0,1));`,
+  `ALTER TABLE task_options ADD COLUMN description TEXT;`,
 ];
 export const CURRENT_DATABASE_VERSION = migrations.length;
 export async function migrate(connection: Connection) {
@@ -136,6 +137,9 @@ export async function migrate(connection: Connection) {
             WHERE taskId = tasks.id AND type = 'restored'), createdAt), id LIMIT 5`);
         for (const task of active) await db.runAsync(
           'UPDATE tasks SET includeInCombinedInsights = 1 WHERE id = ?', task.id);
+      } else if (index === 6) {
+        const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(task_options)');
+        if (!columns.some(column => column.name === 'description')) await db.execAsync(migrations[index]);
       } else await db.execAsync(migrations[index]);
       await db.execAsync(`PRAGMA user_version = ${index + 1}`);
     }

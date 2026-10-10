@@ -1,0 +1,35 @@
+appId: com.plainleaf.tinywins
+---
+- launchApp
+- assertVisible:
+    id: home-screen
+- extendedWaitUntil:
+    visible:
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- assertVisible:
+    text: ^Maestro Persistence Test$
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^Not recorded$
+# The previous flow creates Low, Medium, High. The slider center selects Medium.
+- tapOn:
+    id: .*activity-slider-.+
+    text: ^Maestro Persistence Test rating.*
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^Medium$
+- waitForAnimationToEnd
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- extendedWaitUntil:
+    visible:
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- assertVisible:
+    text: ^Maestro Persistence Test$
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^Medium$

@@ -1,0 +1,42 @@
+appId: com.plainleaf.tinywins
+---
+- launchApp
+- assertVisible:
+    id: home-screen
+- extendedWaitUntil:
+    visible:
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- assertVisible:
+    text: ^Maestro Persistence Test$
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^Medium$
+# The activity has Low, Medium, High. An element-relative right-side tap selects High.
+- tapOn:
+    id: .*activity-slider-.+
+    text: ^Maestro Persistence Test rating.*
+    point: 90%,50%
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^High$
+- assertNotVisible:
+    id: .*activity-current-level-.+
+    text: ^Medium$
+- waitForAnimationToEnd
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- extendedWaitUntil:
+    visible:
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- assertVisible:
+    text: ^Maestro Persistence Test$
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^High$
+- assertNotVisible:
+    id: .*activity-current-level-.+
+    text: ^Medium$

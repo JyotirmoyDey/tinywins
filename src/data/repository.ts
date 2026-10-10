@@ -5,7 +5,9 @@ import { ACTIVE_TASK_LIMIT_MESSAGE, MAX_ACTIVE_TASKS } from '../config/taskLimit
 import { nextTaskColor } from '../analytics/taskColors';
 import { COMBINED_INSIGHTS_LIMIT_MESSAGE, MAX_COMBINED_INSIGHTS_ITEMS } from '../config/combinedInsights';
 type TaskRow = Omit<Task, 'options' | 'active' | 'includeInCombinedInsights'> & { active: number; includeInCombinedInsights: number };
-type OptionRow = Omit<TaskOption, 'active'> & { active: number };
+type OptionRow = Omit<TaskOption, 'active' | 'description'> & { active: number; description: string | null };
+const toOption = (row: OptionRow): TaskOption => ({ ...row, active: !!row.active,
+  description: row.description ?? undefined });
 type VersionRow = Omit<RatingScaleVersion, 'options'> & { optionsJson: string };
 export class TrendResetConfirmationRequired extends Error {
   constructor() { super('Reordering recorded rating levels requires confirmation.'); }
@@ -38,7 +40,7 @@ export async function readTask(db: SqlDatabase, id: string): Promise<Task | unde
   if (!row) return undefined;
   const options = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE taskId = ? AND active = 1 ORDER BY position', id);
   return { ...row, active: !!row.active, includeInCombinedInsights: !!row.includeInCombinedInsights,
-    options: options.map(option => ({ ...option, active: !!option.active })) };
+    options: options.map(toOption) };
 }
 export class TaskRepository {
   constructor(private connection: Connection, private id: () => string) {}
@@ -50,13 +52,13 @@ export class TaskRepository {
       const options = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE active = 1 ORDER BY position');
       return tasks.map(task => ({ ...task, active: !!task.active,
         includeInCombinedInsights: !!task.includeInCombinedInsights,
-        options: options.filter(o => o.taskId === task.id).map(o => ({ ...o, active: !!o.active })) }));
+        options: options.filter(o => o.taskId === task.id).map(toOption) }));
     });
   }
   getById(id: string) { return this.connection.run(db => readTask(db, id)); }
   getOptions(id: string) {
     return this.connection.run(async db => (await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE taskId = ? ORDER BY active DESC, position', id))
-      .map(option => ({ ...option, active: !!option.active })));
+      .map(toOption));
   }
   getScaleVersions(taskId?: string) {
     return this.connection.run(async db => (await db.getAllAsync<VersionRow>(
@@ -111,11 +113,13 @@ export class TaskRepository {
       const existing = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE taskId = ?', id);
       // Deactivate first to avoid temporary collisions in the unique position index.
       await db.runAsync('UPDATE task_options SET active = 0, updatedAt = ? WHERE taskId = ? AND active = 1', now, id);
-      const normalized = normalizeOptions(id, draft.options, now, Math.max(current.options.length, draft.options.length));
+      const normalized = normalizeOptions(id, draft.options, now, Math.max(current.options.length, draft.options.length))
+        .map(option => ({ ...option, description: draft.options.find(saved => saved.id === option.id)?.description === undefined
+          ? existing.find(saved => saved.id === option.id)?.description ?? undefined : option.description }));
       for (const option of normalized) {
         if (existing.some(o => o.id === option.id)) {
-          await db.runAsync('UPDATE task_options SET label = ?, position = ?, rank = ?, normalizedWeight = ?, active = 1, updatedAt = ? WHERE id = ? AND taskId = ?',
-            option.label, option.position, option.rank, option.normalizedWeight, now, option.id, id);
+          await db.runAsync('UPDATE task_options SET label = ?, description = ?, position = ?, rank = ?, normalizedWeight = ?, active = 1, updatedAt = ? WHERE id = ? AND taskId = ?',
+            option.label, option.description ?? null, option.position, option.rank, option.normalizedWeight, now, option.id, id);
         } else await insertOption(db, option);
       }
       // Used options stay as inactive rows; only unreferenced removed options are deleted.
@@ -176,6 +180,6 @@ export class TaskRepository {
   deleteTask(id: string) { return this.delete(id); }
 }
 export function insertOption(db: SqlDatabase, option: TaskOption) {
-  return db.runAsync('INSERT INTO task_options(id, taskId, label, position, rank, normalizedWeight, active, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    option.id, option.taskId, option.label, option.position, option.rank, option.normalizedWeight, Number(option.active), option.createdAt, option.updatedAt);
+  return db.runAsync('INSERT INTO task_options(id, taskId, label, position, rank, normalizedWeight, active, createdAt, updatedAt, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    option.id, option.taskId, option.label, option.position, option.rank, option.normalizedWeight, Number(option.active), option.createdAt, option.updatedAt, option.description ?? null);
 }

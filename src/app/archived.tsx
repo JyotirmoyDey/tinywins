@@ -10,6 +10,9 @@ import { ActiveTaskLimitError } from '../data/repository';
 import { MAX_ACTIVE_TASKS } from '../config/taskLimits';
 import { colorsByTaskId } from '../analytics/taskColors';
 import { parseLocalDate } from '../domain/task';
+import { trackActivityRestored } from '../telemetry';
+import { deleteArchivedTasksWithTelemetry } from '../telemetry/taskDeletion';
+import { logger } from '../logging/logger';
 export default function ArchivedActivities() {
   const { data, loading, reload, mutate } = useTasks(); const router = useRouter();
   const pending = useRef(new Set<string>());
@@ -23,8 +26,8 @@ export default function ArchivedActivities() {
   const restore = async (id: string) => {
     if (pending.current.has(id)) return;
     pending.current.add(id); setPendingIds([...pending.current]);
-    try { await mutate(repo => repo.restore(id)); }
-    catch (error) { Alert.alert('Could not restore', error instanceof ActiveTaskLimitError
+    try { await mutate(repo => repo.restore(id)); trackActivityRestored(); logger.info('Activity restore completed', { operation: 'restore' }); }
+    catch (error) { if (!(error instanceof ActiveTaskLimitError)) logger.error('Activity restore failed', { operation: 'database_write' }, error); Alert.alert('Could not restore', error instanceof ActiveTaskLimitError
       ? 'You can track up to 10 things at once. Archive one to make room.'
       : 'Please try again. This item is still archived.'); }
     finally { pending.current.delete(id); setPendingIds([...pending.current]); }
@@ -32,8 +35,8 @@ export default function ArchivedActivities() {
   const deleteArchived = async () => {
     if (deletingArchived.current) return;
     deletingArchived.current = true; setDeleting(true);
-    try { await mutate(repo => repo.deleteArchivedTasks()); }
-    catch { Alert.alert('Could not delete archived items', 'Please try again. What you’re currently tracking has not changed.'); }
+    try { await mutate(repo => deleteArchivedTasksWithTelemetry(repo, archived.length)); }
+    catch (cause) { logger.error('Activity delete failed', { operation: 'database_write' }, cause); Alert.alert('Could not delete archived items', 'Please try again. What you’re currently tracking has not changed.'); }
     finally { deletingArchived.current = false; setDeleting(false); }
   };
   const confirmDeleteArchived = () => Alert.alert('Delete all archived items?',
@@ -42,7 +45,7 @@ export default function ArchivedActivities() {
       { text: 'Delete archived items', style: 'destructive', onPress: () => void deleteArchived() }]);
   return <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
     <View style={styles.header}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Back to Profile"
+      <Pressable testID="archived-back-to-profile" accessibilityRole="button" accessibilityLabel="Back to Profile"
         onPress={() => router.navigate('/profile')} hitSlop={4}
         style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
         <Svg width={18} height={18} viewBox="0 0 24 24" accessible={false}>
@@ -51,7 +54,7 @@ export default function ArchivedActivities() {
         </Svg>
         <Text style={styles.backLabel}>Profile</Text>
       </Pressable>
-      <Text style={styles.title}>Archived</Text>
+      <Text testID="archived-activities-screen" style={styles.title}>Archived</Text>
       {!loading && atLimit && archived.length > 0 && <Text style={styles.limitNote}>
         You can track up to 10 things at once. Archive one to make room.
       </Text>}
@@ -77,19 +80,19 @@ export default function ArchivedActivities() {
         const archiveDate = transition?.localDate ?? (item.archivedAt ? item.archivedAt.slice(0, 10) : null);
         const dateText = archiveDate ? parseLocalDate(archiveDate).toLocaleDateString(undefined,
           { year: 'numeric', month: 'short', day: 'numeric' }) : 'Date unavailable';
-        return <View style={styles.card}>
+        return <View testID={`archived-activity-${item.id}`} style={styles.card}>
           <View style={styles.cardHeading}>
             <View style={[styles.colorDot, { backgroundColor: item.chartColor ?? activityColors.get(item.id) ?? c.textSecondary }]} />
             <View style={styles.cardText}>
-              <Text style={styles.taskName} numberOfLines={2}>{item.name}</Text>
+              <Text testID={`archived-activity-name-${item.id}`} style={styles.taskName} numberOfLines={2}>{item.name}</Text>
               <Text style={styles.archiveDate}>Archived {dateText}</Text>
             </View>
           </View>
           <View style={styles.actions}>
-            <Pressable accessibilityRole="button" accessibilityLabel={`View insights for ${item.name}`}
+            <Pressable testID={`archived-view-insights-${item.id}`} accessibilityRole="button" accessibilityLabel={`View insights for ${item.name}`}
               onPress={() => router.push({ pathname: '/insights', params: { task: item.id, mode: 'archivedTask' } })}
               style={styles.action}><Text style={styles.actionText}>View Insights</Text></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={`Restore ${item.name}`}
+            <Pressable testID={`restore-activity-${item.id}`} accessibilityRole="button" accessibilityLabel={`Restore ${item.name}`}
               accessibilityState={{ disabled: pendingIds.includes(item.id) }}
               disabled={pendingIds.includes(item.id)} onPress={() => void restore(item.id)}
               style={[styles.action, styles.restoreAction]}><Text style={styles.restoreText}>

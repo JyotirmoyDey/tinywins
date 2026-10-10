@@ -50,7 +50,7 @@ export default function Profile() {
     <View style={styles.content}>
       <Text style={styles.title}>Profile</Text>
       <Text style={styles.description}>What you track and your check-ins are saved on this device.</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Archived, ${archivedCount}`} onPress={() => router.push('/archived')}
+      <Pressable testID="open-archived-activities" accessibilityRole="button" accessibilityLabel={`Archived, ${archivedCount}`} onPress={() => router.push('/archived')}
         style={({ pressed }) => [styles.row, pressed && { opacity: 0.65 }]}>
         <View style={styles.rowLeading}>
           <Svg width={21} height={21} viewBox="0 0 24 24" accessible={false}>

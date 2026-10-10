@@ -1,7 +1,9 @@
-Priority	What we'll work on	Goal
-1	Backup & Restore	Verify encrypted backups and restoration on Android and iOS, including cross-device transfers.
-2	Data integrity	Test midnight resets, missing recordings, editing historical ratings, archiving and restoring.
-3	Insights regression testing	Ensure all charts use correct data, dates, aggregation and the five-item selection.
-4	UI/UX polish	Test smaller screens, keyboard behaviour, startup screen, sliders and navigation.
-5	Privacy and reliability	Crash reporting, minimal analytics, privacy policy and offline behaviour.
-6	Beta distribution	Prepare Google Play closed testing and Apple TestFlight.
+    private int plainRecur(int idx, int curProfit, int curPeople){
+        if(idx >= group.length){
+            return curProfit >= minProfit ? 1: 0;
+        }
+
+        int take = curPeople+group[idx] <= n ? plainRecur(idx+1, curProfit+profit[idx], curPeople+group[idx]): 0;
+        int skip = plainRecur(idx+1, curProfit, curPeople);
+
+        return take+skip;

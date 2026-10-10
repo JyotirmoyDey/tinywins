@@ -4,9 +4,9 @@ appId: com.plainleaf.tinywins
 - assertVisible:
     id: "home-screen"
 - tapOn:
-    id: "add-new"
+    id: "add-activity-button"
 - assertVisible:
-    id: "create-screen"
+    id: "activity-editor-screen"
 - back
 - assertVisible:
     id: "home-screen"

@@ -5,6 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Task } from '../domain/task';
 import { useTaskActions } from '../state/TasksProvider';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
+import { trackActivityArchived } from '../telemetry';
+import { deleteTaskWithTelemetry } from '../telemetry/taskDeletion';
+import { logger } from '../logging/logger';
 
 /** Shared task management menu used by both Home card designs. */
 export function TaskActionsMenu({ task, onClear, onBusyChange }: { task: Task; onClear?: () => void; onBusyChange?: (busy: boolean) => void }) {
@@ -18,14 +21,15 @@ export function TaskActionsMenu({ task, onClear, onBusyChange }: { task: Task; o
     pending.current = true;
     setOpen(false); onBusyChange?.(true);
     try {
-      await mutate(repo => archive ? repo.archiveTask(task.id) : repo.deleteTask(task.id));
+      await mutate(repo => archive ? repo.archiveTask(task.id) : deleteTaskWithTelemetry(repo, task.id));
+      if (archive) { trackActivityArchived(); logger.info('Activity archive completed', { operation: 'archive' }); }
       if (archive) announce('Archived. You can restore it from Profile.');
     }
-    catch { Alert.alert('Could not make this change', 'Please try again.'); }
+    catch (cause) { logger.error(archive ? 'Activity archive failed' : 'Activity delete failed', { operation: 'database_write' }, cause); Alert.alert('Could not make this change', 'Please try again.'); }
     finally { pending.current = false; onBusyChange?.(false); }
   };
   return <>
-    <Pressable accessibilityRole="button" accessibilityLabel={`Actions for ${task.name}`} onPress={() => setOpen(true)} style={styles.icon}>
+    <Pressable testID={`activity-menu-${task.id}`} accessibilityRole="button" accessibilityLabel={`Actions for ${task.name}`} onPress={() => setOpen(true)} style={styles.icon}>
       <Text style={styles.dots}>···</Text>
     </Pressable>
     <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -34,18 +38,18 @@ export function TaskActionsMenu({ task, onClear, onBusyChange }: { task: Task; o
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, s.lg) }]} accessibilityViewIsModal>
           <Text style={styles.taskName}>{task.name}</Text>
           <MenuItem label="Edit" onPress={() => { setOpen(false); router.push(`/task/${task.id}`); }} />
-          {onClear && <MenuItem label="Clear today's rating" onPress={() => { setOpen(false); onClear(); }} />}
-          <MenuItem label="Archive" onPress={() => {
+          {onClear && <MenuItem label="Clear today's check-in" onPress={() => { setOpen(false); onClear(); }} />}
+          <MenuItem label="Archive" testID="archive-activity-action" onPress={() => {
             setOpen(false);
             Alert.alert(`Archive ${task.name}?`,
-              'It will disappear from your daily list. Your ratings and history will still be available in Archived.', [
+              'It will disappear from your daily list. Your check-ins and history will still be available in Archived.', [
                 { text: 'Cancel', style: 'cancel' },
                 { text: 'Archive', onPress: () => void remove(true) },
               ]);
           }} />
           <MenuItem label="Delete" danger onPress={() => {
             setOpen(false);
-            Alert.alert(`Delete ${task.name}?`, 'This permanently removes its ratings and history from this device.', [
+            Alert.alert(`Delete ${task.name}?`, 'This permanently removes its check-ins and history from this device.', [
               { text: 'Cancel', style: 'cancel' },
               { text: 'Delete', style: 'destructive', onPress: () => void remove(false) },
             ]);
@@ -56,8 +60,8 @@ export function TaskActionsMenu({ task, onClear, onBusyChange }: { task: Task; o
     </Modal>
   </>;
 }
-function MenuItem({ label, onPress, danger }: { label: string; onPress: () => void; danger?: boolean }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.menuItem, { opacity: pressed ? 0.6 : 1 }]}>
+function MenuItem({ label, onPress, danger, testID }: { label: string; onPress: () => void; danger?: boolean; testID?: string }) {
+  return <Pressable testID={testID} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.menuItem, { opacity: pressed ? 0.6 : 1 }]}>
     <Text style={[t.body, { color: danger ? c.danger : c.textPrimary }]}>{label}</Text>
   </Pressable>;
 }

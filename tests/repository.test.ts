@@ -19,6 +19,53 @@ test('mapping covers 2–5 choices, trims names and keeps IDs', async () => {
   assert.throws(() => normalizeOptions('t', Array.from({ length: 6 }, (_, i) => ({ id: `extra-${i}`, label: `${i}` }))), /2 and 5 levels/);
   const { tasks, native } = await setup(); const task = await tasks.create(draft()); assert.equal(task.name, 'Sleep'); native.close();
 });
+test('level descriptions create, edit, clear, archive, restore and survive reopening SQLite', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'tinywins-description-')); const path = join(dir, 'levels.sqlite');
+  try {
+    const first = await setup(path);
+    const task = await first.tasks.create({ name: 'Practice', options: [
+      { id: 'low', label: 'Low', description: '  A little practice  ' },
+      { id: 'high', label: 'High' },
+    ] });
+    assert.equal(task.options[0].description, 'A little practice');
+    assert.equal(task.options[1].description, undefined);
+    const edited = await first.tasks.update(task.id, { name: task.name, options: [
+      { id: 'low', label: 'Low', description: 'A shorter session' },
+      { id: 'high', label: 'High', description: 'Focused practice' },
+    ] });
+    assert.deepEqual(edited.options.map(option => option.description), ['A shorter session', 'Focused practice']);
+    const renamed = await first.tasks.update(task.id, { name: task.name, options: edited.options.map(option =>
+      ({ id: option.id, label: `${option.label}!` })) });
+    assert.deepEqual(renamed.options.map(option => option.description), ['A shorter session', 'Focused practice']);
+    await first.tasks.archive(task.id);
+    assert.equal((await first.tasks.getById(task.id))?.options[1].description, 'Focused practice');
+    await first.tasks.restore(task.id);
+    await first.tasks.update(task.id, { name: task.name, options: [
+      { id: 'low', label: 'Low', description: '' },
+      { id: 'high', label: 'High', description: 'Focused practice' },
+    ] });
+    first.native.close();
+    const reopened = await setup(path);
+    assert.deepEqual((await reopened.tasks.getById(task.id))?.options.map(option => option.description),
+      [undefined, 'Focused practice']);
+    assert.equal((await reopened.tasks.getById(task.id))?.active, true);
+    reopened.native.close();
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+test('level descriptions have a 150 visible-character limit', async () => {
+  const db = await setup();
+  try {
+    const allowed = '🌱'.repeat(150);
+    const task = await db.tasks.create({ name: 'Growth', options: [
+      { id: 'low', label: 'Low', description: allowed }, { id: 'high', label: 'High' },
+    ] });
+    assert.equal(task.options[0].description, allowed);
+    await assert.rejects(db.tasks.update(task.id, { name: task.name, options: [
+      { id: 'low', label: 'Low', description: `${allowed}x` }, { id: 'high', label: 'High' },
+    ] }), /150 characters/);
+    assert.equal((await db.tasks.getById(task.id))?.options[0].description, allowed);
+  } finally { db.native.close(); }
+});
 test('repository rejects six new levels while preserving edits to an existing seven-level configuration', async () => {
   const { tasks, db, native } = await setup();
   try {

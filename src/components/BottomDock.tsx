@@ -65,7 +65,7 @@ export function BottomDock({ state, navigation, insets }: DockProps) {
         const active = action !== 'add' && activeRoute.name === action;
         const label = action === 'index' ? 'Home' : action === 'insights' ? 'Insights' : action === 'add' ? 'Add' : 'Profile';
         const disabled = action === 'add' && addDisabled;
-        return <Pressable key={action} testID={action === 'add' ? 'add-new' : undefined}
+        return <Pressable key={action} testID={action === 'add' ? 'add-activity-button' : `nav-${action === 'index' ? 'home' : action}`}
           accessibilityRole={action === 'add' ? 'button' : 'tab'} accessibilityLabel={action === 'add' ? 'Add New' : label}
           accessibilityHint={disabled && atLimit ? ACTIVE_TASK_LIMIT_MESSAGE : undefined}
           accessibilityState={action === 'add' ? { disabled } : { selected: active }} disabled={disabled}

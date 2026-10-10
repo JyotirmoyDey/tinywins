@@ -1,5 +1,5 @@
 export type OptionPositions = Record<string, number>;
-export const OPTION_ROW_HEIGHT = 76;
+export const OPTION_ROW_HEIGHT = 128;
 
 export function positionsForIds(ids: string[]): OptionPositions {
   'worklet';

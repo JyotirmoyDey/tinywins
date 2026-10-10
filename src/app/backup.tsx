@@ -11,6 +11,8 @@ import { pickEncryptedBackup, saveEncryptedBackup, shareEncryptedBackup } from '
 import { localDate } from '../domain/task';
 import { hasNativeBackupModule } from '../backup/deviceCrypto';
 import { colors as c, spacing as s, typography as t } from '../theme';
+import { trackBackupExported, trackBackupFailed, trackBackupImported, withPerformanceTrace } from '../telemetry';
+import { logger } from '../logging/logger';
 
 type Stage = 'choice' | 'create' | 'ready' | 'password' | 'preview';
 function PasswordField({ label, value, onChange, visible, onToggle }: {
@@ -64,12 +66,13 @@ export default function BackupScreen() {
     if (password !== confirmation) { setError('The passwords do not match.'); return; }
     operation.current = true;
     cancelRequested.current = false; setError(null); setNotice(null); setBusy('Preparing your backup…');
+    logger.info('Backup export started', { operation: 'export', screen: 'backup' });
     try {
-      const result = await createLocalBackup(password, setBusy);
+      const result = await withPerformanceTrace('backup_export', () => createLocalBackup(password, setBusy));
       if (cancelRequested.current) { clear(); return; }
       setEncrypted(result); setPassword(''); setConfirmation(''); setStage('ready');
       setNotice('Encrypted backup ready. Choose where to save it or share it.');
-    } catch (cause) { if (!cancelRequested.current) setError(message(cause)); else clear(); }
+    } catch (cause) { logger.error('Backup export failed', { operation: 'backup_export', failure_category: 'encryption' }, cause); trackBackupFailed('export', 'encryption'); if (!cancelRequested.current) setError(message(cause)); else clear(); }
     finally { setBusy(null); cancelRequested.current = false; operation.current = false; }
   };
   const save = async () => {
@@ -77,11 +80,11 @@ export default function BackupScreen() {
     operation.current = true; setError(null); setNotice(null); setBusy('Opening save location…');
     try {
       const result = await saveEncryptedBackup(encrypted, localDate());
-      if (result.status === 'saved') setNotice(`${result.filename} was saved to your chosen folder.`);
-      if (result.status === 'unverified') setNotice(Platform.OS === 'ios'
+      if (result.status === 'saved') { trackBackupExported(); logger.info('Backup export completed', { operation: 'export' }); setNotice(`${result.filename} was saved to your chosen folder.`); }
+      if (result.status === 'unverified') { logger.warn('Backup export unverified', { operation: 'export' }); setNotice(Platform.OS === 'ios'
         ? 'The share sheet closed. Check Files to confirm the backup was saved.'
-        : `${result.filename ?? 'The backup'} was written, but could not be read back. Check it before relying on it.`);
-    } catch (cause) { setError(message(cause)); }
+        : `${result.filename ?? 'The backup'} was written, but could not be read back. Check it before relying on it.`); }
+    } catch (cause) { logger.error('Backup export failed', { operation: 'backup_file', failure_category: 'file_io' }, cause); trackBackupFailed('export', 'file_io'); setError(message(cause)); }
     finally { setBusy(null); operation.current = false; }
   };
   const share = async () => {
@@ -90,7 +93,7 @@ export default function BackupScreen() {
     try {
       await shareEncryptedBackup(encrypted, localDate());
       setNotice('The share sheet closed. Confirm the backup arrived at its destination.');
-    } catch (cause) { setError(message(cause)); }
+    } catch (cause) { logger.error('Backup export failed', { operation: 'backup_file', failure_category: 'file_io' }, cause); trackBackupFailed('export', 'file_io'); setError(message(cause)); }
     finally { setBusy(null); operation.current = false; }
   };
   const chooseFile = async () => {
@@ -100,7 +103,7 @@ export default function BackupScreen() {
     try {
       const chosen = await pickEncryptedBackup();
       if (chosen) { setFile(chosen); setPassword(''); setStage('password'); }
-    } catch (cause) { setError(message(cause)); }
+    } catch (cause) { logger.error('Backup import failed', { operation: 'backup_file', failure_category: 'file_io' }, cause); trackBackupFailed('import', 'file_io'); setError(message(cause)); }
     finally { setBusy(null); operation.current = false; }
   };
   const inspect = async () => {
@@ -110,19 +113,23 @@ export default function BackupScreen() {
     try {
       const result = await unlockLocalBackup(file, password);
       setPayload(result); setFile(null); setPassword(''); setStage('preview');
-    } catch (cause) { setError(message(cause)); }
+    } catch (cause) { logger.error('Backup import rejected', { operation: 'backup_import', failure_category: 'validation' }, cause); trackBackupFailed('import', 'validation'); setError(message(cause)); }
     finally { setBusy(null); operation.current = false; }
   };
   const restore = async () => {
     if (!payload || operation.current) return;
     operation.current = true;
     setError(null); setBusy('Restoring your data…');
+    logger.info('Backup import started', { operation: 'import', screen: 'backup' });
     try {
-      await restoreBackup(payload);
+      await withPerformanceTrace('backup_import', () => restoreBackup(payload));
+      const restored = backupPreview(payload);
+      trackBackupImported(restored.items, restored.recordings);
+      logger.info('Backup import completed', { operation: 'import', activity_count: restored.items });
       clear();
       Alert.alert('Restore complete', 'Your items and recordings are ready.');
       router.replace('/');
-    } catch (cause) { setError(message(cause)); }
+    } catch (cause) { logger.error('Backup import failed', { operation: 'backup_import', failure_category: 'database' }, cause); trackBackupFailed('import', 'database'); setError(message(cause)); }
     finally { setBusy(null); operation.current = false; }
   };
   const confirmRestore = () => Alert.alert('Replace current data?',

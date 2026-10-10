@@ -1,7 +1,7 @@
 {
   "id": "weekday-patterns",
   "title": "Your Weekly Rhythm",
-  "subtitle": "Discover how your ratings vary throughout the week.",
+  "subtitle": "Do some days of the week tend to go differently? Discover your weekly patterns.",
   "calculator": "weekdayPatterns",
   "type": "weekday-rating-heatmap",
   "location": "task-insights",

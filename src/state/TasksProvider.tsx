@@ -10,7 +10,11 @@ import { EntryStore } from './EntryStore';
 import { BackupPayload } from '../backup/data';
 import { restoreLocalBackup } from '../backup/service';
 import { setDevInsightsSource } from '../analytics/devDataSource';
+import { trackCheckinChanged, trackCheckinRecorded, trackCheckinRemoved, withPerformanceTrace } from '../telemetry';
+import { checkinTransition } from '../telemetry/checkinTransition';
+import { logger } from '../logging/logger';
 const entryStore = new EntryStore();
+let startupLogged = false;
 interface Actions {
   mutate: (action: (repo: TaskRepository) => Promise<unknown>) => Promise<void>;
   select: (task: Task, date: string, optionId: string | null, haptic?: boolean) => Promise<void>;
@@ -44,10 +48,13 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
     const date = localDate();
     try {
       const checkpoint = entryStore.checkpoint();
-      const repos = await getRepositories();
-      const nextTasks = await repos.tasks.getAll();
-      const nextLifecycle = await repos.tasks.getLifecycleTransitions();
-      const entries = await repos.entries.getForDate(date);
+      const { nextTasks, nextLifecycle, entries } = await withPerformanceTrace('home_load', async () => {
+        const repos = await getRepositories();
+        const nextTasks = await repos.tasks.getAll();
+        const nextLifecycle = await repos.tasks.getLifecycleTransitions();
+        const entries = await repos.entries.getForDate(date);
+        return { nextTasks, nextLifecycle, entries };
+      });
       // A query started yesterday must not repaint Home after midnight or after
       // a newer foreground refresh has already completed.
       if (sequence !== reloadSequence.current || date !== localDate()) return;
@@ -55,7 +62,10 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
       setTasks(current => JSON.stringify(current) === JSON.stringify(nextTasks) ? current : nextTasks);
       setLifecycle(current => JSON.stringify(current) === JSON.stringify(nextLifecycle) ? current : nextLifecycle);
       setToday(date); setError(null);
-    } catch {
+      if (!startupLogged) { startupLogged = true; logger.info('App startup completed'); }
+      logger.info('Home loaded', { screen: 'home' });
+    } catch (cause) {
+      logger.error('Home load failed', { operation: 'database_read', screen: 'home' }, cause);
       if (sequence === reloadSequence.current && date === localDate())
         setError('Your saved data could not be loaded. Please try again. Your existing data has not been cleared.');
     } finally {
@@ -76,6 +86,9 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
     const option = task.options.find(o => o.id === optionId);
     if (optionId !== null && !option) throw new Error('Choice not found.');
     const previous = entryStore.get(task.id, date); const now = new Date().toISOString();
+    const transition = checkinTransition(previous?.optionId, optionId,
+      previous?.scaleVersionIdAtEntry, task.currentScaleVersionId);
+    if (!transition) return;
     const next = option ? { id: previous?.id ?? randomUUID(), taskId: task.id, localDate: date,
       createdAt: previous?.createdAt ?? now, updatedAt: now, ...createEntrySnapshot(option),
       scaleVersionIdAtEntry: task.currentScaleVersionId, trendEpochIdAtEntry: task.currentTrendEpochId } : undefined;
@@ -86,8 +99,15 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
       return repos.entries.upsert(task.id, date, optionId);
     }, async () => (await getRepositories()).entries.getForTaskAndDate(task.id, date));
     if (haptic) void Haptics.selectionAsync().catch(() => {});
-    await save;
-  }, []);
+    try {
+      await save;
+      const activityCount = tasks.filter(item => item.active).length;
+      const levelIndex = task.options.findIndex(item => item.id === optionId);
+      if (transition === 'removed') trackCheckinRemoved(activityCount);
+      else if (transition === 'changed') trackCheckinChanged(levelIndex, activityCount);
+      else trackCheckinRecorded(levelIndex, activityCount);
+    } catch (cause) { logger.error('Check-in save failed', { operation: 'database_write' }, cause); throw cause; }
+  }, [tasks]);
   const loadHistory = useCallback(async (taskId: string, dates: string[]) => {
     const checkpoint = entryStore.checkpoint();
     const repos = await getRepositories();

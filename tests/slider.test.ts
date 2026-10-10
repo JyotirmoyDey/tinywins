@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadDemoDataset } from '../src/analytics/demoData';
 import { createEntrySnapshot, DailyEntry, normalizeOptions } from '../src/domain/task';
-import { SLIDER_INSET, sliderColor, sliderDisplay, sliderIndexFromX, sliderXForIndex } from '../src/components/sliderMath';
+import { SLIDER_INSET, sliderColor, sliderDescription, sliderDisplay, sliderIndexFromX, sliderXForIndex } from '../src/components/sliderMath';
 import { EntryStore } from '../src/state/EntryStore';
 
 function entryFor(option: ReturnType<typeof normalizeOptions>[number]): DailyEntry {
@@ -65,4 +65,15 @@ test('a new local day stays unrecorded until that date has its own entry', () =>
   assert.equal(store.get('study', '2026-09-25'), undefined);
   assert.deepEqual(sliderDisplay(options, yesterday, '2026-09-24'),
     { selectedIndex: 1, label: 'High' });
+});
+test('slider description follows the previewed level and uses no space for absent text', () => {
+  const options = normalizeOptions('practice', [
+    { id: 'low', label: 'Low', description: 'A little' },
+    { id: 'medium', label: 'Medium' },
+    { id: 'high', label: 'High', description: '  Fully focused  ' },
+  ]);
+  assert.equal(sliderDescription(options, -1), undefined);
+  assert.equal(sliderDescription(options, 0), 'A little');
+  assert.equal(sliderDescription(options, 1), undefined);
+  assert.equal(sliderDescription(options, 2), 'Fully focused');
 });

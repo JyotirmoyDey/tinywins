@@ -25,7 +25,7 @@ function SparseSummary({ data, today }: { data: RatingTrendData; today: boolean 
       </Text></View>
       <Text style={styles.sparseRating}>{observation.labelAtEntry}</Text>
     </View>)}
-    <Text style={styles.count}>{data.observations.length} recorded {data.observations.length === 1 ? 'rating' : 'ratings'}</Text>
+    <Text style={styles.count}>{data.observations.length} {data.observations.length === 1 ? 'day' : 'days'} recorded</Text>
   </View>;
 }
 type PlotMode = 'daily-line' | 'weekly';
@@ -106,8 +106,8 @@ function TrendPlot({ data, view, taskName, mode, expanded = false, availableHeig
     weeklyMonthTicks(slotDates, data.dates[0], data.dates[data.dates.length - 1],
       chartWidth, inset, Math.max(4, Math.floor(chartWidth / layout.weeklyLabelSpacing))) :
     dailyAxisTicks(slotDates, chartWidth, inset, layout.dailyDateLabelCount);
-  const summary = expanded ? `${taskName} daily trend. ${data.observations.length} recorded days.` :
-    `${taskName} ${view.subtitle}. ${points.length} plotted medians from ${view.recordedCount} recorded days.` +
+  const summary = expanded ? `${taskName} daily trend. ${data.observations.length} ${data.observations.length === 1 ? 'day' : 'days'} recorded.` :
+    `${taskName} ${view.subtitle}. ${points.length} plotted medians from ${view.recordedCount} ${view.recordedCount === 1 ? 'day' : 'days'} recorded.` +
     (view.mixedScaleSlots ? ` ${view.mixedScaleSlots} scale-change intervals are shown in the expanded daily chart.` : '');
   const surface = <View collapsable={false}
     style={{ width: chartWidth, height: chartHeight }} accessible
@@ -208,7 +208,7 @@ function TrendPlot({ data, view, taskName, mode, expanded = false, availableHeig
 export function ExpandedRatingTrendChart({ data, view, taskName, height }: {
   data: RatingTrendData; view: AdaptiveTrend; taskName: string; height: number;
 }) {
-  if (data.observations.length === 0) return <Text style={styles.empty}>No ratings recorded for this period.</Text>;
+  if (data.observations.length === 0) return <Text style={styles.empty}>Nothing recorded in this period.</Text>;
   return <TrendPlot data={data} view={view} taskName={taskName} mode="daily-line"
     expanded availableHeight={height}/>;
 }
@@ -216,30 +216,30 @@ export function RatingTrendChart({ data, view, taskName }: {
   data: RatingTrendData; view: AdaptiveTrend; taskName: string;
 }) {
   if (view.presentation === 'empty') return <Text style={styles.empty}>
-    {data.isNewEpochEmpty ? 'Your new trend starts with your next rating. Earlier ratings are preserved.' :
-      'No ratings recorded for this period.'}</Text>;
+    {data.isNewEpochEmpty ? 'Your new trend starts with your next check-in. Your earlier days are still here.' :
+      'Nothing recorded in this period.'}</Text>;
   if (view.presentation === 'today' || view.presentation === 'sparse')
     return <SparseSummary data={data} today={view.presentation === 'today'}/>;
   if (view.groupedPoints.length === 0) return <Text style={styles.empty}>
-    Ratings from different scale versions fall in the same interval. Expand to see each recorded day.
+    Your levels changed during this period. View all days to see each check-in.
   </Text>;
   if (view.groupedPoints.length === 1) {
     const point = view.groupedPoints[0], slot = view.slots[point.slotIndex];
     return <View style={styles.sparse} accessible
-      accessibilityLabel={`${formatDay(slot.startDate, true)} to ${formatDay(slot.endDate, true)}, median ${point.medianLabel}, ${point.recordedCount} recorded days`}>
+      accessibilityLabel={`${formatDay(slot.startDate, true)} to ${formatDay(slot.endDate, true)}, median ${point.medianLabel}, ${point.recordedCount} ${point.recordedCount === 1 ? 'day' : 'days'} recorded`}>
       <View style={styles.sparseRow}>
         <Text style={styles.sparseDateText}>{formatDay(slot.startDate)}–{formatDay(slot.endDate)}</Text>
         <Text style={styles.sparseRating}>{point.medianLabel}</Text>
       </View>
-      <Text style={styles.count}>{point.recordedCount} recorded {point.recordedCount === 1 ? 'day' : 'days'}</Text>
+      <Text style={styles.count}>{point.recordedCount} {point.recordedCount === 1 ? 'day' : 'days'} recorded</Text>
     </View>;
   }
   const mode: PlotMode = view.presentation;
   return <View>
     <TrendPlot data={data} view={view} taskName={taskName} mode={mode}/>
     <View style={styles.footer}>
-      <Text style={styles.count}>{view.recordedCount} recorded {view.recordedCount === 1 ? 'day' : 'days'}</Text>
-      {view.mixedScaleSlots > 0 && <Text style={styles.count}>Scale changes: see expanded view</Text>}
+      <Text style={styles.count}>{view.recordedCount} {view.recordedCount === 1 ? 'day' : 'days'} recorded</Text>
+      {view.mixedScaleSlots > 0 && <Text style={styles.count}>Your levels changed · View all days</Text>}
     </View>
   </View>;
 }

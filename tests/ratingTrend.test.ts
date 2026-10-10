@@ -166,6 +166,7 @@ test('v2 SQLite migration backfills identities without rewriting saved rating sn
     old.close();
     const db = await setup(path);
     const task = (await db.tasks.getById('t'))!;
+    assert.equal(task.options[0].description, undefined);
     const saved = (await db.entries.getForTaskAndDate('t', '2026-08-15'))!;
     assert.equal(saved.optionLabelAtEntry, 'Original label');
     assert.equal(saved.normalizedWeightAtEntry, 0);

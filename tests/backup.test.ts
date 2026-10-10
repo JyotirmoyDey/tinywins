@@ -4,7 +4,7 @@ import test from 'node:test';
 import { setup, draft } from './sqlite';
 import { BackupCrypto, BackupFormatError, decryptBackup, encryptBackup,
   parseBackupEnvelope } from '../src/backup/format';
-import { collectBackupPayload, restoreBackupPayload } from '../src/backup/data';
+import { collectBackupPayload, decodeBackupPayload, restoreBackupPayload } from '../src/backup/data';
 import { createEncryptedBackup, inspectEncryptedBackup } from '../src/backup/service';
 import { localDate } from '../src/domain/task';
 import { readEncryptedBackupBytes } from '../src/backup/importRead';
@@ -74,8 +74,12 @@ test('empty and corrupt selected documents are rejected by content', () => {
 test('full history, settings, archive lifecycle, Unicode and long records survive round trip', async () => {
   const source = await setup(); const destination = await setup();
   try {
-    const first = await source.tasks.create(draft('Guitar 🎸'));
-    const second = await source.tasks.create(draft('Sleep 😴'));
+    const guitarDraft = draft('Guitar 🎸');
+    const first = await source.tasks.create({ ...guitarDraft, options: guitarDraft.options.map((option, index) =>
+      index === 0 ? { ...option, description: 'Gentle practice' } : option) });
+    const sleepDraft = draft('Sleep 😴');
+    const second = await source.tasks.create({ ...sleepDraft, options: sleepDraft.options.map((option, index) =>
+      index === 0 ? { ...option, description: 'A restless night' } : option) });
     await source.tasks.setCombinedInsightsSelection(second.id, false);
     const dates = Array.from({ length: 120 }, (_, index) => {
       const day = new Date(); day.setDate(day.getDate() - 119 + index); return localDate(day);
@@ -85,14 +89,16 @@ test('full history, settings, archive lifecycle, Unicode and long records surviv
       if (index % 3 === 0) await source.entries.upsert(second.id, date, second.options[0].id);
     }
     await source.tasks.update(first.id, { name: 'Guitar 🎸', options: [
-      ...first.options.slice(0, 2).map(o => ({ id: o.id, label: o.label })),
-      { id: 'new-unicode-option', label: 'Très bon 🌟' },
-      ...first.options.slice(2).map(o => ({ id: o.id, label: o.label })),
+      ...first.options.slice(0, 2).map(o => ({ id: o.id, label: o.label, description: o.description })),
+      { id: 'new-unicode-option', label: 'Très bon 🌟', description: 'Musical progress' },
+      ...first.options.slice(2).map(o => ({ id: o.id, label: o.label, description: o.description })),
     ] });
     await source.tasks.archive(second.id);
     await source.tasks.restore(second.id);
     await source.tasks.archive(second.id);
     const before = await collectBackupPayload(source.connection);
+    assert.equal(before.tables.task_options.find(row => row.id === first.options[0].id)?.description, 'Gentle practice');
+    assert.equal(before.tables.task_options.find(row => row.id === second.options[0].id)?.description, 'A restless night');
     assert.equal(before.tables.daily_entries.some(row => row.normalizedWeightAtEntry === 0), true);
     assert.equal(before.tables.daily_entries.some(row => row.localDate === dates[0] && row.taskId === first.id), false);
     const file = await createEncryptedBackup(source.connection, password, crypto);
@@ -100,6 +106,7 @@ test('full history, settings, archive lifecycle, Unicode and long records surviv
     await restoreBackupPayload(destination.connection, inspected);
     const after = await collectBackupPayload(destination.connection);
     assert.deepEqual(after.tables, before.tables);
+    assert.equal((await destination.tasks.getById(second.id))?.options[0].description, 'A restless night');
     assert.equal(after.tables.task_lifecycle_transitions.length, 3);
     assert.equal(after.tables.tasks.find(row => row.id === second.id)?.active, 0);
     assert.equal(after.tables.tasks.find(row => row.id === second.id)?.includeInCombinedInsights, 0);
@@ -109,6 +116,22 @@ test('full history, settings, archive lifecycle, Unicode and long records surviv
     await restoreBackupPayload(destination.connection, inspected);
     assert.deepEqual((await collectBackupPayload(destination.connection)).tables, before.tables);
   } finally { source.native.close(); destination.native.close(); }
+});
+
+test('older backups without level descriptions import with absent descriptions', async () => {
+  const source = await setup(); const target = await setup();
+  try {
+    const task = await source.tasks.create(draft('Earlier data'));
+    const current = await collectBackupPayload(source.connection);
+    const old = structuredClone(current);
+    old.sourceDatabaseVersion = 6;
+    old.tables.task_options = old.tables.task_options.map(({ description: _description, ...row }) => row);
+    const decoded = decodeBackupPayload(Buffer.from(JSON.stringify(old)));
+    assert.equal(decoded.tables.task_options.every(row => row.description === null), true);
+    await restoreBackupPayload(target.connection, decoded);
+    assert.equal((await target.tasks.getById(task.id))?.options.every(option => option.description === undefined), true);
+    assert.equal((await collectBackupPayload(target.connection)).tables.task_options.length, task.options.length);
+  } finally { source.native.close(); target.native.close(); }
 });
 
 test('rollback preserves existing data if an insert fails during restoration', async () => {

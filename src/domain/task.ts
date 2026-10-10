@@ -1,8 +1,8 @@
-import { characterCount, MAX_NAME_CHARACTERS, MAX_OPTION_CHARACTERS } from './inputLimits';
+import { characterCount, MAX_NAME_CHARACTERS, MAX_OPTION_CHARACTERS, MAX_OPTION_DESCRIPTION_CHARACTERS } from './inputLimits';
 import { MAX_RATING_LEVELS, MIN_RATING_LEVELS } from '../config/ratingLevels';
 
 export interface TaskOption {
-  id: string; taskId: string; label: string; position: number; rank: number; normalizedWeight: number;
+  id: string; taskId: string; label: string; description?: string; position: number; rank: number; normalizedWeight: number;
   active: boolean; createdAt: string; updatedAt: string;
 }
 export interface Task {
@@ -23,7 +23,7 @@ export interface TaskLifecycleTransition {
   /** Earlier archive dates inferred from pre-lifecycle data are approximate. */
   inferred?: boolean;
 }
-export interface OptionDraft { id: string; label: string }
+export interface OptionDraft { id: string; label: string; description?: string }
 export interface TaskDraft { name: string; options: OptionDraft[]; includeInCombinedInsights?: boolean }
 /** Historical truth. Analytics and history must use these snapshots, never current TaskOption metadata. */
 export interface DailyEntry {
@@ -56,7 +56,8 @@ export function normalizeOptions(taskId: string, options: OptionDraft[], now = n
   maximum = MAX_RATING_LEVELS): TaskOption[] {
   if (options.length < MIN_RATING_LEVELS || options.length > maximum)
     throw new Error(`Choose between ${MIN_RATING_LEVELS} and ${MAX_RATING_LEVELS} levels.`);
-  return options.map((option, i) => ({ ...option, label: option.label.trim(), taskId,
+  return options.map((option, i) => ({ ...option, label: option.label.trim(),
+    description: option.description?.trim() || undefined, taskId,
     position: i + 1, rank: i + 1, normalizedWeight: Math.round((i / (options.length - 1)) * 100),
     active: true, createdAt: now, updatedAt: now }));
 }
@@ -72,10 +73,13 @@ export function validateDraft(draft: TaskDraft, existing?: Task, allowLegacyOver
   if (draft.options.length < MIN_RATING_LEVELS ||
     (draft.options.length > MAX_RATING_LEVELS && !legacyLevels))
     return `Choose between ${MIN_RATING_LEVELS} and ${MAX_RATING_LEVELS} levels.`;
-  if (draft.options.some(option => !option.label.trim() || !option.id)) return 'Give every option a label.';
+  if (draft.options.some(option => !option.label.trim() || !option.id)) return 'Give every level a name.';
   if (!allowLegacyOverLimit && draft.options.some(option => characterCount(option.label.trim()) > MAX_OPTION_CHARACTERS &&
     option.label !== existing?.options.find(saved => saved.id === option.id)?.label))
-    return `Keep each rating name to ${MAX_OPTION_CHARACTERS} characters or fewer.`;
+    return `Keep each level name to ${MAX_OPTION_CHARACTERS} characters or fewer.`;
+  if (draft.options.some(option => option.description !== undefined &&
+    characterCount(option.description.trim()) > MAX_OPTION_DESCRIPTION_CHARACTERS))
+    return `Keep each level description to ${MAX_OPTION_DESCRIPTION_CHARACTERS} characters or fewer.`;
   if (new Set(draft.options.map(option => option.id)).size !== draft.options.length) return 'Could not save these options. Please try again.';
   return null;
 }

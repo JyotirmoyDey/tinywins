@@ -45,15 +45,15 @@ test('Discover Your Patterns keeps comparison, consistency and weekday order', (
     ['period-comparison', 'recording-consistency-individual', 'weekday-patterns']);
 });
 
-test('all six chart names and subtitles change without changing their identifiers or placement', () => {
+test('all six chart tooltips use friendly descriptions without changing identifiers or placement', () => {
   const charts = [trend, distribution, calendar, comparison, recording, weekday];
   assert.deepEqual(charts.map(chart => [chart.id, chart.title, chart.subtitle]), [
-    ['rating-trend', "How It's Going", 'See how your ratings change over time.'],
-    ['rating-distribution', 'Your Rating Mix', 'Discover which levels you record most often.'],
-    ['activity-calendar', 'Your Days', 'Look back at your daily journey.'],
-    ['period-comparison', 'Then & Now', 'See how this period compares with the last.'],
-    ['recording-consistency-individual', 'Check-in Rhythm', 'Explore how regularly you check in.'],
-    ['weekday-patterns', 'Your Weekly Rhythm', 'Discover how your ratings vary throughout the week.'],
+    ['rating-trend', "How It's Going", 'See how your days have unfolded, one check-in at a time.'],
+    ['rating-distribution', 'Your Rating Mix', 'Notice which levels show up most often in your days.'],
+    ['activity-calendar', 'Your Days', 'A little window into your days. Look back at what you recorded and when.'],
+    ['period-comparison', 'Then & Now', 'See what changed between this period and the one before it.'],
+    ['recording-consistency-individual', 'Check-in Rhythm', 'See how often you checked in, without the pressure of a streak.'],
+    ['weekday-patterns', 'Your Weekly Rhythm', 'Do some days of the week tend to go differently? Discover your weekly patterns.'],
   ]);
   const sections = organizeIndividualCharts(charts.map(chart => ({ id: chart.id,
     section: chart.section, order: chart.displayOrder, visible: chart.visible,
@@ -68,6 +68,8 @@ test('all six chart names and subtitles change without changing their identifier
 test('All Activities labels describe recording rather than rating performance', () => {
   assert.equal(combinedConsistency.title, 'Check-in Rhythm');
   assert.equal(combinedCalendar.title, 'Your Days');
+  assert.equal(combinedConsistency.subtitle, recording.subtitle);
+  assert.equal(combinedCalendar.subtitle, calendar.subtitle);
   assert.equal(weeklyRecording.title, 'Your Weekly Check-ins');
 });
 

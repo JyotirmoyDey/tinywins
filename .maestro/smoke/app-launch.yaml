@@ -1,0 +1,5 @@
+appId: com.plainleaf.tinywins
+---
+- launchApp
+- assertVisible:
+    id: home-screen

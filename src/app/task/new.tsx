@@ -1,2 +1,6 @@
 import { TaskForm } from '../../components/TaskForm';
-export default function NewTask() { return <TaskForm />; }
+import { useLocalSearchParams } from 'expo-router';
+export default function NewTask() {
+  const { example } = useLocalSearchParams<{ example?: string }>();
+  return <TaskForm key={typeof example === 'string' ? example : 'blank'} exampleId={typeof example === 'string' ? example : undefined} />;
+}

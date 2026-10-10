@@ -1,7 +1,7 @@
 {
   "id": "activity-calendar",
   "title": "Your Days",
-  "subtitle": "Look back at your daily journey.",
+  "subtitle": "A little window into your days. Look back at what you recorded and when.",
   "calculator": "individualCalendar",
   "dataSource": "dailyEntries",
   "scope": "individual",

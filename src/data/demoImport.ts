@@ -24,10 +24,10 @@ export class DemoImportService {
         task.chartColor ?? task.color, task.currentScaleVersionId, task.currentTrendEpochId,
         Number(initialGraphIds.has(task.id)));
         for (const option of task.options) await db.runAsync(`INSERT INTO task_options
-          (id,taskId,label,position,rank,normalizedWeight,active,createdAt,updatedAt)
-          VALUES (?,?,?,?,?,?,1,?,?)`,
+          (id,taskId,label,position,rank,normalizedWeight,active,createdAt,updatedAt,description)
+          VALUES (?,?,?,?,?,?,1,?,?,?)`,
         option.id, task.id, option.label, option.position, option.rank,
-        option.normalizedWeight, task.createdAt, task.updatedAt);
+        option.normalizedWeight, task.createdAt, task.updatedAt, null);
       }
       for (const version of dataset.scaleVersions) await db.runAsync(`INSERT INTO rating_scale_versions
         (id,taskId,trendEpochId,createdAt,effectiveLocalDate,optionsJson) VALUES (?,?,?,?,?,?)`,

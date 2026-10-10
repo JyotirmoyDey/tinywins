@@ -6,12 +6,11 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { Task, localDate } from '../domain/task';
-import { characterCount } from '../domain/inputLimits';
 import { useEntry, useTaskActions } from '../state/TasksProvider';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
 import { TaskActionsMenu } from './TaskActionsMenu';
 import { CombinedInsightsToggle } from './CombinedInsightsToggle';
-import { SLIDER_INSET, sliderColor, sliderDisplay, sliderIndexFromX, sliderXForIndex } from './sliderMath';
+import { SLIDER_INSET, sliderColor, sliderDescription, sliderDisplay, sliderIndexFromX, sliderXForIndex } from './sliderMath';
 
 const trackColor = '#E9E9E5';
 const unrecordedColor = '#DADAD6';
@@ -138,9 +137,12 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
     opacity: hasSelection.get() ? 1 : 0,
     transform: [{ translateX: thumbX.get() - thumbSize / 2 }],
   }));
+  const labelStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: withTiming(dragging.get() ? 1.04 : 1, { duration: 100 }) }],
+  }));
   const shownIndex = previewIndex ?? savedIndex;
   const label = previewIndex !== null ? options[previewIndex]?.label : saved.label;
-  const showLabelBelowHeading = characterCount(label ?? '') > 8;
+  const description = sliderDescription(options, shownIndex);
   const accessibilityValue = `${task.name}: ${label}`;
   const accessibilityChange = (action: string) => {
     if (busy) return;
@@ -150,26 +152,26 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
     thumbX.set(withTiming(sliderXForIndex(index, width, options.length), { duration: 110 }));
     previewStep(index); commitStep(index);
   };
-  return <View style={styles.card}>
+  return <View testID={`activity-card-${task.id}`} collapsable={false} style={styles.card}>
     <View style={styles.heading}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, insights`}
         onPress={() => router.navigate({ pathname: '/insights', params: { task: task.id, mode: 'normal' } })} style={styles.taskLink}>
-        <Text numberOfLines={2} style={styles.taskName}>{task.name}</Text>
+        <Text testID={`activity-name-${task.id}`} numberOfLines={2} style={styles.taskName}>{task.name}</Text>
       </Pressable>
-      {!showLabelBelowHeading && <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, ${label}. Show full rating label`} onPress={() => Alert.alert(task.name, label)} style={styles.labelTouch}>
-        <Text numberOfLines={2} style={[styles.selectedLabel, !entry && previewIndex === null && styles.unrecordedLabel]}>{label}</Text>
-      </Pressable>}
       <CombinedInsightsToggle task={task} />
       <TaskActionsMenu task={task} onClear={entry ? clear : undefined} onBusyChange={setBusy} />
     </View>
-    {showLabelBelowHeading && <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, ${label}. Show full rating label`} onPress={() => Alert.alert(task.name, label)} style={styles.longLabelTouch}>
-      <Text style={[styles.selectedLabel, styles.longSelectedLabel, !entry && previewIndex === null && styles.unrecordedLabel]}>{label}</Text>
-    </Pressable>}
+    <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, ${label}${description ? `. ${description}` : ''}. Show full level description`}
+      onPress={() => Alert.alert(task.name, description ? `${label}\n\n${description}` : label)} style={styles.labelRow}>
+      <Animated.Text testID={`activity-current-level-${task.id}`} numberOfLines={1} ellipsizeMode="tail"
+        style={[styles.selectedLabel, !entry && previewIndex === null && styles.unrecordedLabel, labelStyle]}>{label}</Animated.Text>
+      {!!description && <Text style={styles.selectedDescription} numberOfLines={2}>{description}</Text>}
+    </Pressable>
     <GestureDetector gesture={gesture}>
-      <Animated.View collapsable={false} style={styles.sliderTouch} accessible accessibilityRole="adjustable"
-        accessibilityLabel={`${task.name} rating`} accessibilityValue={{ text: accessibilityValue }}
-        accessibilityHint="Drag or tap to choose a rating. Swipe up or down to change options with a screen reader."
-        accessibilityActions={[{ name: 'increment', label: 'Next rating' }, { name: 'decrement', label: 'Previous rating' }]}
+      <Animated.View testID={`activity-slider-${task.id}`} collapsable={false} style={styles.sliderTouch} accessible accessibilityRole="adjustable"
+        accessibilityLabel={`${task.name}, how did it go today?`} accessibilityValue={{ text: accessibilityValue }}
+        accessibilityHint="Choose what matches today. Drag or tap the slider, or swipe up or down with a screen reader."
+        accessibilityActions={[{ name: 'increment', label: 'Next level' }, { name: 'decrement', label: 'Previous level' }]}
         onAccessibilityAction={event => accessibilityChange(event.nativeEvent.actionName)}
         onLayout={event => setWidth(event.nativeEvent.layout.width)}>
         <View pointerEvents="none" style={styles.track} />
@@ -187,10 +189,9 @@ const styles = StyleSheet.create({
   heading: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: s.xs },
   taskLink: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
   taskName: { ...t.taskTitle, color: c.textPrimary },
-  labelTouch: { maxWidth: '32%', minHeight: 44, minWidth: 0, justifyContent: 'center', alignItems: 'flex-end' },
-  longLabelTouch: { minHeight: 44, justifyContent: 'center', alignItems: 'flex-end' },
-  selectedLabel: { ...t.secondary, color: c.textPrimary, fontWeight: '600', textAlign: 'right' },
-  longSelectedLabel: { maxWidth: '100%' },
+  labelRow: { minHeight: 28, minWidth: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: s.xs },
+  selectedLabel: { ...t.secondary, color: c.textPrimary, fontWeight: '600', textAlign: 'center', maxWidth: '100%' },
+  selectedDescription: { ...t.caption, color: c.textSecondary, textAlign: 'center', maxWidth: '100%', marginBottom: s.xs },
   unrecordedLabel: { color: c.textSecondary, fontWeight: '400' },
   sliderTouch: { height: 44, justifyContent: 'center' },
   track: { position: 'absolute', top: 19, left: SLIDER_INSET, right: SLIDER_INSET, height: 6, borderRadius: 3, backgroundColor: trackColor },

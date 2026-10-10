@@ -1,7 +1,7 @@
 {
   "id": "rating-distribution",
   "title": "Your Rating Mix",
-  "subtitle": "Discover which levels you record most often.",
+  "subtitle": "Notice which levels show up most often in your days.",
   "type": "horizontal-bar",
   "calculator": "ratingDistribution",
   "location": "task-insights",

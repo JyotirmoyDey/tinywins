@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { characterCount, constrainTextInput, MAX_NAME_CHARACTERS, MAX_OPTION_CHARACTERS } from '../src/domain/inputLimits';
+import { characterCount, constrainTextInput, nativeTextMaxLength, MAX_NAME_CHARACTERS, MAX_OPTION_CHARACTERS } from '../src/domain/inputLimits';
 import { validateDraft } from '../src/domain/task';
 import { setup } from './sqlite';
 
@@ -13,7 +13,7 @@ test('visible-character counts include joined emoji and combining marks as one',
   assert.equal(characterCount('🇮🇳'), 1);
 });
 
-test('24-character names and 18-character rating names are valid', () => {
+test('24-character activity names and 18-character level names are valid', () => {
   assert.equal(MAX_NAME_CHARACTERS, 24);
   assert.equal(MAX_OPTION_CHARACTERS, 18);
   assert.equal(validateDraft({ name: 'N'.repeat(MAX_NAME_CHARACTERS), options: [
@@ -22,7 +22,7 @@ test('24-character names and 18-character rating names are valid', () => {
   assert.match(validateDraft({ name: 'N'.repeat(25), options })!, /24 characters/);
   assert.match(validateDraft({ name: 'Valid', options: [{ id: 'one', label: 'a'.repeat(19) }, options[1]] })!, /18 characters/);
   assert.match(validateDraft({ name: '  ', options })!, /Please enter a name/);
-  assert.match(validateDraft({ name: 'Valid', options: [{ id: 'one', label: '  ' }, options[1]] })!, /every option/);
+  assert.match(validateDraft({ name: 'Valid', options: [{ id: 'one', label: '  ' }, options[1]] })!, /every level/);
 });
 
 test('paste is clipped by grapheme without cutting an emoji or combining character', () => {
@@ -32,6 +32,12 @@ test('paste is clipped by grapheme without cutting an emoji or combining charact
     { value: 'e\u0301'.repeat(18), exceeded: true });
   assert.deepEqual(constrainTextInput('a'.repeat(24), `b${'a'.repeat(24)}`, 24),
     { value: 'a'.repeat(24), exceeded: true });
+});
+
+test('native input stops at the visible-character boundary while allowing multi-code-unit graphemes below it', () => {
+  assert.equal(nativeTextMaxLength('A'.repeat(18), 18), 18);
+  assert.equal(nativeTextMaxLength('👨‍👩‍👧‍👦'.repeat(18), 18), '👨‍👩‍👧‍👦'.repeat(18).length);
+  assert.ok(nativeTextMaxLength('👨‍👩‍👧‍👦', 18) > 18);
 });
 
 test('legacy over-limit input can shrink but cannot grow', () => {

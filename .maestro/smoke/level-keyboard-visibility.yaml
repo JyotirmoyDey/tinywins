@@ -1,0 +1,37 @@
+# Regression: the complete fifth level stays above the Android keyboard after focus.
+appId: com.plainleaf.tinywins
+---
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+- takeScreenshot: activity-editor-compact
+- scrollUntilVisible:
+    element:
+      id: level-template-time-spent
+    direction: DOWN
+- tapOn:
+    id: level-template-time-spent
+- scrollUntilVisible:
+    element:
+      id: add-level-button
+    direction: DOWN
+- tapOn:
+    id: add-level-button
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-input-4
+    direction: DOWN
+- takeScreenshot: tinywins-before-level5-focus
+- tapOn:
+    id: level-input-4
+- assertVisible:
+    id: level-input-4
+- assertVisible:
+    id: level-description-input-4
+- takeScreenshot: tinywins-after-level5-focus
+- stopApp

@@ -2,11 +2,12 @@ import { Buffer } from 'buffer';
 import { Connection, SqlDatabase, SqlValue } from '../data/connection';
 import { CURRENT_DATABASE_VERSION } from '../data/migrations';
 import { MAX_PLAINTEXT_BYTES, PAYLOAD_VERSION, BackupFormatError } from './format';
+import { characterCount, MAX_OPTION_DESCRIPTION_CHARACTERS } from '../domain/inputLimits';
 
 const columns = {
   tasks: ['id', 'name', 'createdAt', 'updatedAt', 'active', 'currentScaleVersionId',
     'currentTrendEpochId', 'createdLocalDate', 'archivedAt', 'chartColor', 'includeInCombinedInsights'],
-  task_options: ['id', 'taskId', 'label', 'position', 'rank', 'normalizedWeight', 'active', 'createdAt', 'updatedAt'],
+  task_options: ['id', 'taskId', 'label', 'position', 'rank', 'normalizedWeight', 'active', 'createdAt', 'updatedAt', 'description'],
   rating_scale_versions: ['id', 'taskId', 'trendEpochId', 'createdAt', 'effectiveLocalDate', 'optionsJson'],
   daily_entries: ['id', 'taskId', 'optionId', 'localDate', 'createdAt', 'updatedAt', 'optionLabelAtEntry',
     'positionAtEntry', 'rankAtEntry', 'normalizedWeightAtEntry', 'scaleVersionIdAtEntry', 'trendEpochIdAtEntry'],
@@ -45,8 +46,10 @@ function date(value: unknown) {
 function timestamp(value: unknown) { return typeof value === 'string' && string(value) &&
   !Number.isNaN(Date.parse(value)); }
 function checkRow(table: BackupTable, row: Row) {
-  if (Object.keys(row).length !== columns[table].length ||
-    columns[table].some(column => !(column in row))) fail();
+  const expected = columns[table];
+  const legacyOption = table === 'task_options' && !('description' in row);
+  if (Object.keys(row).length !== expected.length - (legacyOption ? 1 : 0) ||
+    expected.some(column => !(column in row) && !(legacyOption && column === 'description'))) fail();
   if (!string(row.id)) fail();
   if (table === 'tasks') {
     if (!string(row.name) || typeof row.name !== 'string' || !row.name.trim() || !timestamp(row.createdAt) ||
@@ -57,6 +60,8 @@ function checkRow(table: BackupTable, row: Row) {
       !(row.archivedAt === null || timestamp(row.archivedAt)) || !string(row.chartColor, true)) fail();
   } else if (table === 'task_options') {
     if (!string(row.taskId) || !string(row.label) || typeof row.label !== 'string' || !row.label.trim() ||
+      !(!('description' in row) || row.description === null || typeof row.description === 'string' &&
+        characterCount(row.description) <= MAX_OPTION_DESCRIPTION_CHARACTERS) ||
       !integer(row.position, 1) || !integer(row.rank, 1) ||
       !integer(row.normalizedWeight, 0, 100) || !integer(row.active, 0, 1) ||
       !timestamp(row.createdAt) || !timestamp(row.updatedAt)) fail();
@@ -123,7 +128,10 @@ export function validateBackupPayload(value: unknown): BackupPayload {
       entryDays.has(unique)) fail();
     entryDays.add(unique);
   }
-  return payload;
+  // Existing v1 backups predate descriptions. Add the nullable column in memory
+  // so restoring them into the current SQLite schema remains lossless and atomic.
+  return { ...payload, tables: { ...payload.tables,
+    task_options: payload.tables.task_options.map(row => 'description' in row ? row : { ...row, description: null }) } };
 }
 
 async function checkDatabase(db: SqlDatabase) {
@@ -167,7 +175,7 @@ export function encodeBackupPayload(payload: BackupPayload): Uint8Array {
 /** One immediate transaction is both the replacement and its recovery boundary.
  * WAL rolls back an interruption; readback and integrity checks run before COMMIT. */
 export async function restoreBackupPayload(connection: Connection, payload: BackupPayload) {
-  validateBackupPayload(payload);
+  const normalized = validateBackupPayload(payload);
   await connection.transaction(async db => {
     // The transaction itself is the recovery snapshot: SQLite retains the old
     // pages until COMMIT and rolls back all changes on failure or interruption.
@@ -175,13 +183,13 @@ export async function restoreBackupPayload(connection: Connection, payload: Back
     for (const table of order) {
       const names = columns[table];
       const statement = `INSERT INTO ${table} (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')})`;
-      for (const row of payload.tables[table]) await db.runAsync(statement,
+      for (const row of normalized.tables[table]) await db.runAsync(statement,
         ...names.map(name => row[name]));
     }
     await db.runAsync(`INSERT INTO app_metadata(key, value) VALUES ('legacyImported', '1')
       ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
     await checkDatabase(db);
-    if (JSON.stringify(await readTables(db)) !== JSON.stringify(payload.tables))
+    if (JSON.stringify(await readTables(db)) !== JSON.stringify(normalized.tables))
       throw new BackupFormatError('The restored data could not be verified.');
   });
 }

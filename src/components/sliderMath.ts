@@ -42,3 +42,8 @@ export function sliderDisplay(options: TaskOption[], entry?: DailyEntry, date?: 
   const selectedIndex = options.findIndex(option => option.id === entry.optionId);
   return { selectedIndex, label: selectedIndex >= 0 ? options[selectedIndex].label : entry.optionLabelAtEntry };
 }
+
+/** The previewed position wins while dragging; an unrecorded state has no description. */
+export function sliderDescription(options: TaskOption[], index: number): string | undefined {
+  return index < 0 ? undefined : options[index]?.description?.trim() || undefined;
+}

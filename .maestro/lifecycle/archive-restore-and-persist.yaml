@@ -1,0 +1,126 @@
+appId: com.plainleaf.tinywins
+---
+# Requires create-and-persist, record-and-persist, then edit-and-persist.
+# The edited check-in is High for today's local date. Do not clear app data.
+- launchApp
+- assertVisible:
+    id: home-screen
+- extendedWaitUntil:
+    visible:
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^High$
+
+# Archive the existing activity; the final confirmation is an OS-native alert.
+- tapOn:
+    id: .*activity-menu-.+
+    text: ^Actions for Maestro Persistence Test$
+- tapOn:
+    id: archive-activity-action
+- assertVisible: Archive Maestro Persistence Test?
+- tapOn:
+    text: ^Archive$
+- extendedWaitUntil:
+    notVisible:
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- assertNotVisible:
+    id: .*activity-card-.+
+    text: ^Maestro Persistence Test$
+
+# Regular All Insights must not list or graph the archived activity.
+- tapOn:
+    id: nav-insights
+- assertVisible: Insights
+- assertVisible: All
+- assertNotVisible: Maestro Persistence Test
+
+# Archived Insights retain the same task ID and today's historical rating.
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- extendedWaitUntil:
+    visible:
+      id: .*archived-activity-name-.+
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- tapOn:
+    id: .*archived-view-insights-.+
+    text: ^View insights for Maestro Persistence Test$
+- assertVisible:
+    id: archived-insights-title
+    text: ^Maestro Persistence Test$
+- assertVisible: Archived
+- scrollUntilVisible:
+    element:
+      id: insights-today-rating
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: insights-today-rating
+    text: ^High$
+
+# Restart directly from archived Insights without clearing SQLite; archive state must survive.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertNotVisible: Maestro Persistence Test
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- extendedWaitUntil:
+    visible:
+      id: .*archived-activity-name-.+
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+
+# Restore the archived record rather than creating a replacement.
+- tapOn:
+    id: .*restore-activity-.+
+    text: ^Restore Maestro Persistence Test$
+- extendedWaitUntil:
+    notVisible:
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen
+- extendedWaitUntil:
+    visible:
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^High$
+
+# A second restart proves both restoration and the unchanged check-in persist.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- extendedWaitUntil:
+    visible:
+      text: ^Maestro Persistence Test$
+    timeout: 20000
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^High$
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertNotVisible: Maestro Persistence Test
