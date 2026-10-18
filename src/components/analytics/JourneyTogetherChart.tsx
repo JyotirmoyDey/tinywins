@@ -29,7 +29,7 @@ const MiniTrend = memo(function MiniTrend({ series, dateCount, kind, width, onOp
   return <View style={styles.activity}>
     <View style={styles.activityHeader}>
       <View style={[styles.colorDot, { backgroundColor: series.color }]} />
-      <Text style={styles.activityName} numberOfLines={1}>{series.taskName}</Text>
+      <Text testID={`journey-activity-${series.taskId}`} style={styles.activityName} numberOfLines={1}>{series.taskName}</Text>
       {series.archived && <Text style={styles.archivedLabel}>Archived</Text>}
       <Text style={styles.latest} numberOfLines={1} accessibilityLabel={series.latestRating
         ? `Latest rating, ${series.latestRating}` : 'Nothing recorded'}>

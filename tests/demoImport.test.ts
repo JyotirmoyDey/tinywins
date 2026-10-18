@@ -30,10 +30,9 @@ test('one-year fixture replaces old active and archived records as ordinary SQLi
     assert.equal(saved?.id, sample.id);
     assert.equal(saved?.optionLabelAtEntry, sample.optionLabelAtEntry);
     assert.equal(saved?.normalizedWeightAtEntry, sample.normalizedWeightAtEntry);
-    const myData = getAnalyticsDataset(tasks, await db.entries.getAll(),
-      await db.tasks.getScaleVersions(), await db.tasks.getLifecycleTransitions());
+    const myData = getAnalyticsDataset(tasks, await db.entries.getAll(), await db.tasks.getLifecycleTransitions());
     const trend = getRatingTrend({ task: myData.tasks.find(task => task.id === 'workout')!,
-      entries: myData.entries, versions: myData.scaleVersions,
+      entries: myData.entries,
       period: { startDate: '2026-09-20', endDate: '2026-09-26' } });
     assert.ok(trend.observations.length > 0);
     await db.tasks.archive('workout');

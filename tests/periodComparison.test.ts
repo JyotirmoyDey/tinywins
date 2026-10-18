@@ -3,35 +3,27 @@ import assert from 'node:assert/strict';
 import { getPeriodComparison, precedingEqualPeriod } from '../src/analytics/periodComparison';
 import { loadDemoDataset } from '../src/analytics/demoData';
 import { AnalyticsEntry, AnalyticsTask } from '../src/analytics/types';
-import { RatingScaleVersion } from '../src/domain/task';
 import { getAnalyticsDataset } from '../src/analytics/service';
 import { setup } from './sqlite';
 
 const task: AnalyticsTask = {
   id: 'study', name: 'Study', active: true, color: '#2A9D8F',
   createdAt: '2026-01-01T12:00:00.000Z', updatedAt: '2026-09-24T12:00:00.000Z',
-  currentScaleVersionId: 'v1', currentTrendEpochId: 'epoch-1',
   options: [
     { id: 'low', label: 'Low', position: 1, rank: 1, normalizedWeight: 0 },
     { id: 'medium', label: 'Medium', position: 2, rank: 2, normalizedWeight: 50 },
     { id: 'high', label: 'High', position: 3, rank: 3, normalizedWeight: 100 },
   ],
 };
-const version: RatingScaleVersion = {
-  id: 'v1', taskId: task.id, trendEpochId: 'epoch-1',
-  createdAt: task.createdAt, effectiveLocalDate: '2026-01-01',
-  options: task.options.map(({ id, label, position }) => ({ id, label, position })),
-};
-function entry(date: string, optionId: string, scaleVersionIdAtEntry = 'v1',
-  trendEpochIdAtEntry = 'epoch-1'): AnalyticsEntry {
+function entry(date: string, optionId: string): AnalyticsEntry {
   const option = task.options.find(item => item.id === optionId)!;
   return { id: `${date}-${optionId}`, taskId: task.id, optionId, localDate: date,
     optionLabelAtEntry: option.label, positionAtEntry: option.position,
-    normalizedWeightAtEntry: 99, scaleVersionIdAtEntry, trendEpochIdAtEntry };
+    normalizedWeightAtEntry: 99 };
 }
 function compare(entries: AnalyticsEntry[], period = { startDate: '2026-09-18', endDate: '2026-09-24' },
-  versions = [version], selectedTask = task) {
-  return getPeriodComparison({ task: selectedTask, entries, period, versions });
+  selectedTask = task) {
+  return getPeriodComparison({ task: selectedTask, entries, period });
 }
 
 test('previous period has exactly the same number of local calendar days', () => {
@@ -82,35 +74,9 @@ test('a one-day comparison retains the exact historical labels', () => {
   assert.equal(result.current.days, 1);
 });
 
-test('added or reordered rating levels prevent incompatible comparisons', () => {
-  const added: RatingScaleVersion = { ...version, id: 'v2', options: [
-    version.options[0], { id: 'new', label: 'Good', position: 2 },
-    { ...version.options[1], position: 3 }, { ...version.options[2], position: 4 },
-  ] };
-  const reordered: RatingScaleVersion = { ...version, id: 'v3', options: [
-    version.options[0], { ...version.options[2], position: 2 },
-    { ...version.options[1], position: 3 },
-  ] };
-  const previous = entry('2026-09-11', 'low');
-  assert.equal(compare([previous, entry('2026-09-18', 'high', 'v2')], undefined,
-    [version, added]).status, 'incompatible');
-  assert.equal(compare([previous, entry('2026-09-18', 'high', 'v3')], undefined,
-    [version, reordered]).status, 'incompatible');
-});
-
-test('a trend reset is incompatible even if option IDs return to the same order', () => {
-  const reset: RatingScaleVersion = { ...version, id: 'v2', trendEpochId: 'epoch-2' };
-  const result = compare([entry('2026-09-11', 'low'), entry('2026-09-18', 'high', 'v2', 'epoch-2')],
-    undefined, [version, reset]);
-  assert.equal(result.status, 'incompatible');
-  assert.deepEqual(result.rows, []);
-});
-
-test('cosmetic renames with unchanged option identities remain comparable', () => {
-  const renamed: RatingScaleVersion = { ...version, id: 'v2', options: version.options.map(option =>
-    option.id === 'high' ? { ...option, label: 'Excellent' } : option) };
-  const result = compare([entry('2026-09-11', 'high'), entry('2026-09-18', 'high', 'v2')],
-    undefined, [version, renamed]);
+test('stable option identities and historical labels remain comparable', () => {
+  const result = compare([entry('2026-09-11', 'high'),
+    { ...entry('2026-09-18', 'high'), optionLabelAtEntry: 'Excellent' }]);
   assert.equal(result.status, 'ready');
   assert.equal(result.rows[2].optionId, 'high');
   assert.equal(result.rows[2].currentPercentage, 100);
@@ -125,7 +91,7 @@ test('demo data follows the same pipeline and unusual Workout option order', () 
     end.setDate(end.getDate() - days + 1);
     const startDate = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
     const result = getPeriodComparison({ task: workout, entries: demo.entries,
-      versions: demo.scaleVersions, period: { startDate, endDate } });
+      period: { startDate, endDate } });
     assert.equal(result.current.days, days);
     assert.equal(result.status, 'ready');
     assert.deepEqual(result.rows.map(row => row.label), ['Skipped', 'Good', 'Poor', 'Average']);
@@ -134,7 +100,7 @@ test('demo data follows the same pipeline and unusual Workout option order', () 
   }
 });
 
-test('SQLite My Data entries and scale versions use the same comparison pipeline', async () => {
+test('SQLite My Data entries use the same comparison pipeline', async () => {
   const db = await setup();
   try {
     const saved = await db.tasks.create({ name: 'Practice', options: [
@@ -142,10 +108,9 @@ test('SQLite My Data entries and scale versions use the same comparison pipeline
     ] });
     await db.entries.upsert(saved.id, '2026-09-12', 'none');
     await db.entries.upsert(saved.id, '2026-09-19', 'full');
-    const dataset = getAnalyticsDataset([(await db.tasks.getById(saved.id))!],
-      await db.entries.getAll(), await db.tasks.getScaleVersions());
+    const dataset = getAnalyticsDataset([(await db.tasks.getById(saved.id))!], await db.entries.getAll());
     const result = getPeriodComparison({ task: dataset.tasks[0], entries: dataset.entries,
-      versions: dataset.scaleVersions, period: { startDate: '2026-09-18', endDate: '2026-09-24' } });
+      period: { startDate: '2026-09-18', endDate: '2026-09-24' } });
     assert.equal(result.status, 'ready');
     assert.equal(result.rows[0].previousPercentage, 100);
     assert.equal(result.rows[2].currentPercentage, 100);

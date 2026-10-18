@@ -4,6 +4,7 @@ import Svg, { Path } from 'react-native-svg';
 import { colors as c, spacing as s, typography as t } from '../../theme';
 
 type Props = {
+  sectionId: string;
   title: string;
   initiallyExpanded: boolean;
   children: React.ReactNode;
@@ -21,7 +22,7 @@ const AccordionContent = React.memo(function AccordionContent({ children, onLayo
 }, (previous, next) => previous.frozen && next.frozen);
 
 /** Keeps opened content mounted so chart-local filters and selections survive a collapse. */
-export function InsightsAccordion({ title, initiallyExpanded, children }: Props) {
+export function InsightsAccordion({ sectionId, title, initiallyExpanded, children }: Props) {
   const [expanded, setExpanded] = useState(initiallyExpanded);
   const [unclipped, setUnclipped] = useState(initiallyExpanded);
   const contentHeight = useRef(0);
@@ -45,7 +46,7 @@ export function InsightsAccordion({ title, initiallyExpanded, children }: Props)
   };
 
   return <View style={styles.section}>
-    <Pressable accessibilityRole="button" accessibilityLabel={title}
+    <Pressable testID={`insights-section-${sectionId}`} accessibilityRole="button" accessibilityLabel={title}
       accessibilityState={{ expanded }} onPress={toggle} style={styles.header}>
       <Text style={styles.title}>{title}</Text>
       <Animated.View style={{ transform: [{ rotate: progress.interpolate({

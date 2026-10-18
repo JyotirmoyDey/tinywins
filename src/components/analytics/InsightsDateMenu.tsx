@@ -29,7 +29,7 @@ export function InsightsDateMenu({ value, custom, onPreset, onCustom }: Props) {
         timer.current = setTimeout(onCustom, 180);
       } else if (id === '1D' || id === '7D' || id === '30D' || id === '90D') onPreset(id);
     }}>
-    <View accessible accessibilityRole="button" accessibilityLabel={`Date range, ${label}${detail}`} accessibilityHint="Opens date range options" style={styles.button}>
+    <View testID="insights-date-filter" accessible accessibilityRole="button" accessibilityLabel={`Date range, ${label}${detail}`} accessibilityHint="Opens date range options" style={styles.button}>
       <Svg width={17} height={17} viewBox="0 0 24 24" accessible={false}>
         <Rect x={3.5} y={5.5} width={17} height={15} rx={2} fill="none" stroke={c.textPrimary} strokeWidth={1.7} />
         <Path d="M7.5 3.5v4M16.5 3.5v4M3.5 10h17" fill="none" stroke={c.textPrimary} strokeWidth={1.7} strokeLinecap="round" />

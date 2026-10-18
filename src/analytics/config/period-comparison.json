@@ -15,8 +15,7 @@
     "previousPeriod": "immediately-preceding-equal-days",
     "groupBy": "optionId",
     "metric": "percentage-of-recorded-days",
-    "excludeMissing": true,
-    "requireCompatibleScale": true
+    "excludeMissing": true
   },
   "presentation": {
     "oneDay": "observation-summary",

@@ -38,16 +38,15 @@ export async function importLegacy(connection: Connection, raw: string | null, s
       // Previous installations may already contain longer names. Import them
       // intact; new edits are checked by the task repository's normal rules.
       const error = validateDraft(task, undefined, true); if (error) throw new Error(error);
-      const scaleId = id(); const epochId = id();
       const created = new Date(task.createdAt), changed = new Date(task.updatedAt);
       if (Number.isNaN(created.getTime()) || Number.isNaN(changed.getTime())) throw new Error('Invalid previous task dates.');
       const usedColors = await db.getAllAsync<{ chartColor: string }>(
         'SELECT chartColor FROM tasks WHERE chartColor IS NOT NULL');
       const chartColor = nextTaskColor(usedColors.map(row => row.chartColor));
       const include = initialGraphIds.has(task.id);
-      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, currentScaleVersionId, currentTrendEpochId, includeInCombinedInsights) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, includeInCombinedInsights) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         task.id, task.name.trim(), task.createdAt, task.updatedAt, Number(task.active),
-        localDate(created), task.active ? null : task.updatedAt, chartColor, scaleId, epochId, Number(include));
+        localDate(created), task.active ? null : task.updatedAt, chartColor, Number(include));
       if (!task.active) await db.runAsync(`INSERT INTO task_lifecycle_transitions
         (id, taskId, type, occurredAt, localDate, utcOffsetMinutes, timeZone, inferred)
         VALUES (?, ?, 'archived', ?, ?, ?, ?, 1)`,
@@ -57,8 +56,6 @@ export async function importLegacy(connection: Connection, raw: string | null, s
       for (const option of normalized) {
         requireString(option.id); await insertOption(db, { ...option, updatedAt: task.updatedAt });
       }
-      await db.runAsync('INSERT INTO rating_scale_versions(id, taskId, trendEpochId, createdAt, effectiveLocalDate, optionsJson) VALUES (?, ?, ?, ?, ?, ?)',
-        scaleId, task.id, epochId, task.createdAt, task.createdAt.slice(0, 10), JSON.stringify(normalized.map(({ id, label, position }) => ({ id, label, position }))));
     }
     for (const entry of entries) {
       requireString(entry.id); requireString(entry.optionId); requireString(entry.label); requireString(entry.updatedAt);
@@ -72,10 +69,11 @@ export async function importLegacy(connection: Connection, raw: string | null, s
         position: 1, rank: 1, normalizedWeight: entry.normalizedWeight, active: false,
         createdAt: entry.updatedAt, updatedAt: entry.updatedAt });
       await db.runAsync(`INSERT INTO daily_entries(id, taskId, optionId, localDate, createdAt, updatedAt,
-        optionLabelAtEntry, positionAtEntry, rankAtEntry, normalizedWeightAtEntry, scaleVersionIdAtEntry, trendEpochIdAtEntry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        (SELECT currentScaleVersionId FROM tasks WHERE id = ?), (SELECT currentTrendEpochId FROM tasks WHERE id = ?))`,
-      entry.id, entry.taskId, entry.optionId, entry.date, entry.updatedAt, entry.updatedAt, entry.label, entry.rankAtEntry ?? 1, entry.rankAtEntry ?? 1, entry.normalizedWeight, entry.taskId, entry.taskId);
+        optionLabelAtEntry, positionAtEntry, rankAtEntry, normalizedWeightAtEntry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      entry.id, entry.taskId, entry.optionId, entry.date, entry.updatedAt, entry.updatedAt, entry.label, entry.rankAtEntry ?? 1, entry.rankAtEntry ?? 1, entry.normalizedWeight);
     }
+    await db.runAsync(`UPDATE tasks SET levelsLocked = 1 WHERE EXISTS (
+      SELECT 1 FROM daily_entries WHERE daily_entries.taskId = tasks.id)`);
     await db.runAsync('INSERT INTO app_metadata(key, value) VALUES (?, ?)', 'legacyImported', '1');
   });
 }

@@ -35,7 +35,6 @@ test('archived tasks appear only for recorded or eligible tracking periods', () 
     tasks: [task],
     entries: [{ ...demo.entries[0], id: 'real-entry', taskId: task.id,
       localDate: '2026-01-05' }],
-    scaleVersions: demo.scaleVersions.map(version => ({ ...version, taskId: task.id })),
     lifecycle: [{ id: 'archive', taskId: task.id, type: 'archived',
       occurredAt: '2026-01-10T12:00:00.000Z', localDate: '2026-01-10',
       utcOffsetMinutes: 0, timeZone: 'UTC' }],

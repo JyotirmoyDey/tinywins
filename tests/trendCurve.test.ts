@@ -80,7 +80,7 @@ test('demo 7D, 30D and 90D use the configured curve within a narrow iPhone plot'
     ['30D', '2026-08-24', 'daily-line'],
     ['90D', '2026-06-25', 'weekly'],
   ] as const) {
-    const data = getRatingTrend({ task, entries: demo.entries, versions: demo.scaleVersions,
+    const data = getRatingTrend({ task, entries: demo.entries,
       period: { startDate, endDate: '2026-09-22' } });
     const view = getAdaptiveTrend(data, range);
     assert.equal(view.presentation, presentation);

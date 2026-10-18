@@ -17,33 +17,28 @@ export class DemoImportService {
       const initialGraphIds = initialCombinedTaskIds(dataset.tasks);
       for (const task of dataset.tasks) {
         await db.runAsync(`INSERT INTO tasks
-          (id,name,createdAt,updatedAt,active,createdLocalDate,archivedAt,chartColor,
-           currentScaleVersionId,currentTrendEpochId,includeInCombinedInsights)
-          VALUES (?,?,?,?,1,?,NULL,?,?,?,?)`,
+          (id,name,createdAt,updatedAt,active,createdLocalDate,archivedAt,chartColor,includeInCombinedInsights)
+          VALUES (?,?,?,?,1,?,NULL,?,?)`,
         task.id, task.name, task.createdAt, task.updatedAt, task.createdLocalDate ?? null,
-        task.chartColor ?? task.color, task.currentScaleVersionId, task.currentTrendEpochId,
-        Number(initialGraphIds.has(task.id)));
+        task.chartColor ?? task.color, Number(initialGraphIds.has(task.id)));
         for (const option of task.options) await db.runAsync(`INSERT INTO task_options
           (id,taskId,label,position,rank,normalizedWeight,active,createdAt,updatedAt,description)
           VALUES (?,?,?,?,?,?,1,?,?,?)`,
         option.id, task.id, option.label, option.position, option.rank,
         option.normalizedWeight, task.createdAt, task.updatedAt, null);
       }
-      for (const version of dataset.scaleVersions) await db.runAsync(`INSERT INTO rating_scale_versions
-        (id,taskId,trendEpochId,createdAt,effectiveLocalDate,optionsJson) VALUES (?,?,?,?,?,?)`,
-      version.id, version.taskId, version.trendEpochId, version.createdAt,
-      version.effectiveLocalDate, JSON.stringify(version.options));
       for (const entry of dataset.entries) {
         const recordedAt = `${entry.localDate}T12:00:00.000Z`;
         await db.runAsync(`INSERT INTO daily_entries
           (id,taskId,optionId,localDate,createdAt,updatedAt,optionLabelAtEntry,
-           positionAtEntry,rankAtEntry,normalizedWeightAtEntry,
-           scaleVersionIdAtEntry,trendEpochIdAtEntry)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+           positionAtEntry,rankAtEntry,normalizedWeightAtEntry)
+          VALUES (?,?,?,?,?,?,?,?,?,?)`,
         entry.id, entry.taskId, entry.optionId, entry.localDate, recordedAt, recordedAt,
         entry.optionLabelAtEntry, entry.positionAtEntry, entry.positionAtEntry,
-        entry.normalizedWeightAtEntry, entry.scaleVersionIdAtEntry, entry.trendEpochIdAtEntry);
+        entry.normalizedWeightAtEntry);
       }
+      await db.runAsync(`UPDATE tasks SET levelsLocked = 1 WHERE EXISTS (
+        SELECT 1 FROM daily_entries WHERE daily_entries.taskId = tasks.id)`);
     });
   }
 }
@@ -67,10 +62,6 @@ export function validateDataset(dataset: AnalyticsDataset) {
       optionIds.add(option.id);
     }
   }
-  const versions = new Map(dataset.scaleVersions.map(version => [version.id, version]));
-  if (versions.size !== dataset.scaleVersions.length ||
-    dataset.tasks.some(task => versions.get(task.currentScaleVersionId)?.taskId !== task.id))
-    throw new Error('The test dataset has an invalid rating scale.');
   const entryIds = new Set<string>(); const taskDays = new Set<string>();
   for (const entry of dataset.entries) {
     const task = dataset.tasks.find(candidate => candidate.id === entry.taskId);
@@ -80,9 +71,7 @@ export function validateDataset(dataset: AnalyticsDataset) {
       !task?.options.some(option => option.id === entry.optionId) ||
       !entry.optionLabelAtEntry.trim() || !Number.isInteger(entry.positionAtEntry) ||
       entry.positionAtEntry < 1 || !Number.isInteger(entry.normalizedWeightAtEntry) ||
-      entry.normalizedWeightAtEntry < 0 || entry.normalizedWeightAtEntry > 100 ||
-      versions.get(entry.scaleVersionIdAtEntry)?.taskId !== entry.taskId ||
-      versions.get(entry.scaleVersionIdAtEntry)?.trendEpochId !== entry.trendEpochIdAtEntry)
+      entry.normalizedWeightAtEntry < 0 || entry.normalizedWeightAtEntry > 100)
       throw new Error('The test dataset has an invalid recording.');
     entryIds.add(entry.id); taskDays.add(key);
   }

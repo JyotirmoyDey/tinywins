@@ -107,9 +107,8 @@ function TrendPlot({ data, view, taskName, mode, expanded = false, availableHeig
       chartWidth, inset, Math.max(4, Math.floor(chartWidth / layout.weeklyLabelSpacing))) :
     dailyAxisTicks(slotDates, chartWidth, inset, layout.dailyDateLabelCount);
   const summary = expanded ? `${taskName} daily trend. ${data.observations.length} ${data.observations.length === 1 ? 'day' : 'days'} recorded.` :
-    `${taskName} ${view.subtitle}. ${points.length} plotted medians from ${view.recordedCount} ${view.recordedCount === 1 ? 'day' : 'days'} recorded.` +
-    (view.mixedScaleSlots ? ` ${view.mixedScaleSlots} scale-change intervals are shown in the expanded daily chart.` : '');
-  const surface = <View collapsable={false}
+    `${taskName} ${view.subtitle}. ${points.length} plotted medians from ${view.recordedCount} ${view.recordedCount === 1 ? 'day' : 'days'} recorded.`;
+  const surface = <View testID={expanded ? 'expanded-trend-plot' : undefined} collapsable={false}
     style={{ width: chartWidth, height: chartHeight }} accessible
     accessibilityRole={expanded ? 'adjustable' : 'image'}
     accessibilityLabel={selectedObservation ?
@@ -215,14 +214,9 @@ export function ExpandedRatingTrendChart({ data, view, taskName, height }: {
 export function RatingTrendChart({ data, view, taskName }: {
   data: RatingTrendData; view: AdaptiveTrend; taskName: string;
 }) {
-  if (view.presentation === 'empty') return <Text style={styles.empty}>
-    {data.isNewEpochEmpty ? 'Your new trend starts with your next check-in. Your earlier days are still here.' :
-      'Nothing recorded in this period.'}</Text>;
+  if (view.presentation === 'empty') return <Text style={styles.empty}>Nothing recorded in this period.</Text>;
   if (view.presentation === 'today' || view.presentation === 'sparse')
     return <SparseSummary data={data} today={view.presentation === 'today'}/>;
-  if (view.groupedPoints.length === 0) return <Text style={styles.empty}>
-    Your levels changed during this period. View all days to see each check-in.
-  </Text>;
   if (view.groupedPoints.length === 1) {
     const point = view.groupedPoints[0], slot = view.slots[point.slotIndex];
     return <View style={styles.sparse} accessible
@@ -239,7 +233,6 @@ export function RatingTrendChart({ data, view, taskName }: {
     <TrendPlot data={data} view={view} taskName={taskName} mode={mode}/>
     <View style={styles.footer}>
       <Text style={styles.count}>{view.recordedCount} {view.recordedCount === 1 ? 'day' : 'days'} recorded</Text>
-      {view.mixedScaleSlots > 0 && <Text style={styles.count}>Your levels changed · View all days</Text>}
     </View>
   </View>;
 }

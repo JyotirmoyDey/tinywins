@@ -37,7 +37,7 @@ export function TaskActionsMenu({ task, onClear, onBusyChange }: { task: Task; o
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="Close actions" onPress={() => setOpen(false)} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, s.lg) }]} accessibilityViewIsModal>
           <Text style={styles.taskName}>{task.name}</Text>
-          <MenuItem label="Edit" onPress={() => { setOpen(false); router.push(`/task/${task.id}`); }} />
+          <MenuItem label="Edit" testID="edit-activity-action" onPress={() => { setOpen(false); router.push(`/task/${task.id}`); }} />
           {onClear && <MenuItem label="Clear today's check-in" onPress={() => { setOpen(false); onClear(); }} />}
           <MenuItem label="Archive" testID="archive-activity-action" onPress={() => {
             setOpen(false);
@@ -47,7 +47,7 @@ export function TaskActionsMenu({ task, onClear, onBusyChange }: { task: Task; o
                 { text: 'Archive', onPress: () => void remove(true) },
               ]);
           }} />
-          <MenuItem label="Delete" danger onPress={() => {
+          <MenuItem label="Delete" testID="delete-activity-action" danger onPress={() => {
             setOpen(false);
             Alert.alert(`Delete ${task.name}?`, 'This permanently removes its check-ins and history from this device.', [
               { text: 'Cancel', style: 'cancel' },

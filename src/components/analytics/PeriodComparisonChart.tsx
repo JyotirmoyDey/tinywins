@@ -12,15 +12,16 @@ function periodLabel(start: string, end: string) {
   return start === end ? formatLocalDate(start) : `${formatLocalDate(start)} – ${formatLocalDate(end)}`;
 }
 
-function Coverage({ label, startDate, endDate, recorded, days }: {
+function Coverage({ label, startDate, endDate, recorded, days, testID }: {
   label: string; startDate: string; endDate: string; recorded: number; days: number;
+  testID?: string;
 }) {
   return <View style={styles.coverageRow}>
     <View style={styles.coverageName}>
       <Text style={styles.coverageTitle}>{label}</Text>
       <Text style={styles.coverageDates}>{periodLabel(startDate, endDate)}</Text>
     </View>
-    <Text style={styles.coverageCount}>{recorded} of {days} {days === 1 ? 'day' : 'days'}</Text>
+    <Text testID={testID} style={styles.coverageCount}>{recorded} of {days} {days === 1 ? 'day' : 'days'}</Text>
   </View>;
 }
 
@@ -65,7 +66,7 @@ export function PeriodComparisonChart({ data }: { data: PeriodComparisonResult }
     {config.presentation.showRecordingCoverage && <View style={styles.coverage}>
       <Coverage label={oneDay ? previousTitle : 'Previous'} {...data.previous}
         recorded={data.previous.recordedDays} />
-      <Coverage label={oneDay ? currentTitle : 'Current'} {...data.current}
+      <Coverage label={oneDay ? currentTitle : 'Current'} testID="period-current-coverage" {...data.current}
         recorded={data.current.recordedDays} />
     </View>}
     {oneDay ? <>
@@ -79,9 +80,6 @@ export function PeriodComparisonChart({ data }: { data: PeriodComparisonResult }
           <Text style={styles.observationValue}>{data.currentEntry?.optionLabelAtEntry ?? 'Not recorded'}</Text>
         </View>
       </View>
-      {data.status === 'incompatible' && <Text style={styles.notice}>
-        These days use different rating scales, so their ratings are shown separately.
-      </Text>}
     </> : data.status === 'ready' ? <>
       {config.presentation.showLegend && <View style={styles.legend}>
         <View style={[styles.legendSwatch, { backgroundColor: config.style.previousColor }]} />
@@ -92,9 +90,7 @@ export function PeriodComparisonChart({ data }: { data: PeriodComparisonResult }
       {data.rows.map(row => <ComparisonBars key={row.optionId} row={row}
         selected={selected} onSelect={setSelected} />)}
     </> : <Text style={styles.notice}>
-      {data.status === 'incompatible'
-        ? 'These periods use different rating scales. Compare dates within one scale to see a distribution.'
-        : data.status === 'no-data' ? 'Nothing recorded in either period.'
+      {data.status === 'no-data' ? 'Nothing recorded in either period.'
           : data.status === 'empty-current' ? 'Nothing recorded in the selected period.'
             : 'Nothing recorded in the previous period.'}
     </Text>}

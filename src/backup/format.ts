@@ -2,7 +2,7 @@ import { Buffer } from 'buffer';
 
 export const BACKUP_FORMAT = 'tinywins-encrypted-backup';
 export const BACKUP_FORMAT_VERSION = 1;
-export const PAYLOAD_VERSION = 1;
+export const PAYLOAD_VERSION = 2;
 export const PBKDF2_ITERATIONS = 600_000;
 export const MAX_BACKUP_BYTES = 30_000_000;
 export const MAX_PLAINTEXT_BYTES = 20_000_000;

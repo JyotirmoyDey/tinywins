@@ -25,8 +25,7 @@ test('Home selection immediately governs the selector and combined charts withou
     const savedEntries = await db.entries.getAll();
     // Keep the analytics snapshot stale to verify that Home's current SQLite
     // task state controls visibility without waiting for a chart reload.
-    const snapshot = getAnalyticsDataset(await db.tasks.getAll(), savedEntries,
-      await db.tasks.getScaleVersions());
+    const snapshot = getAnalyticsDataset(await db.tasks.getAll(), savedEntries);
     await db.tasks.setCombinedInsightsSelection(first.id, false);
     const deselected = withHomeInsightsSelection(snapshot, await db.tasks.getAll(), false);
     assert.deepEqual(selectedInsightsTasks(deselected).map(task => task.id), [second.id]);

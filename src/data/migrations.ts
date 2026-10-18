@@ -32,16 +32,7 @@ const migrations = [
      COALESCE(rankAtEntry, 1));
    UPDATE task_options SET position = position + 1, rank = rank + 1;
    CREATE UNIQUE INDEX active_option_position ON task_options(taskId, position) WHERE active = 1;`,
-  `ALTER TABLE tasks ADD COLUMN currentScaleVersionId TEXT;
-   ALTER TABLE tasks ADD COLUMN currentTrendEpochId TEXT;
-   ALTER TABLE daily_entries ADD COLUMN scaleVersionIdAtEntry TEXT;
-   ALTER TABLE daily_entries ADD COLUMN trendEpochIdAtEntry TEXT;
-   CREATE TABLE rating_scale_versions (
-     id TEXT PRIMARY KEY NOT NULL, taskId TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-     trendEpochId TEXT NOT NULL, createdAt TEXT NOT NULL, effectiveLocalDate TEXT NOT NULL,
-     optionsJson TEXT NOT NULL
-   );
-   CREATE INDEX scale_versions_by_task ON rating_scale_versions(taskId, createdAt);`,
+  `SELECT 1;`,
   `ALTER TABLE tasks ADD COLUMN createdLocalDate TEXT;
    ALTER TABLE tasks ADD COLUMN archivedAt TEXT;
    CREATE TABLE task_lifecycle_transitions (
@@ -59,6 +50,11 @@ const migrations = [
   `ALTER TABLE tasks ADD COLUMN includeInCombinedInsights INTEGER NOT NULL DEFAULT 0
      CHECK(includeInCombinedInsights IN (0,1));`,
   `ALTER TABLE task_options ADD COLUMN description TEXT;`,
+  `ALTER TABLE tasks ADD COLUMN levelsLocked INTEGER NOT NULL DEFAULT 0
+     CHECK(levelsLocked IN (0,1));
+   UPDATE tasks SET levelsLocked = 1 WHERE EXISTS (
+     SELECT 1 FROM daily_entries WHERE daily_entries.taskId = tasks.id);`,
+  `SELECT 1;`,
 ];
 export const CURRENT_DATABASE_VERSION = migrations.length;
 export async function migrate(connection: Connection) {
@@ -78,28 +74,6 @@ export async function migrate(connection: Connection) {
         }
       } else if (index === 2) {
         await db.execAsync(migrations[index]);
-        const tasks = await db.getAllAsync<{ id: string; createdAt: string }>('SELECT id, createdAt FROM tasks');
-        for (const task of tasks) {
-          const scaleId = `${task.id}:legacy-scale`;
-          const epochId = `${task.id}:legacy-trend`;
-          const options = await db.getAllAsync<{ id: string; label: string; position: number }>('SELECT id, label, position FROM task_options WHERE taskId = ? ORDER BY active DESC, position, id', task.id);
-          // Earlier releases did not record scale versions. This is a best-effort
-          // snapshot of the current configuration; previous orders cannot be recovered.
-          await db.runAsync('INSERT INTO rating_scale_versions(id, taskId, trendEpochId, createdAt, effectiveLocalDate, optionsJson) VALUES (?, ?, ?, ?, ?, ?)',
-            scaleId, task.id, epochId, task.createdAt, task.createdAt.slice(0, 10), JSON.stringify(options));
-          await db.runAsync('UPDATE tasks SET currentScaleVersionId = ?, currentTrendEpochId = ? WHERE id = ?', scaleId, epochId, task.id);
-          await db.runAsync('UPDATE daily_entries SET scaleVersionIdAtEntry = ?, trendEpochIdAtEntry = ? WHERE taskId = ?', scaleId, epochId, task.id);
-        }
-        await db.execAsync(`CREATE TRIGGER entry_trend_identity_insert BEFORE INSERT ON daily_entries
-          WHEN NEW.scaleVersionIdAtEntry IS NULL OR NEW.trendEpochIdAtEntry IS NULL OR NOT EXISTS (
-            SELECT 1 FROM rating_scale_versions WHERE id = NEW.scaleVersionIdAtEntry
-            AND taskId = NEW.taskId AND trendEpochId = NEW.trendEpochIdAtEntry)
-          BEGIN SELECT RAISE(ABORT, 'Invalid historical rating-scale identity'); END;
-          CREATE TRIGGER entry_trend_identity_update BEFORE UPDATE OF scaleVersionIdAtEntry, trendEpochIdAtEntry ON daily_entries
-          WHEN NEW.scaleVersionIdAtEntry IS NULL OR NEW.trendEpochIdAtEntry IS NULL OR NOT EXISTS (
-            SELECT 1 FROM rating_scale_versions WHERE id = NEW.scaleVersionIdAtEntry
-            AND taskId = NEW.taskId AND trendEpochId = NEW.trendEpochIdAtEntry)
-          BEGIN SELECT RAISE(ABORT, 'Invalid historical rating-scale identity'); END;`);
       } else if (index === 3) {
         await db.execAsync(migrations[index]);
         const tasks = await db.getAllAsync<{ id: string; createdAt: string; updatedAt: string; active: number }>(
@@ -140,6 +114,23 @@ export async function migrate(connection: Connection) {
       } else if (index === 6) {
         const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(task_options)');
         if (!columns.some(column => column.name === 'description')) await db.execAsync(migrations[index]);
+      } else if (index === 7) {
+        const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(tasks)');
+        if (!columns.some(column => column.name === 'levelsLocked')) await db.execAsync(migrations[index]);
+        else await db.execAsync(`UPDATE tasks SET levelsLocked = 1 WHERE EXISTS (
+          SELECT 1 FROM daily_entries WHERE daily_entries.taskId = tasks.id)`);
+      } else if (index === 8) {
+        // Remove obsolete scale snapshots from installations which had an older schema.
+        await db.execAsync(`DROP TRIGGER IF EXISTS entry_trend_identity_insert;
+          DROP TRIGGER IF EXISTS entry_trend_identity_update;
+          DROP INDEX IF EXISTS scale_versions_by_task;
+          DROP TABLE IF EXISTS rating_scale_versions;`);
+        const taskColumns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(tasks)');
+        const entryColumns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(daily_entries)');
+        if (taskColumns.some(column => column.name === 'currentScaleVersionId')) await db.execAsync('ALTER TABLE tasks DROP COLUMN currentScaleVersionId');
+        if (taskColumns.some(column => column.name === 'currentTrendEpochId')) await db.execAsync('ALTER TABLE tasks DROP COLUMN currentTrendEpochId');
+        if (entryColumns.some(column => column.name === 'scaleVersionIdAtEntry')) await db.execAsync('ALTER TABLE daily_entries DROP COLUMN scaleVersionIdAtEntry');
+        if (entryColumns.some(column => column.name === 'trendEpochIdAtEntry')) await db.execAsync('ALTER TABLE daily_entries DROP COLUMN trendEpochIdAtEntry');
       } else await db.execAsync(migrations[index]);
       await db.execAsync(`PRAGMA user_version = ${index + 1}`);
     }

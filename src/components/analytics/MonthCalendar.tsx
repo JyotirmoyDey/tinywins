@@ -55,7 +55,7 @@ export function MonthCalendar({ month, onMonthChange, cells, color, kind, levels
           onPress={() => setSelectedIds(previous => toggleCalendarLevel(previous, level.id, availableIds))}/>)}
         <FilterChip label="All" selected={allSelected} onPress={() => setSelectedIds(null)}/>
       </ScrollView>
-      <Text style={styles.matchCount} accessibilityLiveRegion="polite">
+      <Text testID="calendar-matching-days" style={styles.matchCount} accessibilityLiveRegion="polite">
         {matchingCount} matching {matchingCount === 1 ? 'day' : 'days'} this month
       </Text>
     </>}
@@ -83,7 +83,7 @@ export function MonthCalendar({ month, onMonthChange, cells, color, kind, levels
         const recorded = hasRecording(cell);
         const matched = kind === 'individual' && !!cell && matchesCalendarFilter(cell, selectedIds);
         const isToday = date === todayKey;
-        return <Pressable key={date || 'empty-' + index} disabled={!date}
+        return <Pressable key={date || 'empty-' + index} testID={date ? `calendar-date-${date}` : undefined} disabled={!date}
           accessibilityRole={date ? 'button' : undefined}
           accessibilityLabel={date ? formatDay(date) + ', ' +
             (recorded ? (cell?.label || cell?.detail || (cell?.recorded + ' of ' + cell?.eligible + ' recorded')) : 'Not recorded') : undefined}
@@ -100,7 +100,7 @@ export function MonthCalendar({ month, onMonthChange, cells, color, kind, levels
         </Pressable>;
       })}
     </View>}
-    {selectedDate?.startsWith(month + '-') && <View style={styles.detail} accessible>
+    {selectedDate?.startsWith(month + '-') && <View testID="calendar-selected-day" style={styles.detail} accessible>
       <Text style={styles.detailDate}>{formatDay(selectedDate)}</Text>
       <Text style={styles.detailValue}>{kind === 'individual' ? currentSelected?.label || 'Not recorded' :
         currentSelected?.detail || (currentSelected?.recorded || 0) + ' of ' + (currentSelected?.eligible || 0) + ' recorded'}</Text>

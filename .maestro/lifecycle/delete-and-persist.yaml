@@ -1,0 +1,61 @@
+appId: com.plainleaf.tinywins
+---
+# Uses one free active-item slot. This flow deletes only its own new item.
+- evalScript: ${output.activityName = 'MDelete' + Date.now()}
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+- tapOn:
+    id: activity-name-input
+- inputText: ${output.activityName}
+- hideKeyboard
+- tapOn:
+    id: save-activity-button
+- extendedWaitUntil:
+    visible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000
+
+# The UI allows one logical check-in per item and day. Create and update it
+# before deletion; database tests cover cascading multiple historical days.
+- tapOn:
+    id: .*activity-slider-.+
+    text: ${output.activityName}, how did it go today?
+- extendedWaitUntil:
+    visible:
+      id: .*activity-current-level-.+
+      text: A little
+    timeout: 20000
+- tapOn:
+    id: .*activity-menu-.+
+    text: Actions for ${output.activityName}
+- tapOn:
+    id: delete-activity-action
+- assertVisible: Delete ${output.activityName}?
+- tapOn:
+    text: ^Delete$
+- extendedWaitUntil:
+    notVisible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000
+- assertNotVisible:
+    id: .*activity-card-.+
+    text: ${output.activityName}
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertNotVisible: ${output.activityName}
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertNotVisible: ${output.activityName}

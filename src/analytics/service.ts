@@ -1,4 +1,4 @@
-import { RatingScaleVersion, TaskLifecycleTransition, parseLocalDate, localDate } from '../domain/task';
+import { TaskLifecycleTransition, parseLocalDate, localDate } from '../domain/task';
 import { AnalyticsDataset, AnalyticsEntry, AnalyticsTask, RangeKey, TimelinePoint } from './types';
 import { createTaskDayEligibility } from '../domain/taskLifecycle';
 import { colorsByTaskId, fallbackTaskColor } from './taskColors';
@@ -20,8 +20,8 @@ export function getActivityBalance(tasks:AnalyticsTask[],entries:AnalyticsEntry[
 export function getCrossTaskWeekdayPattern(tasks:AnalyticsTask[],entries:AnalyticsEntry[],endDate:string,range:RangeKey){return Array.from({length:7},(_,i)=>({weekday:i,label:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],series:tasks.map(t=>{const x=getWeekdayPattern(t.id,entries,endDate,range)[i];return {taskId:t.id,name:t.name,color:t.color,value:x.value};})}));}
 export function getPairedEntries(taskA:string,taskB:string,entries:AnalyticsEntry[],lag=0){const a=new Map(entriesFor(taskA,entries).map(e=>[e.localDate,e]));const b=new Map(entriesFor(taskB,entries).map(e=>[e.localDate,e]));const out:{date:string,x:number,y:number}[]=[];for(const [date,e] of a){const d=parseLocalDate(date);d.setDate(d.getDate()+lag);const target=localDate(d), other=b.get(target);if(other)out.push({date,x:e.normalizedWeightAtEntry,y:other.normalizedWeightAtEntry});}return out.sort((x,y)=>x.date.localeCompare(y.date));}
 export function getCorrelation(points:{x:number,y:number}[]){if(points.length<2)return null;const mx=points.reduce((a,p)=>a+p.x,0)/points.length,my=points.reduce((a,p)=>a+p.y,0)/points.length;const num=points.reduce((a,p)=>a+(p.x-mx)*(p.y-my),0),dx=Math.sqrt(points.reduce((a,p)=>a+(p.x-mx)**2,0)),dy=Math.sqrt(points.reduce((a,p)=>a+(p.y-my)**2,0));return dx&&dy?num/(dx*dy):null;}
-export function getAnalyticsDataset(tasks:TaskLike[],entries:AnalyticsEntry[],scaleVersions:RatingScaleVersion[] = [],lifecycle:TaskLifecycleTransition[] = []):AnalyticsDataset{const colorMap=colorsByTaskId(tasks.map(task=>task.id));return {tasks:tasks.map(t=>({...t,color:t.chartColor??colorMap.get(t.id)??fallbackTaskColor(t.id)})),entries,scaleVersions,lifecycle};}
-type TaskLike=Pick<AnalyticsTask,'id'|'name'|'options'|'createdAt'|'updatedAt'|'active'|'currentScaleVersionId'|'currentTrendEpochId'> & Pick<AnalyticsTask,'createdLocalDate'|'archivedAt'|'chartColor'> & { includeInCombinedInsights?: boolean };
+export function getAnalyticsDataset(tasks:TaskLike[],entries:AnalyticsEntry[],lifecycle:TaskLifecycleTransition[] = []):AnalyticsDataset{const colorMap=colorsByTaskId(tasks.map(task=>task.id));return {tasks:tasks.map(t=>({...t,color:t.chartColor??colorMap.get(t.id)??fallbackTaskColor(t.id)})),entries,lifecycle};}
+type TaskLike=Pick<AnalyticsTask,'id'|'name'|'options'|'createdAt'|'updatedAt'|'active'> & Pick<AnalyticsTask,'createdLocalDate'|'archivedAt'|'chartColor'> & { includeInCombinedInsights?: boolean };
 
 export function getRecordingConsistency(tasks: AnalyticsTask[], entries: AnalyticsEntry[], period: {startDate:string;endDate:string}, lifecycle:TaskLifecycleTransition[] = [], today = localDate()) {
   const start = parseLocalDate(period.startDate), end = parseLocalDate(period.endDate);

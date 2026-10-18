@@ -12,11 +12,9 @@
   "dataSource": "daily-entries",
   "timeline": "shared",
   "calculation": {
-    "epoch": "current",
     "categoryIdentity": "optionId",
     "excludeMissing": true,
     "connectConsecutiveDaysOnly": true,
-    "breakOnScaleVersionChange": true,
     "weekStartsOn": "monday",
     "weeklyMiddle": "lower"
   },

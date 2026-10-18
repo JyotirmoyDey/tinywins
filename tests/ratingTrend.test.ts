@@ -9,8 +9,8 @@ import { loadDemoDataset } from '../src/analytics/demoData';
 const period = { startDate: '2026-09-15', endDate: '2026-09-24' };
 async function chart(db: Awaited<ReturnType<typeof setup>>, taskId: string, range = period) {
   const task = (await db.tasks.getById(taskId))!;
-  const dataset = getAnalyticsDataset([task], await db.entries.getAll(), await db.tasks.getScaleVersions());
-  return getRatingTrend({ task: dataset.tasks[0], entries: dataset.entries, versions: dataset.scaleVersions, period: range });
+  const dataset = getAnalyticsDataset([task], await db.entries.getAll());
+  return getRatingTrend({ task: dataset.tasks[0], entries: dataset.entries, period: range });
 }
 function optionDraft(labels: string[]) {
   return labels.map((label, index) => ({ id: `rating-${index}`, label }));
@@ -44,86 +44,70 @@ test('missing days break line; isolated recorded lowest remains an observation',
   db.native.close();
 });
 
-test('adding levels at beginning, middle and end preserves identities, changes scale version and breaks line', async () => {
+test('levels may be added before the first check-in and then become permanently locked', async () => {
   for (const insertAt of [0, 1, 3]) {
     const db = await setup();
     const task = await db.tasks.create({ name: 'Practice', options: optionDraft(['Low', 'Medium', 'High']) });
-    const before = await db.entries.upsert(task.id, '2026-09-20', task.options[1].id);
     const edited = task.options.map(({ id, label }) => ({ id, label }));
     edited.splice(insertAt, 0, { id: `added-${insertAt}`, label: `Added ${insertAt}` });
     const updated = await db.tasks.update(task.id, { name: task.name, options: edited });
-    assert.equal(updated.currentTrendEpochId, task.currentTrendEpochId);
-    assert.notEqual(updated.currentScaleVersionId, task.currentScaleVersionId);
+    assert.equal(updated.levelsLocked, false);
     const after = await db.entries.upsert(task.id, '2026-09-21', task.options[1].id);
     const result = await chart(db, task.id);
-    assert.equal(result.observations.length, 2);
-    assert.equal(result.observations[1].connectsToPrevious, false);
-    assert.equal(result.levels[result.observations[0].levelIndex].id, before.optionId);
-    assert.equal(result.levels[result.observations[1].levelIndex].id, after.optionId);
-    assert.equal((await db.entries.getForTaskAndDate(task.id, '2026-09-20'))?.normalizedWeightAtEntry, 50);
+    assert.equal(result.observations.length, 1);
+    assert.equal(result.levels[result.observations[0].levelIndex].id, after.optionId);
+    assert.equal((await db.tasks.getById(task.id))?.levelsLocked, true);
     db.native.close();
   }
 });
 
-test('archived recorded level remains on the axis in its original position', async () => {
+test('deleting or reordering levels is blocked after recording, even after clearing the entry', async () => {
   const db = await setup();
   const task = await db.tasks.create({ name: 'Guitar', options: optionDraft(['Skipped', 'Low', 'Medium', 'High']) });
   const saved = await db.entries.upsert(task.id, '2026-09-20', task.options[2].id);
-  const updated = await db.tasks.update(task.id, { name: task.name, options: task.options.filter(option => option.id !== saved.optionId) });
-  assert.equal(updated.currentTrendEpochId, task.currentTrendEpochId);
-  const result = await chart(db, task.id);
-  assert.deepEqual(result.levels.map(level => level.label), ['Skipped', 'Low', 'Medium', 'High']);
-  assert.equal(result.levels[2].active, false);
-  assert.equal(result.observations[0].labelAtEntry, 'Medium');
-  assert.equal((await db.entries.getForTaskAndDate(task.id, '2026-09-20'))?.normalizedWeightAtEntry, 67);
+  await assert.rejects(db.tasks.update(task.id, { name: task.name,
+    options: task.options.filter(option => option.id !== saved.optionId) }), /permanent/);
+  await assert.rejects(db.tasks.update(task.id, { name: task.name,
+    options: [...task.options].reverse() }), /permanent/);
+  await db.entries.deleteEntry(task.id, '2026-09-20');
+  await assert.rejects(db.tasks.update(task.id, { name: task.name,
+    options: [...task.options, { id: 'extra', label: 'Extra' }] }), /permanent/);
+  assert.equal((await db.tasks.getById(task.id))?.levelsLocked, true);
+  assert.equal(saved.normalizedWeightAtEntry, 67);
   db.native.close();
 });
 
-test('cosmetic rename keeps epoch and historical tooltip label', async () => {
+test('cosmetic rename preserves historical tooltip label without version metadata', async () => {
   const db = await setup();
   const task = await db.tasks.create({ name: 'Study', options: optionDraft(['Low', 'Good', 'High']) });
   await db.entries.upsert(task.id, '2026-09-20', task.options[1].id);
   const renamed = await db.tasks.update(task.id, { name: task.name, options: task.options.map(option => ({
     id: option.id, label: option.label === 'Good' ? 'Excellent' : option.label,
   })) });
-  assert.equal(renamed.currentTrendEpochId, task.currentTrendEpochId);
-  assert.equal(renamed.currentScaleVersionId, task.currentScaleVersionId);
   const result = await chart(db, task.id);
   assert.equal(result.levels[1].label, 'Excellent');
   assert.equal(result.observations[0].labelAtEntry, 'Good');
   db.native.close();
 });
 
-test('reorder requires confirmation, starts new epoch and preserves previous records; same-day explicit save adopts new epoch', async () => {
+test('reordering before recording is allowed and later structural edits stay locked', async () => {
   const db = await setup();
   const task = await db.tasks.create({ name: 'Workout', options: optionDraft(['Skipped', 'Good', 'Poor', 'Average']) });
-  const old = await db.entries.upsert(task.id, '2026-09-24', task.options[1].id);
   const reordered = { name: task.name, options: [task.options[0], task.options[2], task.options[1], task.options[3]] };
-  assert.equal(await db.tasks.requiresTrendReset(task.id, reordered), true);
-  await assert.rejects(db.tasks.update(task.id, reordered), /confirmation/);
-  assert.deepEqual(await db.tasks.getById(task.id), task);
-  const updated = await db.tasks.update(task.id, reordered, true);
-  assert.notEqual(updated.currentTrendEpochId, task.currentTrendEpochId);
-  const resetChart = await chart(db, task.id);
-  assert.equal(resetChart.observations.length, 0);
-  assert.equal(resetChart.isNewEpochEmpty, true);
-  assert.equal((await db.entries.getForTaskAndDate(task.id, '2026-09-24'))?.id, old.id);
+  const updated = await db.tasks.update(task.id, reordered);
   const newEntry = await db.entries.upsert(task.id, '2026-09-24', task.options[1].id);
-  assert.equal(newEntry.id, old.id);
-  assert.equal(newEntry.trendEpochIdAtEntry, updated.currentTrendEpochId);
-  assert.equal(newEntry.optionLabelAtEntry, 'Good');
   assert.equal(newEntry.positionAtEntry, 3);
+  await assert.rejects(db.tasks.update(task.id, { name: task.name, options: task.options }), /permanent/);
   assert.equal((await chart(db, task.id)).observations.length, 1);
   db.native.close();
 });
 
-test('reorder before any recorded history does not require confirmation', async () => {
+test('reorder before any recording preserves the configured order in the trend', async () => {
   const db = await setup();
   const task = await db.tasks.create({ name: 'No history', options: optionDraft(['Low', 'Mid', 'High']) });
   const draft = { name: task.name, options: [...task.options].reverse() };
-  assert.equal(await db.tasks.requiresTrendReset(task.id, draft), false);
   const updated = await db.tasks.update(task.id, draft);
-  assert.equal(updated.currentTrendEpochId, task.currentTrendEpochId);
+  assert.deepEqual(updated.options.map(option => option.id), draft.options.map(option => option.id));
   db.native.close();
 });
 
@@ -132,19 +116,19 @@ test('demo uses unusual Workout order and all global date presets feed the same 
   const task = dataset.tasks.find(item => item.name === 'Workout')!;
   assert.deepEqual(task.options.map(option => option.label), ['Skipped', 'Good', 'Poor', 'Average']);
   for (const preset of ['1D', '7D', '30D', '90D'] as const) {
-    const result = getRatingTrend({ task, entries: dataset.entries, versions: dataset.scaleVersions,
+    const result = getRatingTrend({ task, entries: dataset.entries,
       period: getInsightsPeriod('2026-09-22', preset, { startDate: '2026-09-01', endDate: '2026-09-22' }) });
     assert.equal(result.dates.length, Number.parseInt(preset, 10));
     assert.ok(result.observations.every(item => item.levelIndex >= 0));
   }
-  const custom = getRatingTrend({ task, entries: dataset.entries, versions: dataset.scaleVersions,
+  const custom = getRatingTrend({ task, entries: dataset.entries,
     period: { startDate: '2026-07-01', endDate: '2026-07-31' } });
   assert.equal(custom.dates.length, 31);
   assert.ok(custom.observations.length > 0);
   assert.equal(ratingTrendConfig.displayOrder, 1);
 });
 
-test('v2 SQLite migration backfills identities without rewriting saved rating snapshots', async () => {
+test('removing obsolete scale metadata preserves actual saved rating snapshots', async () => {
   const { DatabaseSync } = await import('node:sqlite');
   const { mkdtempSync, rmSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
@@ -165,44 +149,39 @@ test('v2 SQLite migration backfills identities without rewriting saved rating sn
     `);
     old.close();
     const db = await setup(path);
-    const task = (await db.tasks.getById('t'))!;
-    assert.equal(task.options[0].description, undefined);
-    const saved = (await db.entries.getForTaskAndDate('t', '2026-08-15'))!;
-    assert.equal(saved.optionLabelAtEntry, 'Original label');
-    assert.equal(saved.normalizedWeightAtEntry, 0);
-    assert.equal(saved.scaleVersionIdAtEntry, task.currentScaleVersionId);
-    assert.equal(saved.trendEpochIdAtEntry, task.currentTrendEpochId);
-    assert.equal((await db.tasks.getScaleVersions('t')).length, 1);
+    const task = await db.tasks.create({ name: 'Old task', options: optionDraft(['Low', 'High']) });
+    await db.entries.upsert(task.id, '2026-08-15', task.options[0].id);
+    await db.db.execAsync(`ALTER TABLE tasks ADD COLUMN currentScaleVersionId TEXT;
+      ALTER TABLE tasks ADD COLUMN currentTrendEpochId TEXT;
+      ALTER TABLE daily_entries ADD COLUMN scaleVersionIdAtEntry TEXT;
+      ALTER TABLE daily_entries ADD COLUMN trendEpochIdAtEntry TEXT;
+      CREATE TABLE rating_scale_versions (id TEXT PRIMARY KEY, taskId TEXT, trendEpochId TEXT, createdAt TEXT, effectiveLocalDate TEXT, optionsJson TEXT);
+      PRAGMA user_version = 8;`);
+    const savedBefore = (await db.entries.getForTaskAndDate(task.id, '2026-08-15'))!;
     db.native.close();
+    const reopened = await setup(path);
+    const saved = (await reopened.entries.getForTaskAndDate(task.id, '2026-08-15'))!;
+    assert.equal(saved.optionId, savedBefore.optionId);
+    assert.equal(saved.optionLabelAtEntry, savedBefore.optionLabelAtEntry);
+    assert.equal(saved.positionAtEntry, savedBefore.positionAtEntry);
+    assert.equal(saved.normalizedWeightAtEntry, savedBefore.normalizedWeightAtEntry);
+    assert.equal(await reopened.db.getFirstAsync('SELECT * FROM rating_scale_versions'), null);
+    assert.ok(!(await reopened.db.getAllAsync<{ name: string }>('PRAGMA table_info(tasks)')).some(row => row.name.includes('ScaleVersion') || row.name.includes('TrendEpoch')));
+    assert.ok(!(await reopened.db.getAllAsync<{ name: string }>('PRAGMA table_info(daily_entries)')).some(row => row.name.includes('Version') || row.name.includes('Epoch')));
+    reopened.native.close();
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('Rating Distribution remains separated by immutable scale versions after adding a level', async () => {
-  const { getRatingDistribution, getRatingScaleVersions } = await import('../src/analytics/ratingDistribution');
+test('Rating Distribution counts the full period across legacy scale identities', async () => {
+  const { getRatingDistribution } = await import('../src/analytics/ratingDistribution');
   const db = await setup();
   const task = await db.tasks.create({ name: 'Reading', options: optionDraft(['Short', 'Good', 'Great']) });
   await db.entries.upsert(task.id, '2026-09-20', task.options[1].id);
-  const updated = await db.tasks.update(task.id, { name: task.name, options: [...task.options, { id: 'extra', label: 'Excellent' }] });
   await db.entries.upsert(task.id, '2026-09-21', task.options[1].id);
-  const dataset = getAnalyticsDataset([updated], await db.entries.getAll(), await db.tasks.getScaleVersions());
-  const versions = getRatingScaleVersions(dataset.tasks[0], dataset.entries, dataset.scaleVersions);
-  assert.deepEqual(versions, ['current', task.currentScaleVersionId]);
-  const current = getRatingDistribution(dataset.tasks[0], dataset.entries, period, 'current', dataset.scaleVersions);
-  const previous = getRatingDistribution(dataset.tasks[0], dataset.entries, period, task.currentScaleVersionId, dataset.scaleVersions);
-  assert.equal(current.reduce((sum, row) => sum + row.count, 0), 1);
-  assert.equal(previous.reduce((sum, row) => sum + row.count, 0), 1);
-  assert.deepEqual(previous.map(row => row.label), ['Short', 'Good', 'Great']);
+  const dataset = getAnalyticsDataset([(await db.tasks.getById(task.id))!], await db.entries.getAll());
+  const rows = getRatingDistribution(dataset.tasks[0], dataset.entries, period);
+  assert.equal(rows.reduce((sum, row) => sum + row.count, 0), 2);
+  assert.deepEqual(rows.map(row => row.label), ['Short', 'Good', 'Great']);
   db.native.close();
 });
 
-test('database rejects entries without a valid persisted scale and epoch identity', async () => {
-  const db = await setup();
-  const task = await db.tasks.create({ name: 'Guarded', options: optionDraft(['Low', 'High']) });
-  await assert.rejects(db.db.runAsync(`INSERT INTO daily_entries
-    (id, taskId, optionId, localDate, createdAt, updatedAt, optionLabelAtEntry,
-      positionAtEntry, rankAtEntry, normalizedWeightAtEntry, scaleVersionIdAtEntry, trendEpochIdAtEntry)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    'invalid-entry', task.id, task.options[0].id, '2026-09-20', 'now', 'now', 'Low', 1, 1, 0, 'unknown-scale', 'unknown-epoch'),
-  /Invalid historical rating-scale identity/);
-  db.native.close();
-});

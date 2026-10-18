@@ -60,11 +60,10 @@ export function getJourneyTogether(input: {
   const colorMap = colorsByTaskId(input.colorTaskIds ?? tasks.map(task => task.id));
   // Existing callers that only supply dates retain the matching named preset.
   // The Insights screen always passes the user's actual selection, including Custom.
-  const dayCount = tasks.length ? getRatingTrend({ task: tasks[0], entries: [],
-    versions: [], period }).dates.length : 0;
+  const dayCount = tasks.length ? getRatingTrend({ task: tasks[0], entries: [], period }).dates.length : 0;
   const range = input.range ?? ({ 1: '1D', 7: '7D', 30: '30D', 90: '90D' } as Record<number, TrendRange>)[dayCount] ?? 'CUSTOM';
   const results = tasks.map(task => ({ task, ...getTaskTrendData({ task, entries: dataset.entries,
-    versions: dataset.scaleVersions, period }, range) }));
+    period }, range) }));
   // Slots depend on the shared period and range, never on a task's recordings.
   // Each activity still calculates its own medians and scale boundaries.
   const dates = results[0]?.view.slots.map(slot => slot.axisDate) ?? [];

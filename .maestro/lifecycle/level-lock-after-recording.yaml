@@ -1,0 +1,130 @@
+appId: com.plainleaf.tinywins
+---
+# Uses one free active-item slot. Never clears the development client's data.
+- evalScript: ${output.activityName = 'MLock' + Date.now()}
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+- tapOn:
+    id: activity-name-input
+- inputText: ${output.activityName}
+- hideKeyboard
+- tapOn:
+    id: save-activity-button
+- extendedWaitUntil:
+    visible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000
+
+# Before the first recording, existing names and the level structure are editable.
+- tapOn:
+    id: .*activity-menu-.+
+    text: Actions for ${output.activityName}
+- tapOn:
+    id: edit-activity-action
+- assertVisible:
+    id: activity-editor-screen
+- assertVisible:
+    id: reorder-level-0
+- assertVisible:
+    id: remove-level-0
+- tapOn:
+    id: level-input-0
+- eraseText: 100
+- inputText: Rest
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: add-level-button
+    direction: DOWN
+- tapOn:
+    id: add-level-button
+- tapOn:
+    id: level-input-3
+- inputText: Plenty
+- hideKeyboard
+- tapOn:
+    id: save-activity-button
+- extendedWaitUntil:
+    visible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000
+
+# A single committed slider selection permanently locks the structure.
+- tapOn:
+    id: .*activity-slider-.+
+    text: ${output.activityName}, how did it go today?
+- extendedWaitUntil:
+    visible:
+      id: .*activity-current-level-.+
+      text: Quite a bit
+    timeout: 20000
+- tapOn:
+    id: .*activity-menu-.+
+    text: Actions for ${output.activityName}
+- tapOn:
+    id: edit-activity-action
+- assertVisible: Your level order and number are now fixed. You can still edit names and descriptions.
+- assertNotVisible:
+    id: add-level-button
+- assertNotVisible:
+    id: remove-level-0
+- assertNotVisible:
+    id: reorder-level-0
+- assertVisible:
+    id: level-input-0
+    text: Rest
+- tapOn:
+    id: level-description-input-0
+- inputText: A quieter day
+- hideKeyboard
+- tapOn:
+    id: save-activity-button
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- extendedWaitUntil:
+    visible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: Quite a bit
+- tapOn:
+    id: .*activity-menu-.+
+    text: Actions for ${output.activityName}
+- tapOn:
+    id: edit-activity-action
+- assertNotVisible:
+    id: add-level-button
+- assertNotVisible:
+    id: remove-level-0
+- assertNotVisible:
+    id: reorder-level-0
+- assertVisible:
+    id: level-description-input-0
+    text: A quieter day
+
+# Remove only the item created by this flow.
+- tapOn: Cancel editing
+- tapOn:
+    id: .*activity-menu-.+
+    text: Actions for ${output.activityName}
+- tapOn:
+    id: delete-activity-action
+- assertVisible: Delete ${output.activityName}?
+- tapOn:
+    text: ^Delete$
+- extendedWaitUntil:
+    notVisible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000

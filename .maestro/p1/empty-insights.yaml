@@ -1,0 +1,55 @@
+appId: com.plainleaf.tinywins
+---
+- evalScript: ${output.activityName = 'MEmpty' + Date.now()}
+- launchApp
+- runFlow: helpers/create-activity.yaml
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^Not recorded$
+- tapOn:
+    id: .*activity-insights-.+
+    text: ${output.activityName}, insights
+- assertVisible:
+    id: insights-chart-rating-trend
+- assertVisible: Nothing recorded in this period.
+- assertVisible:
+    id: insights-chart-rating-distribution
+- scrollUntilVisible:
+    element:
+      id: calendar-matching-days
+    direction: DOWN
+- assertVisible:
+    id: calendar-matching-days
+    text: ^0 matching days this month$
+- tapOn:
+    id: insights-section-patterns
+- scrollUntilVisible:
+    element:
+      id: insights-chart-period-comparison
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-period-comparison
+- assertVisible:
+    id: period-current-coverage
+    text: ^0 of 1 day$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-recording-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-recording-consistency
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekday-patterns
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekday-patterns
+- assertVisible: One day is too soon to see a weekly pattern.
+- assertNotVisible: NaN
+- assertNotVisible: Infinity
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^Not recorded$
+- runFlow: helpers/delete-activity.yaml

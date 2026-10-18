@@ -87,32 +87,30 @@ test('repository rejects six new levels while preserving edits to an existing se
     assert.equal(reduced.options.length, 6);
   } finally { native.close(); }
 });
-test('historical snapshots keep position and weight across reorder, rename, and added scale points', async () => {
+test('pre-record reorder is allowed; later renames preserve historical snapshots', async () => {
   const { tasks, entries, native } = await setup(); const task = await tasks.create({ name: 'Practice', options: ['Skipped', 'Poor', 'Good', 'Average'].map((label, i) => ({ id: `option-${i}`, label })) });
+  const reordered = await tasks.update(task.id, { name: task.name, options: [task.options[0], task.options[1], task.options[3], task.options[2]] });
   const old = await entries.upsert(task.id, '2026-09-19', task.options[2].id);
-  assert.equal(old.optionLabelAtEntry, 'Good'); assert.equal(old.positionAtEntry, 3); assert.equal(old.normalizedWeightAtEntry, 67);
-  const reordered = await tasks.update(task.id, { name: task.name, options: [task.options[0], task.options[1], task.options[3], task.options[2]] }, true);
-  const newer = await entries.upsert(task.id, '2026-09-20', reordered.options[3].id);
-  assert.equal(newer.optionId, task.options[2].id); assert.equal(newer.positionAtEntry, 4); assert.equal(newer.normalizedWeightAtEntry, 100);
+  assert.equal(old.optionLabelAtEntry, 'Good'); assert.equal(old.positionAtEntry, 4); assert.equal(old.normalizedWeightAtEntry, 100);
   const renamed = await tasks.update(task.id, { name: task.name, options: reordered.options.map(option => option.id === task.options[2].id ? { ...option, label: 'Excellent' } : option) });
   const future = await entries.upsert(task.id, '2026-09-21', renamed.options.find(option => option.id === task.options[2].id)!.id);
   assert.equal((await entries.getForTaskAndDate(task.id, '2026-09-19'))?.optionLabelAtEntry, 'Good');
-  assert.equal((await entries.getForTaskAndDate(task.id, '2026-09-20'))?.optionLabelAtEntry, 'Good');
   assert.equal(future.optionLabelAtEntry, 'Excellent');
-  const expanded = await tasks.update(task.id, { name: task.name, options: [...renamed.options, { id: 'new-option', label: 'Amazing' }] });
-  const afterAdd = await entries.upsert(task.id, '2026-09-22', expanded.options.find(option => option.id === task.options[2].id)!.id);
-  assert.equal((await entries.getForTaskAndDate(task.id, '2026-09-20'))?.normalizedWeightAtEntry, 100);
-  assert.equal(afterAdd.normalizedWeightAtEntry, 75);
+  assert.equal(future.normalizedWeightAtEntry, 100);
+  await assert.rejects(tasks.update(task.id, { name: task.name,
+    options: [...renamed.options, { id: 'new-option', label: 'Amazing' }] }), /permanent/);
   native.close();
 });
 
 test('editing an old date deliberately replaces its snapshot with current configuration', async () => {
   const { tasks, entries, native } = await setup(); const task = await tasks.create({ name: 'Practice', options: ['Skipped', 'Poor', 'Good', 'Average'].map((label, i) => ({ id: `edit-option-${i}`, label })) });
   const original = await entries.upsert(task.id, '2026-09-22', task.options[2].id);
-  await tasks.update(task.id, { name: task.name, options: [task.options[0], task.options[1], task.options[3], task.options[2]] }, true);
+  await tasks.update(task.id, { name: task.name, options: task.options.map(option =>
+    option.id === task.options[2].id ? { ...option, label: 'Great' } : option) });
   assert.equal((await entries.getForTaskAndDate(task.id, '2026-09-22'))?.normalizedWeightAtEntry, 67);
   const edited = await entries.upsert(task.id, '2026-09-22', task.options[2].id);
-  assert.equal(edited.id, original.id); assert.equal(edited.positionAtEntry, 4); assert.equal(edited.normalizedWeightAtEntry, 100); native.close();
+  assert.equal(edited.id, original.id); assert.equal(edited.positionAtEntry, 3);
+  assert.equal(edited.normalizedWeightAtEntry, 67); assert.equal(edited.optionLabelAtEntry, 'Great'); native.close();
 });
 
 test('invalid task edits roll back atomically', async () => {
@@ -133,7 +131,7 @@ test('first selection inserts, changing selection preserves entry ID and created
 test('SQL UNIQUE constraint prevents duplicate task/date rows independently of the repository', async () => {
   const { tasks, entries, db, native } = await setup(); const task = await tasks.create(draft());
   await entries.upsert(task.id, '2026-09-20', task.options[0].id);
-  await assert.rejects(db.runAsync(`INSERT INTO daily_entries SELECT ?, taskId, optionId, localDate, createdAt, updatedAt, optionLabelAtEntry, positionAtEntry, rankAtEntry, normalizedWeightAtEntry, scaleVersionIdAtEntry, trendEpochIdAtEntry FROM daily_entries`, randomUUID()), /UNIQUE/);
+  await assert.rejects(db.runAsync(`INSERT INTO daily_entries SELECT ?, taskId, optionId, localDate, createdAt, updatedAt, optionLabelAtEntry, positionAtEntry, rankAtEntry, normalizedWeightAtEntry FROM daily_entries`, randomUUID()), /UNIQUE/);
   assert.equal((await entries.getForDate('2026-09-20')).length, 1); native.close();
 });
 test('missing and lowest are distinct; task/date pairs are independent', async () => {
@@ -145,25 +143,25 @@ test('missing and lowest are distinct; task/date pairs are independent', async (
   assert.equal((await entries.getHistoryForTask(a.id, { from: '2026-09-01', to: '2026-09-30' })).length, 2);
   await entries.deleteEntry(a.id, '2026-09-20'); assert.equal(await entries.getForTaskAndDate(a.id, '2026-09-20'), null); native.close();
 });
-test('removing a used option retires it, removing an unused option deletes it', async () => {
+test('unused options may be removed before recording; used options are permanently retained', async () => {
   const { tasks, entries, native } = await setup(); const task = await tasks.create(draft());
-  const saved = await entries.upsert(task.id, '2026-09-20', task.options[0].id);
-  await tasks.update(task.id, { name: task.name, options: task.options.slice(2) });
+  const reduced = await tasks.update(task.id, { name: task.name, options: task.options.slice(1) });
+  const saved = await entries.upsert(task.id, '2026-09-20', reduced.options[0].id);
+  await assert.rejects(tasks.update(task.id, { name: task.name, options: reduced.options.slice(1) }), /permanent/);
   const all = await tasks.getOptions(task.id);
-  assert.equal(all.find(o => o.id === task.options[0].id)?.active, false);
-  assert.equal(all.find(o => o.id === task.options[1].id), undefined);
-  assert.equal((await tasks.getById(task.id))?.options.length, 2);
+  assert.equal(all.find(o => o.id === task.options[0].id), undefined);
+  assert.equal(all.find(o => o.id === reduced.options[0].id)?.active, true);
+  assert.equal((await tasks.getById(task.id))?.options.length, 3);
   assert.deepEqual(await entries.getForTaskAndDate(task.id, '2026-09-20'), saved);
   await assert.rejects(entries.upsert(task.id, '2026-09-19', task.options[0].id)); native.close();
 });
-test('rename/reorder/add preserve identity and immutable historical snapshots', async () => {
+test('name, level title and description remain editable after recording', async () => {
   const { tasks, entries, native } = await setup(); const task = await tasks.create(draft());
   const saved = await entries.upsert(task.id, '2026-09-20', task.options[0].id);
-  const options = [...task.options].reverse().map(o => ({ ...o, label: `${o.label}!` }));
-  options.push({ ...options[0], id: randomUUID(), label: 'Rested' });
-  const updated = await tasks.update(task.id, { name: 'Rest', options }, true);
-  assert.deepEqual(updated.options.map(o => o.normalizedWeight), [0, 25, 50, 75, 100]);
-  assert.equal(updated.options[3].id, task.options[0].id); assert.equal(updated.options[3].createdAt, task.options[0].createdAt);
+  const options = task.options.map(o => ({ ...o, label: `${o.label}!`, description: 'My meaning' }));
+  const updated = await tasks.update(task.id, { name: 'Rest', options });
+  assert.deepEqual(updated.options.map(o => o.normalizedWeight), [0, 33, 67, 100]);
+  assert.equal(updated.options[0].id, task.options[0].id); assert.equal(updated.options[0].description, 'My meaning');
   assert.deepEqual(await entries.getForTaskAndDate(task.id, '2026-09-20'), saved); native.close();
 });
 test('archive and restore retain history; permanent task deletion cascades', async () => {
@@ -194,7 +192,7 @@ test('real file database survives closing and reopening; migrations are repeatab
     const first = await setup(path); const task = await first.tasks.create(draft());
     const saved = await first.entries.upsert(task.id, '2026-09-20', task.options[0].id); first.native.close();
     const second = await setup(path); await migrate(second.connection);
-    assert.deepEqual(await second.tasks.getById(task.id), task); assert.deepEqual(await second.entries.getForTaskAndDate(task.id, '2026-09-20'), saved);
+    assert.deepEqual(await second.tasks.getById(task.id), { ...task, levelsLocked: true }); assert.deepEqual(await second.entries.getForTaskAndDate(task.id, '2026-09-20'), saved);
     second.native.close();
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -240,13 +238,13 @@ test('full daily loop survives restart after task edits, restore, and yesterday 
     await app.entries.upsert(sleep.id, today, sleep.options[3].id);
     const previous = await app.entries.upsert(guitar.id, yesterday, guitar.options[1].id);
     await app.entries.upsert(guitar.id, yesterday, guitar.options[3].id);
-    await app.tasks.update(guitar.id, { name: 'Guitar Practice', options: [...guitar.options].reverse() }, true);
+    await app.tasks.update(guitar.id, { name: 'Guitar Practice', options: guitar.options });
     await app.tasks.archive(sleep.id); await app.tasks.restore(sleep.id);
     app.native.close();
     const reopened = await setup(path);
     assert.equal((await reopened.tasks.getAll()).filter(t => t.active).length, 3);
     assert.equal((await reopened.tasks.getById(guitar.id))?.name, 'Guitar Practice');
-    assert.equal((await reopened.tasks.getById(guitar.id))?.options[0].id, guitar.options[3].id);
+    assert.equal((await reopened.tasks.getById(guitar.id))?.options[0].id, guitar.options[0].id);
     assert.equal((await reopened.entries.getForTaskAndDate(guitar.id, today))?.optionLabelAtEntry, 'Good');
     const corrected = await reopened.entries.getForTaskAndDate(guitar.id, yesterday);
     assert.equal(corrected?.id, previous.id); assert.equal(corrected?.optionLabelAtEntry, 'Excellent');

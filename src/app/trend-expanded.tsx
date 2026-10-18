@@ -36,9 +36,8 @@ export default function ExpandedTrendScreen() {
   const period = useMemo(() => startDate <= endDate ? { startDate, endDate } :
     { startDate: endDate, endDate: startDate }, [startDate, endDate]);
   const task = dataset.tasks.find(item => item.id === params.task);
-  const data = useMemo(() => task ? getRatingTrend({ task, entries: dataset.entries,
-    versions: dataset.scaleVersions, period }) : null,
-  [task, dataset.entries, dataset.scaleVersions, period]);
+  const data = useMemo(() => task ? getRatingTrend({ task, entries: dataset.entries, period }) : null,
+  [task, dataset.entries, period]);
   const view = useMemo(() => data ? getAdaptiveTrend(data, timelineKey(params.timeline)) : null,
     [data, params.timeline]);
 
@@ -60,10 +59,10 @@ export default function ExpandedTrendScreen() {
   return <SafeAreaView style={styles.screen} edges={['top', 'bottom', 'left', 'right']}>
     <View style={styles.header}>
       <View style={styles.heading}>
-        <Text style={styles.taskName} numberOfLines={1}>{task?.name ?? ratingTrendConfig.title}</Text>
-        <Text style={styles.range} numberOfLines={1}>{rangeLabel}</Text>
+        <Text testID="expanded-trend-screen" style={styles.taskName} numberOfLines={1}>{task?.name ?? ratingTrendConfig.title}</Text>
+        <Text testID="expanded-trend-date-range" style={styles.range} numberOfLines={1}>{rangeLabel}</Text>
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Close expanded trend"
+      <Pressable testID="close-expanded-trend" accessibilityRole="button" accessibilityLabel="Close expanded trend"
         onPress={close} style={styles.close}>
         <Svg width={18} height={18} viewBox="0 0 24 24" accessible={false}>
           <Path d="M5 5 19 19M19 5 5 19" fill="none" stroke={c.textPrimary}
@@ -72,7 +71,8 @@ export default function ExpandedTrendScreen() {
         <Text style={styles.closeText}>Close</Text>
       </Pressable>
     </View>
-    <View style={styles.chart} onLayout={event => {
+    <View testID={ready && bounds.width > bounds.height && data && view && !loading ? 'expanded-trend-landscape-chart' : undefined}
+      collapsable={false} style={styles.chart} onLayout={event => {
       const { width, height } = event.nativeEvent.layout;
       setBounds(current => current.width === width && current.height === height ? current : { width, height });
     }}>

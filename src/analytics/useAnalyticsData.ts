@@ -8,7 +8,7 @@ import { withPerformanceTrace } from '../telemetry';
 import { logger } from '../logging/logger';
 export function useAnalyticsData(useDemo = false) {
   const { data } = useTasks();
-  const [dataset, setDataset] = useState<AnalyticsDataset>({ tasks: [], entries: [], scaleVersions: [] });
+  const [dataset, setDataset] = useState<AnalyticsDataset>({ tasks: [], entries: [] });
   const [loading, setLoading] = useState(true);
   const [loadedSource, setLoadedSource] = useState<boolean | null>(null);
   const loaded = useRef(false);
@@ -23,11 +23,10 @@ export function useAnalyticsData(useDemo = false) {
         return loadDemoDataset();
       } else {
         const repos = await getRepositories();
-        const [tasks, entries, versions, lifecycle] = await Promise.all([
-          repos.tasks.getAll(), repos.entries.getAll(), repos.tasks.getScaleVersions(),
-          repos.tasks.getLifecycleTransitions(),
+        const [tasks, entries, lifecycle] = await Promise.all([
+          repos.tasks.getAll(), repos.entries.getAll(), repos.tasks.getLifecycleTransitions(),
         ]);
-        return getAnalyticsDataset(tasks, entries, versions, lifecycle);
+        return getAnalyticsDataset(tasks, entries, lifecycle);
       }
       });
       if (request.current === current) { setDataset(next); setLoadedSource(useDemo); logger.info('Insights data loaded', { screen: 'insights' }); }

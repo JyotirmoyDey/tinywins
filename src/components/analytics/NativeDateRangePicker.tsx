@@ -42,8 +42,8 @@ export function NativeDateRangePicker({ applied, today, earliest, onApply, onCan
           <Pressable accessibilityRole="button" onPress={onCancel} style={styles.headerAction}>
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
-          <Text style={styles.title} numberOfLines={1}>Date range</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Apply date range"
+          <Text testID="custom-date-range-sheet" style={styles.title} numberOfLines={1}>Date range</Text>
+          <Pressable testID="custom-date-apply" accessibilityRole="button" accessibilityLabel="Apply date range"
             accessibilityState={{ disabled: !!error }} disabled={!!error} onPress={apply}
             style={styles.headerAction}>
             <Text style={[styles.applyText, error && styles.disabledText]}>Apply</Text>
@@ -51,9 +51,9 @@ export function NativeDateRangePicker({ applied, today, earliest, onApply, onCan
         </View>
         <ScrollView style={styles.bodyScroll} contentContainerStyle={styles.body} bounces={false}>
           <View style={styles.cells}>
-            <DateCell label="From" value={draft.startDate} selected={openField === 'start'}
+            <DateCell label="From" testID="custom-date-from" value={draft.startDate} selected={openField === 'start'}
               onPress={() => setOpenField('start')}/>
-            <DateCell label="To" value={draft.endDate} selected={openField === 'end'}
+            <DateCell label="To" testID="custom-date-to" value={draft.endDate} selected={openField === 'end'}
               onPress={() => setOpenField('end')}/>
           </View>
           {Platform.OS === 'ios' && openField && <View style={styles.calendarSection}>
@@ -72,7 +72,7 @@ export function NativeDateRangePicker({ applied, today, earliest, onApply, onCan
               onValueChange={(_, date) => changeDate(openField, date)}
               accentColor={c.selected} themeVariant="light"/>
           </View>}
-          <Pressable accessibilityRole="button" accessibilityState={{ disabled: !earliest }}
+          <Pressable testID="custom-date-all-available" accessibilityRole="button" accessibilityState={{ disabled: !earliest }}
             disabled={!earliest} onPress={() => { setDraft({ startDate: minimum, endDate: today }); setOpenField(null); }}
             style={styles.shortcut}>
             <Text style={[styles.shortcutText, !earliest && styles.disabledText]}>All available dates</Text>
@@ -96,11 +96,11 @@ export function NativeDateRangePicker({ applied, today, earliest, onApply, onCan
       onRequestClose={onCancel} statusBarTranslucent={Platform.OS === 'android'}>{content}</Modal>;
 }
 
-function DateCell({ label, value, selected, onPress }: {
-  label: string; value: string; selected: boolean; onPress: () => void;
+function DateCell({ label, testID, value, selected, onPress }: {
+  label: string; testID: string; value: string; selected: boolean; onPress: () => void;
 }) {
   const displayDate = formatDateCell(value);
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${displayDate}, choose date`}
+  return <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={`${label}, ${displayDate}, choose date`}
     accessibilityState={{ selected }} onPress={onPress} style={[styles.dateCell, selected && styles.selectedCell]}>
     <View style={styles.cellTop}>
       <Text style={styles.cellLabel}>{label}</Text>

@@ -39,17 +39,9 @@ export function WeekdayPatternsChart({ data }: { data: WeekdayPatternsResult }) 
   if (data.status === 'insufficient-range') return <View style={styles.notice}>
     <Text style={styles.noticeText}>Choose a longer period to explore weekday patterns.</Text>
     <Text style={styles.subtle}>{data.recordedCount} {data.recordedCount === 1 ? 'day' : 'days'} recorded in this range.</Text>
-    {!!data.excludedHistoryCount && <Text style={styles.subtle}>
-      {data.excludedHistoryCount} earlier {data.excludedHistoryCount === 1 ? 'check-in uses' : 'check-ins use'} a previous level order.
-    </Text>}
   </View>;
   if (data.status === 'no-data') return <View style={styles.notice}>
-    <Text style={styles.noticeText}>{data.excludedHistoryCount
-      ? 'Earlier check-ins used a different level order. Try a later period.'
-      : 'Nothing recorded in this period.'}</Text>
-    {!!data.excludedHistoryCount && <Text style={styles.subtle}>
-      {data.excludedHistoryCount} earlier {data.excludedHistoryCount === 1 ? 'check-in uses' : 'check-ins use'} a previous level order.
-    </Text>}
+    <Text style={styles.noticeText}>Nothing recorded in this period.</Text>
   </View>;
 
   return <View style={styles.wrap} onLayout={event => {
@@ -58,9 +50,6 @@ export function WeekdayPatternsChart({ data }: { data: WeekdayPatternsResult }) 
   }}>
     <Text style={styles.caption}>{data.recordedCount} {data.recordedCount === 1 ? 'day' : 'days'} recorded · Darker cells mean more frequent</Text>
     {data.limitedSample && <Text style={styles.subtle}>Every pattern starts somewhere. A few more check-ins will help you see yours.</Text>}
-    {!!data.excludedHistoryCount && <Text style={styles.subtle}>
-      {data.excludedHistoryCount} earlier {data.excludedHistoryCount === 1 ? 'check-in uses' : 'check-ins use'} a previous level order.
-    </Text>}
     <View style={styles.table}>
       <View style={{ width: config.presentation.weekdayColumnWidth }}>
         <View style={{ height: config.presentation.rowHeight }} />

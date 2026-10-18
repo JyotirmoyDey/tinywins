@@ -6,7 +6,7 @@ import { SLIDER_INSET, sliderColor, sliderDescription, sliderDisplay, sliderInde
 import { EntryStore } from '../src/state/EntryStore';
 
 function entryFor(option: ReturnType<typeof normalizeOptions>[number]): DailyEntry {
-  return { id: 'entry', taskId: option.taskId, localDate: '2026-09-24', createdAt: '2026-09-24T12:00:00Z', updatedAt: '2026-09-24T12:00:00Z', ...createEntrySnapshot(option), scaleVersionIdAtEntry: 'scale', trendEpochIdAtEntry: 'epoch' };
+  return { id: 'entry', taskId: option.taskId, localDate: '2026-09-24', createdAt: '2026-09-24T12:00:00Z', updatedAt: '2026-09-24T12:00:00Z', ...createEntrySnapshot(option) };
 }
 
 test('every slider notch maps exactly to one ordered option for 2–7 choices', () => {

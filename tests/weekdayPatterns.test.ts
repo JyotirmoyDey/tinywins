@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { getWeekdayPatterns } from '../src/analytics/weekdayPatterns';
 import { getInsightsPeriod } from '../src/analytics/insightsDateRange';
 import { AnalyticsEntry, AnalyticsTask } from '../src/analytics/types';
-import { RatingScaleVersion } from '../src/domain/task';
 import { heatmapCellWidth, heatmapGridWidth } from '../src/components/analytics/weekdayPatternsLayout';
 import { loadDemoDataset } from '../src/analytics/demoData';
 import { getAnalyticsDataset } from '../src/analytics/service';
@@ -14,24 +13,17 @@ const option = (id: string, label: string, index: number) =>
   ({ id, label, position: index + 1, rank: index + 1, normalizedWeight: index * 50 });
 const task: AnalyticsTask = { id: 'study', name: 'Study', color: '#398F80', active: true,
   createdAt: '2026-08-01T08:00:00.000Z', updatedAt: '2026-09-25T08:00:00.000Z',
-  currentScaleVersionId: 'v1', currentTrendEpochId: 'e1',
   options: [option('skipped', 'Skipped', 0), option('medium', 'Medium', 1), option('high', 'High', 2)] };
-const version = (id: string, ids: string[], epoch = 'e1'): RatingScaleVersion => ({
-  id, taskId: task.id, trendEpochId: epoch, createdAt: '2026-08-01T08:00:00.000Z',
-  effectiveLocalDate: '2026-08-01', options: ids.map((optionId, index) =>
-    ({ id: optionId, label: optionId, position: index + 1 })),
-});
-const versions = [version('v1', ['skipped', 'medium', 'high'])];
 function entry(date: string, optionId: string, extras: Partial<AnalyticsEntry> = {}): AnalyticsEntry {
   return { id: `entry-${date}`, taskId: task.id, optionId, localDate: date,
     optionLabelAtEntry: optionId, positionAtEntry: task.options.find(item => item.id === optionId)?.position ?? 1,
     normalizedWeightAtEntry: optionId === 'skipped' ? 0 : optionId === 'medium' ? 50 : 100,
-    scaleVersionIdAtEntry: 'v1', trendEpochIdAtEntry: 'e1', ...extras };
+    ...extras };
 }
 function run(startDate: string, endDate: string, entries: AnalyticsEntry[],
   timeline: '1D' | '7D' | '30D' | '90D' | 'CUSTOM' = 'CUSTOM',
-  selectedTask = task, scales = versions) {
-  return getWeekdayPatterns({ task: selectedTask, entries, versions: scales,
+  selectedTask = task) {
+  return getWeekdayPatterns({ task: selectedTask, entries,
     period: { startDate, endDate }, timeline });
 }
 
@@ -104,20 +96,17 @@ test('user-defined order is authoritative for two through seven levels', () => {
   for (let count = 2; count <= 7; count++) {
     const ids = ['skipped', 'good', 'poor', 'average', 'extra1', 'extra2', 'extra3'].slice(0, count);
     const configured = { ...task, options: ids.map((id, index) => option(id, id, index)) };
-    const result = run('2026-08-27', today, [entry('2026-09-21', 'good')], '30D',
-      configured, [version('v1', ids)]);
+    const result = run('2026-08-27', today, [entry('2026-09-21', 'good')], '30D', configured);
     assert.deepEqual(result.levels.map(level => level.id), ids);
   }
 });
 
-test('compatible additions and archived levels retain the correctly ordered union', () => {
+test('saved identities retain archived levels in their recorded order', () => {
   const configured = { ...task, options: [option('skipped', 'Skipped', 0),
-    option('good', 'Good', 1), option('high', 'High', 2)], currentScaleVersionId: 'v2' };
-  const scales = [version('v1', ['skipped', 'medium', 'high']),
-    version('v2', ['skipped', 'medium', 'good', 'high'])];
+    option('good', 'Good', 1), option('high', 'High', 2)] };
   const result = run('2026-08-27', today, [entry('2026-09-01', 'medium', {
-    optionLabelAtEntry: 'Medium', scaleVersionIdAtEntry: 'v1' }),
-  entry('2026-09-08', 'good', { scaleVersionIdAtEntry: 'v2' })], '30D', configured, scales);
+    optionLabelAtEntry: 'Medium', positionAtEntry: 2 }),
+  entry('2026-09-08', 'good', { positionAtEntry: 2 })], '30D', configured);
   assert.deepEqual(result.levels.map(level => level.id), ['skipped', 'medium', 'good', 'high']);
   assert.equal(result.levels[1].active, false);
   assert.equal(result.recordedCount, 2);
@@ -132,25 +121,9 @@ test('renames retain stable identity and expose original saved labels', () => {
   assert.deepEqual(result.rows[1].cells[1].historicalLabels, ['Medium']);
 });
 
-test('reordered scales from previous epochs are excluded and counted', () => {
-  const reordered = { ...task, currentTrendEpochId: 'e2', currentScaleVersionId: 'v2',
-    options: [task.options[0], { ...task.options[2], position: 2 },
-      { ...task.options[1], position: 3 }] };
-  const scales = [...versions, version('v2', ['skipped', 'high', 'medium'], 'e2')];
-  const result = run('2026-08-27', today, [entry('2026-09-01', 'medium'),
-    entry('2026-09-08', 'high', { scaleVersionIdAtEntry: 'v2', trendEpochIdAtEntry: 'e2' })],
-  '30D', reordered, scales);
-  assert.equal(result.recordedCount, 1);
-  assert.equal(result.excludedHistoryCount, 1);
-  assert.equal(result.rows[1].total, 1);
-});
-
-test('an incompatible order inside an epoch cannot silently enter the heatmap', () => {
-  const scales = [...versions, version('bad', ['high', 'medium', 'skipped'])];
-  const result = run('2026-08-27', today, [entry('2026-09-01', 'high', {
-    scaleVersionIdAtEntry: 'bad' }), entry('2026-09-08', 'medium')], '30D', task, scales);
-  assert.equal(result.recordedCount, 1);
-  assert.equal(result.excludedHistoryCount, 1);
+test('saved recordings remain visible across the selected date range', () => {
+  const result = run('2026-08-27', today, [entry('2026-09-01', 'high'), entry('2026-09-08', 'medium')], '30D');
+  assert.equal(result.recordedCount, 2);
 });
 
 test('grid widths preserve 44-point cells and scroll on narrow phones with seven levels', () => {
@@ -172,15 +145,12 @@ test('My Data and Demo Data pass through the same calculator without mixing entr
       { id: 'skip', label: 'Skipped' }, { id: 'done', label: 'Done' },
     ] });
     await db.entries.upsert(saved.id, '2026-09-21', 'skip');
-    const my = getAnalyticsDataset([(await db.tasks.getById(saved.id))!],
-      await db.entries.getAll(), await db.tasks.getScaleVersions());
+    const my = getAnalyticsDataset([(await db.tasks.getById(saved.id))!], await db.entries.getAll());
     const demo = loadDemoDataset();
     const range = { startDate: '2026-08-27', endDate: today };
-    const own = getWeekdayPatterns({ task: my.tasks[0], entries: my.entries,
-      versions: my.scaleVersions, period: range, timeline: '30D' });
+    const own = getWeekdayPatterns({ task: my.tasks[0], entries: my.entries, period: range, timeline: '30D' });
     const workout = demo.tasks.find(item => item.name === 'Workout')!;
-    const example = getWeekdayPatterns({ task: workout, entries: demo.entries,
-      versions: demo.scaleVersions, period: range, timeline: '30D' });
+    const example = getWeekdayPatterns({ task: workout, entries: demo.entries, period: range, timeline: '30D' });
     assert.equal(own.recordedCount, 1);
     assert.ok(example.recordedCount > 1);
     assert.deepEqual(example.levels.map(level => level.label),

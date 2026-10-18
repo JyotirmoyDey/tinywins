@@ -77,8 +77,7 @@ test('individual and miniature trends have identical slots, medians, gaps and ca
     const combined = getJourneyTogether({ dataset: demo, period: dates, range });
     for (const series of combined.series) {
       const task = demo.tasks.find(item => item.id === series.taskId)!;
-      const { trend, view } = getTaskTrendData({ task, entries: demo.entries,
-        versions: demo.scaleVersions, period: dates }, range);
+      const { trend, view } = getTaskTrendData({ task, entries: demo.entries, period: dates }, range);
       assert.deepEqual(combined.dates, view.slots.map(slot => slot.axisDate));
       assert.equal(series.levelCount, trend.levels.length);
       const expectedPoints = view.presentation === 'today' || view.presentation === 'sparse'
@@ -110,8 +109,7 @@ test('a sparse miniature keeps the original recording date inside its shared wee
     item.localDate >= dates.startDate && item.localDate <= dates.endDate)!;
   const sparse = { ...demo, tasks: [task], entries: [entry] };
   const combined = getJourneyTogether({ dataset: sparse, period: dates, range: '90D' });
-  const { trend, view } = getTaskTrendData({ task, entries: [entry],
-    versions: demo.scaleVersions, period: dates }, '90D');
+  const { trend, view } = getTaskTrendData({ task, entries: [entry], period: dates }, '90D');
   assert.equal(view.presentation, 'sparse');
   assert.equal(combined.series[0].points[0].date, trend.observations[0].date);
   assert.equal(combined.series[0].points[0].levelIndex, trend.observations[0].levelIndex);
@@ -127,8 +125,7 @@ test('miniature trends reuse the individual monotone curve without moving points
     const result = getJourneyTogether({ dataset: demo, period: range });
     for (const series of result.series) {
       const task = demo.tasks.find(item => item.id === series.taskId)!;
-      const individual = getRatingTrend({ task, entries: demo.entries,
-        versions: demo.scaleVersions, period: range });
+      const individual = getRatingTrend({ task, entries: demo.entries, period: range });
       const expected = result.kind === 'grouped'
         ? getAdaptiveTrend(individual, 'CUSTOM').groupedPoints.map(point => ({
           date: result.dates[point.slotIndex], levelIndex: point.medianLevelIndex,
@@ -166,7 +163,7 @@ test('miniature trends reuse the individual monotone curve without moving points
     .match(/ M |^M /g) ?? []).length, broken.series[0].points.length);
 });
 
-test('gaps and incompatible scales interrupt only the affected activity', () => {
+test('missing dates interrupt each activity independently', () => {
   const [first, second] = demo.tasks;
   const dates = ['2026-09-19', '2026-09-20', '2026-09-22'];
   const entries = dates.flatMap((date, index) => [first, second].map(task => ({
@@ -174,20 +171,18 @@ test('gaps and incompatible scales interrupt only the affected activity', () => 
     id: `${task.id}-${date}`, taskId: task.id, localDate: date,
     optionId: task.options[index % task.options.length].id,
     optionLabelAtEntry: task.options[index % task.options.length].label,
-    scaleVersionIdAtEntry: task.id === first.id && index === 1 ? 'another-scale' : `demo-scale-${task.id}`,
   })));
   const result = getJourneyTogether({ dataset: { ...demo, tasks: [first, second], entries },
     period: { startDate: dates[0], endDate: dates[2] } });
-  assert.deepEqual(result.series[0].points.map(point => point.connectsToPrevious), [false, false, false]);
+  assert.deepEqual(result.series[0].points.map(point => point.connectsToPrevious), [false, true, false]);
   assert.deepEqual(result.series[1].points.map(point => point.connectsToPrevious), [false, true, false]);
   assert.equal(result.dates[2], '2026-09-21');
 });
 
-test('a task trend reset does not change another task trend', () => {
-  const reset = { ...demo.tasks[0], currentTrendEpochId: 'new-epoch' };
-  const result = getJourneyTogether({ dataset: { ...demo, tasks: [reset, demo.tasks[1]] },
+test('each task history remains independently visible', () => {
+  const result = getJourneyTogether({ dataset: { ...demo, tasks: [demo.tasks[0], demo.tasks[1]] },
     period: period('90D') });
-  assert.equal(result.series[0].points.length, 0);
+  assert.ok(result.series[0].points.length > 0);
   assert.ok(result.series[1].points.length > 0);
 });
 
@@ -213,8 +208,7 @@ test('My Data SQLite entries feed the same independent trend pipeline as Demo Da
     ] });
     await db.entries.upsert(guitar.id, '2026-09-21', guitar.options[1].id);
     await db.entries.upsert(study.id, '2026-09-22', study.options[0].id);
-    const dataset = getAnalyticsDataset(await db.tasks.getAll(), await db.entries.getAll(),
-      await db.tasks.getScaleVersions());
+    const dataset = getAnalyticsDataset(await db.tasks.getAll(), await db.entries.getAll());
     const result = getJourneyTogether({ dataset,
       period: { startDate: '2026-09-20', endDate: '2026-09-22' } });
     assert.deepEqual(result.series.map(series => series.latestRating), ['High', 'Low']);

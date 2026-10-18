@@ -4,7 +4,7 @@ import { EntryStore } from '../src/state/EntryStore';
 import { DailyEntry } from '../src/domain/task';
 const date = '2026-09-20';
 const entry = (taskId: string, label = 'Low'): DailyEntry => ({ id: taskId, taskId, optionId: label, localDate: date,
-  createdAt: 'now', updatedAt: 'now', optionLabelAtEntry: label, positionAtEntry: 1, rankAtEntry: 1, normalizedWeightAtEntry: 0, scaleVersionIdAtEntry: 'scale', trendEpochIdAtEntry: 'epoch' });
+  createdAt: 'now', updatedAt: 'now', optionLabelAtEntry: label, positionAtEntry: 1, rankAtEntry: 1, normalizedWeightAtEntry: 0 });
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(r => { resolve = r; }); return { promise, resolve }; }
 test('selection is immediate and notifies only the changed card among 20 tasks', async () => {
   const store = new EntryStore(); const counts = Array(20).fill(0);

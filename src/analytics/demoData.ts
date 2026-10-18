@@ -16,15 +16,10 @@ export function loadDemoDataset(): AnalyticsDataset {
     tasks: data.tasks.map(task => ({ id:task.id, name:task.name, active:true,
       includeInCombinedInsights: initialGraphIds.has(task.id),
       createdAt, createdLocalDate:data.period.startDate, updatedAt,
-      currentScaleVersionId:`demo-scale-${task.id}`, currentTrendEpochId:`demo-epoch-${task.id}`,
       color:colorMap.get(task.id)??fallbackTaskColor(task.id),
       options:task.options.map(option => ({ id:option.id, label:option.label, position:option.position,
         rank:option.position, normalizedWeight:option.weight })) })),
-    entries: data.dailyEntries.map(entry => ({ ...entry, normalizedWeightAtEntry: entry.weightAtEntry, scaleVersionIdAtEntry: `demo-scale-${entry.taskId}`, trendEpochIdAtEntry: `demo-epoch-${entry.taskId}` })),
-    scaleVersions: data.tasks.map(task => ({ id: `demo-scale-${task.id}`, taskId: task.id,
-      trendEpochId: `demo-epoch-${task.id}`, createdAt, effectiveLocalDate: data.period.startDate,
-      options: task.options.map(option => ({ id: option.id, label: option.label,
-        position: option.position })) })),
+    entries: data.dailyEntries.map(entry => ({ ...entry, normalizedWeightAtEntry: entry.weightAtEntry })),
     lifecycle: [],
   };
 }

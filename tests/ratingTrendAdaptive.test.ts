@@ -14,12 +14,12 @@ function fixture(dayCount: number, selected: { day: number; level: number; versi
   });
   const observations: TrendObservation[] = selected.map(item => ({
     date: dates[item.day], optionId: `option-${item.level}`, labelAtEntry: labels[item.level],
-    levelIndex: item.level, scaleVersionId: item.version ?? 'scale-a',
+    levelIndex: item.level,
     connectsToPrevious: item.day > 0 && selected.some(previous =>
-      previous.day === item.day - 1 && (previous.version ?? 'scale-a') === (item.version ?? 'scale-a')),
+      previous.day === item.day - 1),
   })).sort((a, b) => a.date.localeCompare(b.date));
   return { dates, observations, levels: labels.map((label, index) => ({ id: `option-${index}`, label, active: true })),
-    scaleChangeDates: [], epochId: 'epoch', isNewEpochEmpty: false };
+  };
 }
 test('adaptive modes preserve one rating and draw lines for two or more observations', () => {
   const empty = fixture(90, []);
@@ -68,22 +68,19 @@ test('missing calendar weeks keep empty slots and interrupt the weekly line', ()
   assert.equal(weeklyPoints[1].connectsToPrevious, false);
   assert.ok(!weeklyPoints.some(point => point.weekStart === weeks[1] || point.weekStart === weeks[2]));
 });
-test('a mid-week scale change yields separate weekly markers without mixing medians or a connecting line', () => {
+test('legacy scale metadata does not split a calendar week', () => {
   const data = fixture(14, [
     { day: 0, level: 0, version: 'old' }, { day: 1, level: 2, version: 'old' },
     { day: 2, level: 1, version: 'new' }, { day: 3, level: 1, version: 'new' },
     { day: 7, level: 2, version: 'new' },
   ]);
   const { weeklyPoints } = getWeeklyRatingTrend(data);
-  assert.equal(weeklyPoints.length, 3);
-  assert.deepEqual(weeklyPoints.slice(0, 2).map(point => point.observations.length), [2, 2]);
-  assert.equal(weeklyPoints[0].medianLevelIndex, 0);
-  assert.equal(weeklyPoints[1].medianLevelIndex, 1);
-  assert.equal(weeklyPoints[1].connectsToPrevious, false);
-  assert.equal(weeklyPoints[2].connectsToPrevious, true);
-  assert.notEqual(weeklyPoints[0].id, weeklyPoints[1].id);
+  assert.equal(weeklyPoints.length, 2);
+  assert.deepEqual(weeklyPoints.map(point => point.observations.length), [4, 1]);
+  assert.equal(weeklyPoints[0].medianLevelIndex, 1);
+  assert.equal(weeklyPoints[1].connectsToPrevious, true);
 });
-test('historical edits can alternate scale versions without merging disjoint weekly segments', () => {
+test('historical edits still contribute to the selected calendar weeks', () => {
   const data = fixture(14, [
     { day: 0, level: 0, version: 'old' },
     { day: 1, level: 2, version: 'new' },
@@ -91,9 +88,8 @@ test('historical edits can alternate scale versions without merging disjoint wee
     { day: 7, level: 1, version: 'old' },
   ]);
   const { weeklyPoints } = getWeeklyRatingTrend(data);
-  assert.deepEqual(weeklyPoints.map(point => point.scaleVersionId), ['old', 'new', 'old', 'old']);
-  assert.deepEqual(weeklyPoints.slice(0, 3).map(point => point.observations.length), [1, 1, 1]);
-  assert.equal(weeklyPoints[3].connectsToPrevious, true);
+  assert.deepEqual(weeklyPoints.map(point => point.observations.length), [3, 1]);
+  assert.equal(weeklyPoints[1].connectsToPrevious, true);
 });
 
 test('unusual user order and long labels stay categorical and readable in weekly data', () => {
@@ -120,13 +116,13 @@ test('demo 90-day workout keeps all daily records while presenting weekly summar
   const dataset = loadDemoDataset();
   const task = dataset.tasks.find(item => item.id === 'workout')!;
   assert.deepEqual(task.options.map(option => option.label), ['Skipped', 'Good', 'Poor', 'Average']);
-  const data = getRatingTrend({ task, entries: dataset.entries, versions: dataset.scaleVersions,
+  const data = getRatingTrend({ task, entries: dataset.entries,
     period: { startDate: '2026-06-25', endDate: '2026-09-22' } });
   const view = getAdaptiveTrend(data, '90D');
   assert.equal(view.presentation, 'weekly');
   assert.equal(view.weeklyPoints.reduce((sum, point) => sum + point.observations.length, 0), data.observations.length);
   assert.ok(view.weeklyPoints.every(point => Number.isInteger(point.medianLevelIndex)));
-  assert.ok(view.weeklyPoints.every(point => point.observations.every(day => day.scaleVersionId === point.scaleVersionId)));
+  assert.ok(view.weeklyPoints.every(point => point.observations.every(day => data.dates.includes(day.date))));
 });
 
 test('named 30D keeps daily observations; custom ranges retain capped grouping', () => {
@@ -137,7 +133,7 @@ test('named 30D keeps daily observations; custom ranges retain capped grouping',
     ['30D', '2026-08-24', 30, 'Daily trend'],
     ['90D', '2026-06-25', 14, 'Weekly median'],
   ] as const) {
-    const data = getRatingTrend({ task, entries: demo.entries, versions: demo.scaleVersions,
+    const data = getRatingTrend({ task, entries: demo.entries,
       period: { startDate, endDate: '2026-09-22' } });
     const view = getAdaptiveTrend(data, range);
     assert.equal(view.slots.length, expectedSlots);
@@ -163,16 +159,15 @@ test('portrait medians exclude missing days and use the lower actual rating for 
   assert.equal(view.groupedPoints.reduce((sum, point) => sum + point.recordedCount, 0), 5);
 });
 
-test('a two-day slot spanning incompatible scales stays blank while expanded observations survive', () => {
+test('a two-day slot includes both legacy scale recordings', () => {
   const data = fixture(30, [
     { day: 0, level: 0, version: 'old' }, { day: 1, level: 2, version: 'new' },
     { day: 2, level: 1, version: 'new' }, { day: 3, level: 2, version: 'new' },
     { day: 4, level: 0, version: 'new' },
   ]);
   const view = getAdaptiveTrend(data, 'CUSTOM');
-  assert.equal(view.mixedScaleSlots, 1);
-  assert.deepEqual(view.groupedPoints.map(point => point.slotIndex), [1, 2]);
-  assert.deepEqual(view.groupedPoints.map(point => point.connectsToPrevious), [false, true]);
+  assert.deepEqual(view.groupedPoints.map(point => point.slotIndex), [0, 1, 2]);
+  assert.deepEqual(view.groupedPoints.map(point => point.connectsToPrevious), [false, true, true]);
   assert.equal(data.observations.length, 5);
 });
 

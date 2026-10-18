@@ -1,16 +1,15 @@
-import { RatingScaleVersion, Task, TaskDraft, TaskLifecycleTransition, TaskOption, normalizeOptions, validateDraft, localDate } from '../domain/task';
-import { changesScaleStructure, reordersExistingOptions } from '../domain/ratingScale';
+import { Task, TaskDraft, TaskLifecycleTransition, TaskOption, normalizeOptions, validateDraft, localDate } from '../domain/task';
+import { changesScaleStructure } from '../domain/ratingScale';
 import { Connection, SqlDatabase } from './connection';
 import { ACTIVE_TASK_LIMIT_MESSAGE, MAX_ACTIVE_TASKS } from '../config/taskLimits';
 import { nextTaskColor } from '../analytics/taskColors';
 import { COMBINED_INSIGHTS_LIMIT_MESSAGE, MAX_COMBINED_INSIGHTS_ITEMS } from '../config/combinedInsights';
-type TaskRow = Omit<Task, 'options' | 'active' | 'includeInCombinedInsights'> & { active: number; includeInCombinedInsights: number };
+type TaskRow = Omit<Task, 'options' | 'active' | 'includeInCombinedInsights' | 'levelsLocked'> & { active: number; includeInCombinedInsights: number; levelsLocked: number };
 type OptionRow = Omit<TaskOption, 'active' | 'description'> & { active: number; description: string | null };
 const toOption = (row: OptionRow): TaskOption => ({ ...row, active: !!row.active,
   description: row.description ?? undefined });
-type VersionRow = Omit<RatingScaleVersion, 'options'> & { optionsJson: string };
-export class TrendResetConfirmationRequired extends Error {
-  constructor() { super('Reordering recorded rating levels requires confirmation.'); }
+export class LevelConfigurationLockedError extends Error {
+  constructor() { super('Levels are permanent after the first check-in. You can still edit their names and descriptions.'); }
 }
 export class ActiveTaskLimitError extends Error {
   constructor() { super(ACTIVE_TASK_LIMIT_MESSAGE); this.name = 'ActiveTaskLimitError'; }
@@ -27,19 +26,12 @@ async function selectedCount(db: SqlDatabase) {
     'SELECT COUNT(*) AS count FROM tasks WHERE active = 1 AND includeInCombinedInsights = 1');
   return row?.count ?? 0;
 }
-function toVersion(row: VersionRow): RatingScaleVersion {
-  return { id: row.id, taskId: row.taskId, trendEpochId: row.trendEpochId,
-    createdAt: row.createdAt, effectiveLocalDate: row.effectiveLocalDate, options: JSON.parse(row.optionsJson) };
-}
-async function insertVersion(db: SqlDatabase, version: RatingScaleVersion) {
-  await db.runAsync('INSERT INTO rating_scale_versions(id, taskId, trendEpochId, createdAt, effectiveLocalDate, optionsJson) VALUES (?, ?, ?, ?, ?, ?)',
-    version.id, version.taskId, version.trendEpochId, version.createdAt, version.effectiveLocalDate, JSON.stringify(version.options));
-}
 export async function readTask(db: SqlDatabase, id: string): Promise<Task | undefined> {
   const row = await db.getFirstAsync<TaskRow>('SELECT * FROM tasks WHERE id = ?', id);
   if (!row) return undefined;
   const options = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE taskId = ? AND active = 1 ORDER BY position', id);
   return { ...row, active: !!row.active, includeInCombinedInsights: !!row.includeInCombinedInsights,
+    levelsLocked: !!row.levelsLocked,
     options: options.map(toOption) };
 }
 export class TaskRepository {
@@ -50,7 +42,7 @@ export class TaskRepository {
         COALESCE((SELECT MAX(occurredAt) FROM task_lifecycle_transitions
           WHERE taskId = tasks.id AND type = 'restored'), createdAt), id`);
       const options = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE active = 1 ORDER BY position');
-      return tasks.map(task => ({ ...task, active: !!task.active,
+      return tasks.map(task => ({ ...task, active: !!task.active, levelsLocked: !!task.levelsLocked,
         includeInCombinedInsights: !!task.includeInCombinedInsights,
         options: options.filter(o => o.taskId === task.id).map(toOption) }));
     });
@@ -60,24 +52,11 @@ export class TaskRepository {
     return this.connection.run(async db => (await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE taskId = ? ORDER BY active DESC, position', id))
       .map(toOption));
   }
-  getScaleVersions(taskId?: string) {
-    return this.connection.run(async db => (await db.getAllAsync<VersionRow>(
-      taskId ? 'SELECT * FROM rating_scale_versions WHERE taskId = ? ORDER BY createdAt, rowid' : 'SELECT * FROM rating_scale_versions ORDER BY createdAt, rowid',
-      ...(taskId ? [taskId] : []))).map(toVersion));
-  }
   getLifecycleTransitions(taskId?: string): Promise<TaskLifecycleTransition[]> {
     return this.connection.run(async db => (await db.getAllAsync<Omit<TaskLifecycleTransition, 'inferred'> & { inferred: number }>(
       taskId ? `SELECT rowid AS sequence, * FROM task_lifecycle_transitions WHERE taskId = ? ORDER BY occurredAt, rowid` :
         `SELECT rowid AS sequence, * FROM task_lifecycle_transitions ORDER BY occurredAt, rowid`,
       ...(taskId ? [taskId] : []))).map(row => ({ ...row, inferred: !!row.inferred })));
-  }
-  async requiresTrendReset(id: string, draft: TaskDraft) {
-    return this.connection.run(async db => {
-      const task = await readTask(db, id);
-      if (!task) throw new Error('Task not found.');
-      if (!reordersExistingOptions(task.options, draft.options)) return false;
-      return !!await db.getFirstAsync('SELECT 1 FROM daily_entries WHERE taskId = ? LIMIT 1', id);
-    });
   }
   create(draft: TaskDraft) {
     return this.connection.transaction(async db => {
@@ -87,28 +66,24 @@ export class TaskRepository {
       const include = draft.includeInCombinedInsights ?? occupied < MAX_COMBINED_INSIGHTS_ITEMS;
       if (include && occupied >= MAX_COMBINED_INSIGHTS_ITEMS) throw new CombinedInsightsLimitError();
       const id = this.id(); const now = new Date().toISOString();
-      const scaleId = this.id(); const epochId = this.id();
       const usedColors = await db.getAllAsync<{ chartColor: string }>(
         'SELECT chartColor FROM tasks WHERE chartColor IS NOT NULL');
       const chartColor = nextTaskColor(usedColors.map(row => row.chartColor));
-      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, currentScaleVersionId, currentTrendEpochId, includeInCombinedInsights) VALUES (?, ?, ?, ?, 1, ?, NULL, ?, ?, ?, ?)',
-        id, draft.name.trim(), now, now, localDate(), chartColor, scaleId, epochId, Number(include));
+      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, includeInCombinedInsights) VALUES (?, ?, ?, ?, 1, ?, NULL, ?, ?, ?)',
+        id, draft.name.trim(), now, now, localDate(), chartColor, Number(include));
       const options = normalizeOptions(id, draft.options, now);
       for (const option of options) await insertOption(db, option);
-      await insertVersion(db, { id: scaleId, taskId: id, trendEpochId: epochId, createdAt: now, effectiveLocalDate: localDate(),
-        options: options.map(({ id, label, position }) => ({ id, label, position })) });
       return (await readTask(db, id))!;
     });
   }
-  update(id: string, draft: TaskDraft, confirmTrendReset = false) {
+  update(id: string, draft: TaskDraft) {
     return this.connection.transaction(async db => {
       const current = await readTask(db, id);
       if (!current) throw new Error('Task not found.');
       const error = validateDraft(draft, current); if (error) throw new Error(error);
-      const reorder = reordersExistingOptions(current.options, draft.options);
       const structural = changesScaleStructure(current.options, draft.options);
-      const hasHistory = reorder && !!await db.getFirstAsync('SELECT 1 FROM daily_entries WHERE taskId = ? LIMIT 1', id);
-      if (hasHistory && !confirmTrendReset) throw new TrendResetConfirmationRequired();
+      if (structural && (current.levelsLocked || !!await db.getFirstAsync(
+        'SELECT 1 FROM daily_entries WHERE taskId = ? LIMIT 1', id))) throw new LevelConfigurationLockedError();
       const now = new Date().toISOString();
       const existing = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE taskId = ?', id);
       // Deactivate first to avoid temporary collisions in the unique position index.
@@ -124,12 +99,8 @@ export class TaskRepository {
       }
       // Used options stay as inactive rows; only unreferenced removed options are deleted.
       await db.runAsync('DELETE FROM task_options WHERE taskId = ? AND active = 0 AND NOT EXISTS (SELECT 1 FROM daily_entries WHERE optionId = task_options.id)', id);
-      const epochId = hasHistory ? this.id() : current.currentTrendEpochId;
-      const scaleId = structural ? this.id() : current.currentScaleVersionId;
-      if (structural) await insertVersion(db, { id: scaleId, taskId: id, trendEpochId: epochId, createdAt: now,
-        effectiveLocalDate: localDate(), options: normalized.map(({ id, label, position }) => ({ id, label, position })) });
-      await db.runAsync('UPDATE tasks SET name = ?, updatedAt = ?, currentScaleVersionId = ?, currentTrendEpochId = ? WHERE id = ?',
-        draft.name.trim(), now, scaleId, epochId, id);
+      await db.runAsync('UPDATE tasks SET name = ?, updatedAt = ? WHERE id = ?',
+        draft.name.trim(), now, id);
       return (await readTask(db, id))!;
     });
   }
@@ -170,12 +141,11 @@ export class TaskRepository {
     return this.connection.transaction(async db => { await db.runAsync('DELETE FROM tasks WHERE active = 0'); });
   }
   deleteAllLocalData() {
-    // Foreign-key cascades remove options, entries, scale versions, and lifecycle
-    // transitions together. Keep app_metadata so legacy data cannot re-import.
+    // Foreign-key cascades remove options, entries, and lifecycle transitions together.
     return this.connection.transaction(async db => { await db.runAsync('DELETE FROM tasks'); });
   }
   createTask(draft: TaskDraft) { return this.create(draft); }
-  updateTask(id: string, draft: TaskDraft, confirmTrendReset = false) { return this.update(id, draft, confirmTrendReset); }
+  updateTask(id: string, draft: TaskDraft) { return this.update(id, draft); }
   archiveTask(id: string) { return this.archive(id); }
   deleteTask(id: string) { return this.delete(id); }
 }

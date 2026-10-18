@@ -29,7 +29,7 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lastPreview = useRef(savedIndex);
-  const lastCommittedId = useRef(entry?.trendEpochIdAtEntry === task.currentTrendEpochId ? entry?.optionId : undefined);
+  const lastCommittedId = useRef(entry?.optionId);
   const savedIndexRef = useRef(savedIndex);
   const thumbX = useSharedValue(SLIDER_INSET);
   const hasSelection = useSharedValue(false);
@@ -43,15 +43,14 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
   useEffect(() => {
     savedIndexRef.current = savedIndex;
     savedIndexShared.set(savedIndex);
-    lastCommittedId.current = entry?.localDate === date && entry.trendEpochIdAtEntry === task.currentTrendEpochId
-      ? entry.optionId : undefined;
+    lastCommittedId.current = entry?.localDate === date ? entry.optionId : undefined;
     if (dragging.get()) return;
     lastPreview.current = savedIndex;
     activeIndex.set(savedIndex);
     hasSelection.set(savedIndex >= 0);
     fillColor.set(savedIndex >= 0 ? colors[savedIndex] : unrecordedColor);
     thumbX.set(savedIndex >= 0 ? sliderXForIndex(savedIndex, width, options.length) : SLIDER_INSET);
-  }, [date, savedIndex, entry?.localDate, entry?.optionId, entry?.trendEpochIdAtEntry, task.currentTrendEpochId, width, options.length, colors, dragging, activeIndex, savedIndexShared, hasSelection, fillColor, thumbX]);
+  }, [date, savedIndex, entry?.localDate, entry?.optionId, width, options.length, colors, dragging, activeIndex, savedIndexShared, hasSelection, fillColor, thumbX]);
 
   const previewStep = useCallback((index: number) => {
     if (lastPreview.current === index) return;
@@ -154,7 +153,7 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
   };
   return <View testID={`activity-card-${task.id}`} collapsable={false} style={styles.card}>
     <View style={styles.heading}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${task.name}, insights`}
+      <Pressable testID={`activity-insights-${task.id}`} accessibilityRole="button" accessibilityLabel={`${task.name}, insights`}
         onPress={() => router.navigate({ pathname: '/insights', params: { task: task.id, mode: 'normal' } })} style={styles.taskLink}>
         <Text testID={`activity-name-${task.id}`} numberOfLines={2} style={styles.taskName}>{task.name}</Text>
       </Pressable>

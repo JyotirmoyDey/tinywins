@@ -18,7 +18,6 @@ test('ten active tasks can be created; an eleventh is rejected atomically', asyn
     await assert.rejects(tasks.create(draft('Eleventh')), error =>
       error instanceof ActiveTaskLimitError && error.message === ACTIVE_TASK_LIMIT_MESSAGE);
     assert.equal((await tasks.getAll()).length, MAX_ACTIVE_TASKS);
-    assert.equal((await tasks.getScaleVersions()).length, MAX_ACTIVE_TASKS);
   } finally { native.close(); }
 });
 

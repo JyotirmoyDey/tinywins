@@ -1,13 +1,13 @@
-import { RatingScaleVersion, TaskLifecycleTransition } from '../domain/task';
+import { TaskLifecycleTransition } from '../domain/task';
 import { AnalyticsEntry, AnalyticsTask } from './types';
 export type AnalyticsPeriod = { startDate: string; endDate: string };
 export type RatingDistributionRow = { optionId: string; label: string; position: number; count: number; percentage: number };
-export type RatingDistributionInput = { task: AnalyticsTask; entries: AnalyticsEntry[]; period: AnalyticsPeriod; scaleVersion?: string; versions?: RatingScaleVersion[] };
-export type PeriodComparisonInput = { task: AnalyticsTask; entries: AnalyticsEntry[]; period: AnalyticsPeriod; versions: RatingScaleVersion[] };
+export type RatingDistributionInput = { task: AnalyticsTask; entries: AnalyticsEntry[]; period: AnalyticsPeriod };
+export type PeriodComparisonInput = { task: AnalyticsTask; entries: AnalyticsEntry[]; period: AnalyticsPeriod };
 export type ComparisonPeriod = AnalyticsPeriod & { days: number; recordedDays: number };
 export type PeriodComparisonRow = { optionId: string; label: string; position: number;
   currentCount: number; previousCount: number; currentPercentage: number; previousPercentage: number };
-export type PeriodComparisonResult = { status: 'ready' | 'no-data' | 'empty-current' | 'empty-previous' | 'incompatible';
+export type PeriodComparisonResult = { status: 'ready' | 'no-data' | 'empty-current' | 'empty-previous';
   current: ComparisonPeriod; previous: ComparisonPeriod; rows: PeriodComparisonRow[];
   currentEntry: AnalyticsEntry | null; previousEntry: AnalyticsEntry | null };
 export type RecordingConsistencyInput = { task: AnalyticsTask; entries: AnalyticsEntry[];
@@ -20,7 +20,7 @@ export type RecordingConsistencyResult = { mode: 'status' | 'daily' | 'weekly' |
   eligibleDays: number; recordedDays: number; percentage: number | null;
   eligibilityStart: string | null; groups: RecordingConsistencyGroup[] };
 export type WeekdayPatternsInput = { task: AnalyticsTask; entries: AnalyticsEntry[];
-  versions: RatingScaleVersion[]; period: AnalyticsPeriod; timeline: '1D' | '7D' | '30D' | '90D' | 'CUSTOM' };
+  period: AnalyticsPeriod; timeline: '1D' | '7D' | '30D' | '90D' | 'CUSTOM' };
 export type WeekdayPatternLevel = { id: string; label: string; active: boolean };
 export type WeekdayPatternCell = { optionId: string; label: string; count: number;
   percentage: number | null; historicalLabels: string[] };
@@ -28,7 +28,7 @@ export type WeekdayPatternRow = { weekday: number; label: string; total: number;
   cells: WeekdayPatternCell[] };
 export type WeekdayPatternsResult = { status: 'today' | 'single-day' | 'insufficient-range' | 'no-data' | 'ready';
   levels: WeekdayPatternLevel[]; rows: WeekdayPatternRow[]; recordedCount: number;
-  excludedHistoryCount: number; limitedSample: boolean; singleDayEntry: AnalyticsEntry | null;
+  limitedSample: boolean; singleDayEntry: AnalyticsEntry | null;
   singleDate: string | null };
 type CalculatorRegistry = {
   ratingDistribution: (input: RatingDistributionInput) => RatingDistributionRow[];

@@ -1,0 +1,88 @@
+appId: com.plainleaf.tinywins
+---
+- evalScript: ${output.activityName = 'MInsights' + Date.now()}
+- launchApp
+- runFlow: helpers/create-activity.yaml
+- tapOn:
+    id: .*activity-slider-.+
+    text: ${output.activityName}, how did it go today?
+- extendedWaitUntil:
+    visible:
+      id: .*activity-current-level-.+
+      text: ^A little$
+    timeout: 20000
+- tapOn:
+    id: .*activity-insights-.+
+    text: ${output.activityName}, insights
+- assertVisible:
+    id: insights-portrait-screen
+- assertVisible:
+    id: insights-chart-rating-trend
+- assertVisible:
+    id: insights-today-rating
+    text: ^A little$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-activity-calendar
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-activity-calendar
+- tapOn:
+    id: insights-section-patterns
+- scrollUntilVisible:
+    element:
+      id: insights-chart-period-comparison
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-period-comparison
+- scrollUntilVisible:
+    element:
+      id: insights-chart-recording-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-recording-consistency
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekday-patterns
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekday-patterns
+
+# The dock re-enters normal All Insights, not an archived or stale task view.
+- tapOn:
+    id: nav-insights
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: UP
+- assertVisible:
+    id: insights-chart-journey-together
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-combined-consistency
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-calendar
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-combined-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekly-checkins
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekly-checkins
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^A little$
+- runFlow: helpers/delete-activity.yaml

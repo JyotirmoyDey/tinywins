@@ -1,0 +1,86 @@
+appId: com.plainleaf.tinywins
+---
+# A single check-in today yields different current-period denominators while
+# retaining the same recorded value. This does not touch unrelated data.
+- evalScript: ${output.activityName = 'MDate' + Date.now()}
+- launchApp
+- runFlow: helpers/create-activity.yaml
+- tapOn:
+    id: .*activity-slider-.+
+    text: ${output.activityName}, how did it go today?
+- extendedWaitUntil:
+    visible:
+      id: .*activity-current-level-.+
+      text: ^A little$
+    timeout: 20000
+- tapOn:
+    id: .*activity-insights-.+
+    text: ${output.activityName}, insights
+- assertVisible:
+    id: insights-today-rating
+    text: ^A little$
+- tapOn:
+    id: insights-section-patterns
+- scrollUntilVisible:
+    element:
+      id: period-current-coverage
+    direction: DOWN
+- assertVisible:
+    id: period-current-coverage
+    text: ^1 of 1 day$
+
+- tapOn:
+    id: insights-date-filter
+- tapOn: Last 7 days
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 7D
+- assertVisible:
+    id: period-current-coverage
+    text: ^1 of 7 days$
+- tapOn:
+    id: insights-date-filter
+- tapOn: Last 30 days
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 30D
+- assertVisible:
+    id: period-current-coverage
+    text: ^1 of 30 days$
+- tapOn:
+    id: insights-date-filter
+- tapOn: Last 90 days
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 90D
+- assertVisible:
+    id: period-current-coverage
+    text: ^1 of 90 days$
+
+- tapOn:
+    id: insights-date-filter
+- tapOn: Custom range
+- assertVisible:
+    id: custom-date-range-sheet
+- assertVisible:
+    id: custom-date-from
+- assertVisible:
+    id: custom-date-to
+- tapOn:
+    id: custom-date-all-available
+- tapOn:
+    id: custom-date-apply
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, Custom.*
+- assertVisible:
+    id: period-current-coverage
+    text: ^1 of 1 day$
+
+# Switching ranges never changes the saved check-in.
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: .*activity-current-level-.+
+    text: ^A little$
+- runFlow: helpers/delete-activity.yaml

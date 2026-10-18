@@ -16,7 +16,7 @@ test('local reset removes active and archived tasks with all dependent history',
     const storage = new Map([[LEGACY_DATABASE_KEY, 'old backup']]);
     await clearLocalRecords(db.tasks, { removeItem: async key => { storage.delete(key); } });
     for (const table of ['tasks', 'task_options', 'daily_entries',
-      'rating_scale_versions', 'task_lifecycle_transitions']) {
+      'task_lifecycle_transitions']) {
       assert.equal((db.native.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get() as { count: number }).count, 0);
     }
     assert.equal(storage.size, 0);
@@ -32,8 +32,7 @@ test('reset clears cached selections and notifies subscribers', () => {
   const store = new EntryStore();
   const entry = { id: 'entry', taskId: 'task', optionId: 'choice', localDate: '2026-09-20',
     createdAt: '', updatedAt: '', optionLabelAtEntry: 'Low', positionAtEntry: 1,
-    rankAtEntry: 1, normalizedWeightAtEntry: 0, scaleVersionIdAtEntry: 'scale',
-    trendEpochIdAtEntry: 'epoch' };
+    rankAtEntry: 1, normalizedWeightAtEntry: 0 };
   store.hydrateDate(entry.localDate, [entry]);
   let notifications = 0;
   const unsubscribe = store.subscribe(entry.taskId, entry.localDate, () => { notifications++; });

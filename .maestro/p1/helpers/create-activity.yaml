@@ -1,0 +1,20 @@
+appId: com.plainleaf.tinywins
+---
+# The caller sets output.activityName. No app data is cleared.
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+- tapOn:
+    id: activity-name-input
+- inputText: ${output.activityName}
+- hideKeyboard
+- tapOn:
+    id: save-activity-button
+- extendedWaitUntil:
+    visible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000

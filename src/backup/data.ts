@@ -5,12 +5,10 @@ import { MAX_PLAINTEXT_BYTES, PAYLOAD_VERSION, BackupFormatError } from './forma
 import { characterCount, MAX_OPTION_DESCRIPTION_CHARACTERS } from '../domain/inputLimits';
 
 const columns = {
-  tasks: ['id', 'name', 'createdAt', 'updatedAt', 'active', 'currentScaleVersionId',
-    'currentTrendEpochId', 'createdLocalDate', 'archivedAt', 'chartColor', 'includeInCombinedInsights'],
+  tasks: ['id', 'name', 'createdAt', 'updatedAt', 'active', 'createdLocalDate', 'archivedAt', 'chartColor', 'includeInCombinedInsights', 'levelsLocked'],
   task_options: ['id', 'taskId', 'label', 'position', 'rank', 'normalizedWeight', 'active', 'createdAt', 'updatedAt', 'description'],
-  rating_scale_versions: ['id', 'taskId', 'trendEpochId', 'createdAt', 'effectiveLocalDate', 'optionsJson'],
   daily_entries: ['id', 'taskId', 'optionId', 'localDate', 'createdAt', 'updatedAt', 'optionLabelAtEntry',
-    'positionAtEntry', 'rankAtEntry', 'normalizedWeightAtEntry', 'scaleVersionIdAtEntry', 'trendEpochIdAtEntry'],
+    'positionAtEntry', 'rankAtEntry', 'normalizedWeightAtEntry'],
   task_lifecycle_transitions: ['id', 'taskId', 'type', 'occurredAt', 'localDate', 'utcOffsetMinutes',
     'timeZone', 'inferred'],
 } as const;
@@ -18,17 +16,17 @@ export type BackupTable = keyof typeof columns;
 type Row = Record<string, SqlValue>;
 export type BackupTables = Record<BackupTable, Row[]>;
 export interface BackupPayload {
-  dataVersion: 1;
+  dataVersion: 2;
   sourceDatabaseVersion: number;
   createdAt: string;
   tables: BackupTables;
 }
 
 const tableNames = Object.keys(columns) as BackupTable[];
-const order = ['tasks', 'task_options', 'rating_scale_versions', 'daily_entries',
+const order = ['tasks', 'task_options', 'daily_entries',
   'task_lifecycle_transitions'] as const;
 const limits: Record<BackupTable, number> = { tasks: 10_000, task_options: 100_000,
-  rating_scale_versions: 100_000, daily_entries: 1_000_000, task_lifecycle_transitions: 100_000 };
+  daily_entries: 1_000_000, task_lifecycle_transitions: 100_000 };
 
 function fail(): never { throw new BackupFormatError('The backup contains invalid or incomplete data.'); }
 function string(value: unknown, nullable = false): value is string | null {
@@ -48,14 +46,16 @@ function timestamp(value: unknown) { return typeof value === 'string' && string(
 function checkRow(table: BackupTable, row: Row) {
   const expected = columns[table];
   const legacyOption = table === 'task_options' && !('description' in row);
-  if (Object.keys(row).length !== expected.length - (legacyOption ? 1 : 0) ||
-    expected.some(column => !(column in row) && !(legacyOption && column === 'description'))) fail();
+  const legacyTask = table === 'tasks' && !('levelsLocked' in row);
+  if (Object.keys(row).length !== expected.length - Number(legacyOption) - Number(legacyTask) ||
+    expected.some(column => !(column in row) && !(legacyOption && column === 'description') &&
+      !(legacyTask && column === 'levelsLocked'))) fail();
   if (!string(row.id)) fail();
   if (table === 'tasks') {
     if (!string(row.name) || typeof row.name !== 'string' || !row.name.trim() || !timestamp(row.createdAt) ||
       !timestamp(row.updatedAt) || !integer(row.active, 0, 1) ||
       !integer(row.includeInCombinedInsights, 0, 1) ||
-      !string(row.currentScaleVersionId) || !string(row.currentTrendEpochId) ||
+      !(!('levelsLocked' in row) || integer(row.levelsLocked, 0, 1)) ||
       !(row.createdLocalDate === null || date(row.createdLocalDate)) ||
       !(row.archivedAt === null || timestamp(row.archivedAt)) || !string(row.chartColor, true)) fail();
   } else if (table === 'task_options') {
@@ -65,21 +65,11 @@ function checkRow(table: BackupTable, row: Row) {
       !integer(row.position, 1) || !integer(row.rank, 1) ||
       !integer(row.normalizedWeight, 0, 100) || !integer(row.active, 0, 1) ||
       !timestamp(row.createdAt) || !timestamp(row.updatedAt)) fail();
-  } else if (table === 'rating_scale_versions') {
-    if (!string(row.taskId) || !string(row.trendEpochId) || !timestamp(row.createdAt) ||
-      !date(row.effectiveLocalDate) || !string(row.optionsJson)) fail();
-    try {
-      const options: unknown = JSON.parse(row.optionsJson as string);
-      if (!Array.isArray(options) || options.length < 2 || options.length > 1000 ||
-        options.some(option => !option || typeof option !== 'object' ||
-          !string(option.id) || !string(option.label) || !integer(option.position, 1))) fail();
-    } catch { fail(); }
   } else if (table === 'daily_entries') {
     if (!string(row.taskId) || !string(row.optionId) || !date(row.localDate) ||
       !timestamp(row.createdAt) || !timestamp(row.updatedAt) ||
       !string(row.optionLabelAtEntry) || !integer(row.positionAtEntry, 1) ||
-      !integer(row.rankAtEntry, 1) || !integer(row.normalizedWeightAtEntry, 0, 100) ||
-      !string(row.scaleVersionIdAtEntry) || !string(row.trendEpochIdAtEntry)) fail();
+      !integer(row.rankAtEntry, 1) || !integer(row.normalizedWeightAtEntry, 0, 100)) fail();
   } else if (table === 'task_lifecycle_transitions') {
     if (!string(row.taskId) || !['archived', 'restored'].includes(String(row.type)) ||
       !timestamp(row.occurredAt) || !date(row.localDate) ||
@@ -110,27 +100,25 @@ export function validateBackupPayload(value: unknown): BackupPayload {
   }
   const tasks = new Map(payload.tables.tasks.map(row => [row.id, row]));
   const options = new Map(payload.tables.task_options.map(row => [row.id, row]));
-  const versions = new Map(payload.tables.rating_scale_versions.map(row => [row.id, row]));
   const entryDays = new Set<string>();
   for (const row of payload.tables.tasks) {
-    const version = versions.get(row.currentScaleVersionId);
-    if (!version || version.taskId !== row.id || version.trendEpochId !== row.currentTrendEpochId ||
-      payload.tables.task_options.filter(option => option.taskId === row.id && option.active === 1).length < 2) fail();
+    if (payload.tables.task_options.filter(option => option.taskId === row.id && option.active === 1).length < 2) fail();
   }
   for (const row of payload.tables.task_options) if (!tasks.has(row.taskId)) fail();
-  for (const row of payload.tables.rating_scale_versions) if (!tasks.has(row.taskId)) fail();
   for (const row of payload.tables.task_lifecycle_transitions) if (!tasks.has(row.taskId)) fail();
   for (const row of payload.tables.daily_entries) {
-    const option = options.get(row.optionId), version = versions.get(row.scaleVersionIdAtEntry);
+    const option = options.get(row.optionId);
     const unique = `${row.taskId}\u0000${row.localDate}`;
     if (!tasks.has(row.taskId) || !option || option.taskId !== row.taskId ||
-      !version || version.taskId !== row.taskId || version.trendEpochId !== row.trendEpochIdAtEntry ||
       entryDays.has(unique)) fail();
     entryDays.add(unique);
   }
-  // Existing v1 backups predate descriptions. Add the nullable column in memory
-  // so restoring them into the current SQLite schema remains lossless and atomic.
+  // Older backups predate descriptions and the permanent level lock. Infer the
+  // lock from retained entries; absence cannot prove a cleared past check-in.
+  const recordedTaskIds = new Set(payload.tables.daily_entries.map(row => row.taskId));
   return { ...payload, tables: { ...payload.tables,
+    tasks: payload.tables.tasks.map(row => ({ ...row,
+      levelsLocked: recordedTaskIds.has(row.id) ? 1 : (row.levelsLocked ?? 0) })),
     task_options: payload.tables.task_options.map(row => 'description' in row ? row : { ...row, description: null }) } };
 }
 

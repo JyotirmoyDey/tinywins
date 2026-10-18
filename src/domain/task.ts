@@ -12,7 +12,8 @@ export interface Task {
   createdLocalDate?: string | null; archivedAt?: string | null;
   /** Assigned once; archiving, restoring, and task ordering never change it. */
   chartColor?: string | null;
-  currentScaleVersionId: string; currentTrendEpochId: string;
+  /** Permanently set by the first successful recording, even if it is later cleared. */
+  levelsLocked?: boolean;
   /** Current choices only. Retired options remain in the database. */
   options: TaskOption[];
 }
@@ -31,14 +32,6 @@ export interface DailyEntry {
   createdAt: string; updatedAt: string;
   optionLabelAtEntry: string; positionAtEntry: number; rankAtEntry: number | null; // null only for pre-snapshot legacy rows
   normalizedWeightAtEntry: number;
-  /** Immutable identities captured when this response was explicitly saved. */
-  scaleVersionIdAtEntry: string; trendEpochIdAtEntry: string;
-}
-
-export interface RatingScaleVersion {
-  id: string; taskId: string; trendEpochId: string; createdAt: string; effectiveLocalDate: string;
-  /** Immutable ordered options for this version. Current TaskOption rows may later change. */
-  options: { id: string; label: string; position: number }[];
 }
 
 export interface EntrySnapshot {

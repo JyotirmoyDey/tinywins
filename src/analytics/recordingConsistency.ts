@@ -45,7 +45,7 @@ function modeFor(input: RecordingConsistencyInput, dates: string[]): RecordingCo
   return 'weekly';
 }
 
-/** Presence-only coverage: option IDs, labels, weights, and scale versions do not affect it. */
+/** Presence-only coverage: option IDs, labels, and weights do not affect it. */
 export function recordingConsistency(input: RecordingConsistencyInput): RecordingConsistencyResult {
   const dates = selectedDates(input);
   const mode = modeFor(input, dates);

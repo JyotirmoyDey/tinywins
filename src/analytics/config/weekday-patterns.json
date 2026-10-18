@@ -16,7 +16,6 @@
     "denominator": "recorded-weekday-entries",
     "weekStartsOn": "monday",
     "excludeMissing": true,
-    "trendEpoch": "current",
     "limitedSampleBelow": 14
   },
   "presentation": {

@@ -11,11 +11,10 @@ import { OptionDraft, Task, TaskDraft, validateDraft } from '../domain/task';
 import { useKeyboardFocus } from '../hooks/useKeyboardFocus';
 import { keyboardContentPadding } from '../hooks/keyboardFocusMath';
 import { useTasks } from '../state/TasksProvider';
-import { getRepositories } from '../data/runtime';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
 import { Button } from './ui';
 import { EditableOptionRow } from './EditableOptionRow';
-import { ActiveTaskLimitError, CombinedInsightsLimitError } from '../data/repository';
+import { ActiveTaskLimitError, CombinedInsightsLimitError, LevelConfigurationLockedError } from '../data/repository';
 import { ACTIVE_TASK_LIMIT_MESSAGE, MAX_ACTIVE_TASKS } from '../config/taskLimits';
 import { COMBINED_INSIGHTS_LIMIT_MESSAGE } from '../config/combinedInsights';
 import { characterCount, nativeTextMaxLength, MAX_NAME_CHARACTERS, MAX_OPTION_CHARACTERS, MAX_OPTION_DESCRIPTION_CHARACTERS } from '../domain/inputLimits';
@@ -31,6 +30,7 @@ export function TaskForm({ task, exampleId }: { task?: Task; exampleId?: string 
   const router = useRouter(); const navigation = useNavigation(); const { data, loading, mutate, reload } = useTasks();
   const activeCount = data.tasks.filter(item => item.active).length;
   const atLimit = !task && !loading && activeCount >= MAX_ACTIVE_TASKS;
+  const levelsLocked = !!task?.levelsLocked;
   const [suggestion] = useState(() => task ? undefined : createSuggestedDraft(exampleId, randomUUID));
   const [name, setName] = useState(task?.name ?? suggestion?.name ?? '');
   const [options, setOptions] = useState<OptionDraft[]>(() => task?.options.map(({ id, label, description }) => ({ id, label, description })) ?? suggestion?.options ?? createLevelTemplateOptions('custom', randomUUID));
@@ -135,7 +135,6 @@ export function TaskForm({ task, exampleId }: { task?: Task; exampleId?: string 
     if (removedLevels.current.length) startRemovalTimer();
     else { clearRemovalTimer(); setShowRemovalSnackbar(false); }
   };
-  const mutateCheck = async (id: string, draft: TaskDraft) => (await getRepositories()).tasks.requiresTrendReset(id, draft);
   const save = async () => {
     if (busy || sorting) return;
     if (!task && (loading || atLimit)) {
@@ -154,9 +153,9 @@ export function TaskForm({ task, exampleId }: { task?: Task; exampleId?: string 
     }
     saving.current = true; setBusy(true); setError(null); Keyboard.dismiss();
     if (!task) logger.info('Activity create started', { operation: 'create' });
-    const persist = async (confirmTrendReset: boolean) => {
+    const persist = async () => {
       try {
-        await mutate(repo => task ? repo.updateTask(task.id, draft, confirmTrendReset) : repo.createTask(draft));
+        await mutate(repo => task ? repo.updateTask(task.id, draft) : repo.createTask(draft));
         if (!task) {
           trackActivityCreated(options.length, activeCount + 1);
           logger.info('Activity create completed', { operation: 'create', activity_count: activeCount + 1, level_count: options.length });
@@ -169,6 +168,9 @@ export function TaskForm({ task, exampleId }: { task?: Task; exampleId?: string 
         } else if (failure instanceof CombinedInsightsLimitError) {
           setError(COMBINED_INSIGHTS_LIMIT_MESSAGE);
           void reload();
+        } else if (failure instanceof LevelConfigurationLockedError) {
+          setError(failure.message);
+          void reload();
         } else {
           logger.error(task ? 'Activity edit failed' : 'Activity create failed', { operation: 'database_write' }, failure);
           setError('Could not save your changes. Please try again.');
@@ -176,20 +178,7 @@ export function TaskForm({ task, exampleId }: { task?: Task; exampleId?: string 
         saving.current = false; setBusy(false);
       }
     };
-    if (task) {
-      try {
-        const needsReset = await mutateCheck(task.id, draft);
-        if (needsReset) {
-          Alert.alert('Reset your trend?',
-            'Changing the order of your levels will restart the trend graph. Your previous check-ins will be preserved, but the new trend will begin with the updated level order.',
-            [{ text: 'Cancel', style: 'cancel', onPress: () => { saving.current = false; setBusy(false); } },
-              { text: 'Reorder and reset', onPress: () => void persist(true) }],
-            { cancelable: false });
-          return;
-        }
-      } catch (cause) { logger.error('Activity edit failed', { operation: 'database_read' }, cause); setError('Could not check these changes. Please try again.'); saving.current = false; setBusy(false); return; }
-    }
-    await persist(false);
+    await persist();
   };
   return <GestureHandlerRootView style={{ flex: 1 }}><SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -220,6 +209,9 @@ export function TaskForm({ task, exampleId }: { task?: Task; exampleId?: string 
           placeholderTextColor={c.textSecondary} accessibilityLabel="Name" returnKeyType="next" submitBehavior="submit"
           onSubmitEditing={() => inputs.current[options[0].id]?.focus()} style={styles.nameInput} editable={!busy && !sorting} />
         <Text style={[t.sectionTitle, styles.levelHeading]}>How will you describe your days?</Text>
+        <Text style={styles.levelLockHint}>{levelsLocked
+          ? 'Your level order and number are now fixed. You can still edit names and descriptions.'
+          : 'Levels become permanent after your first check-in. You can still edit their names and descriptions.'}</Text>
         {!task && <>
           <Text style={styles.templatePrompt}>Choose a starting point. Make it your own.</Text>
           <View style={styles.templateChoices} accessibilityRole="radiogroup">
@@ -237,6 +229,7 @@ export function TaskForm({ task, exampleId }: { task?: Task; exampleId?: string 
           <Text style={styles.orderText}>{options.length} levels</Text></View>
         <View style={{ height: options.length * OPTION_ROW_HEIGHT }} pointerEvents={busy ? 'none' : 'auto'}>{options.map((option, index) => <EditableOptionRow key={option.id}
           disabled={busy || sorting} onFocus={row => onKeyboardFocus(inputs.current[option.id], s.xxxl, row)}
+          structureLocked={levelsLocked}
           positions={positions} activeId={activeId} onDragStateChange={setSorting}
           option={option} index={index} count={options.length} minimumCount={MIN_NEW_ACTIVITY_LEVELS} scrollGesture={scrollGesture}
           inputRef={input => { inputs.current[option.id] = input; }}
@@ -258,15 +251,15 @@ export function TaskForm({ task, exampleId }: { task?: Task; exampleId?: string 
             setError(null);
             setLimitNotice(result.exceeded ? `Level descriptions can be up to ${MAX_OPTION_DESCRIPTION_CHARACTERS} characters.` : null);
           }}
-          onRemove={() => removeOption(option.id)}
-          onMove={moveOption} />)}</View>
+          onRemove={() => { if (!levelsLocked) removeOption(option.id); }}
+          onMove={(id, to) => { if (!levelsLocked) moveOption(id, to); }} />)}</View>
         <Text style={[styles.orderText, { marginBottom: s.xl }]}>More</Text>
-        <Button testID="add-level-button" label={options.length > MAX_RATING_LEVELS ? 'Remove levels to add another'
+        {!levelsLocked && <Button testID="add-level-button" label={options.length > MAX_RATING_LEVELS ? 'Remove levels to add another'
           : options.length === MAX_RATING_LEVELS ? `Maximum of ${MAX_RATING_LEVELS} levels` : '＋ Add level'} subtle
           disabled={busy || sorting || options.length >= MAX_RATING_LEVELS || options.some(o => !o.label.trim())} onPress={() => {
             animate(); clearRemovalHistory(); const id = randomUUID(); newOption.current = id; updateOptions(current => [...current, { id, label: '' }]);
-          }} />
-        {options.length > MAX_RATING_LEVELS && <Text style={[t.secondary, { color: c.textSecondary, marginTop: s.md }]}>
+          }} />}
+        {!levelsLocked && options.length > MAX_RATING_LEVELS && <Text style={[t.secondary, { color: c.textSecondary, marginTop: s.md }]}>
           Your existing levels are preserved. Remove levels to reach the current limit of {MAX_RATING_LEVELS}.
         </Text>}
       </ScrollView></GestureDetector></View>
@@ -289,6 +282,7 @@ const styles = StyleSheet.create({
   limitMessage: { ...t.secondary, color: c.textSecondary, marginBottom: s.lg },
   nameInput: { ...t.body, color: c.textPrimary, backgroundColor: c.surface, minHeight: 56, borderWidth: 1, borderColor: c.borderStrong, borderRadius: r.md, padding: s.lg },
   levelHeading: { color: c.textPrimary, marginTop: s.xxxl },
+  levelLockHint: { ...t.secondary, color: c.textSecondary, marginTop: s.sm },
   templatePrompt: { ...t.secondary, color: c.textSecondary, marginTop: s.sm, marginBottom: s.md },
   templateChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: s.sm },
   templateChoice: { width: '48%', flexGrow: 1, minHeight: 58, alignItems: 'center', justifyContent: 'center',

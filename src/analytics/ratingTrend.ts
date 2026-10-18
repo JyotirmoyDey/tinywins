@@ -1,26 +1,25 @@
 import config from './config/rating-trend.json';
-import { localDate, parseLocalDate, RatingScaleVersion } from '../domain/task';
+import { localDate, parseLocalDate } from '../domain/task';
 import { AnalyticsEntry, AnalyticsTask } from './types';
 
 export interface TrendPeriod { startDate: string; endDate: string }
 export interface TrendLevel { id: string; label: string; active: boolean }
 export interface TrendObservation {
   date: string; optionId: string; labelAtEntry: string;
-  levelIndex: number; scaleVersionId: string; connectsToPrevious: boolean;
+  levelIndex: number; connectsToPrevious: boolean;
 }
 export interface RatingTrendData {
   dates: string[]; levels: TrendLevel[]; observations: TrendObservation[];
-  scaleChangeDates: string[]; epochId: string; isNewEpochEmpty: boolean;
 }
 export interface RatingTrendInput {
-  task: AnalyticsTask; entries: AnalyticsEntry[]; versions: RatingScaleVersion[]; period: TrendPeriod;
+  task: AnalyticsTask; entries: AnalyticsEntry[]; period: TrendPeriod;
 }
 export const ratingTrendConfig = config;
 export function validateRatingTrendConfig(value: typeof config) {
   if (value.id !== 'rating-trend' || value.calculator !== 'ratingTrend' ||
     value.type !== 'adaptive-categorical' || value.timeline !== 'shared' ||
     value.calculation.categoryIdentity !== 'optionId' || !value.calculation.excludeMissing ||
-    !value.calculation.connectConsecutiveDaysOnly || !value.calculation.breakOnScaleVersionChange ||
+    !value.calculation.connectConsecutiveDaysOnly ||
     !value.visible || value.displayOrder !== 1 ||
     value.calculation.weekStartsOn !== 'monday' || value.calculation.weeklyMiddle !== 'lower' ||
     value.presentation.sparseMaxObservations !== 1 ||
@@ -50,26 +49,10 @@ function calendarDates(period: TrendPeriod) {
   for (const day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) dates.push(localDate(day));
   return dates;
 }
-function buildLevels(task: AnalyticsTask, relevant: AnalyticsEntry[], versions: RatingScaleVersion[]): TrendLevel[] {
+export function getHistoricalLevels(task: AnalyticsTask, relevant: AnalyticsEntry[]): TrendLevel[] {
   const active = task.options.slice().sort((a, b) => a.position - b.position);
-  const activeIds = new Set(active.map(option => option.id));
-  const referenced = new Set(relevant.map(entry => entry.optionId));
   const levels: TrendLevel[] = active.map(option => ({ id: option.id, label: option.label, active: true }));
-  const historical = versions.slice().sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  for (const version of historical) {
-    const order = version.options.slice().sort((a, b) => a.position - b.position);
-    for (let i = 0; i < order.length; i++) {
-      const option = order[i];
-      if (activeIds.has(option.id) || !referenced.has(option.id) || levels.some(level => level.id === option.id)) continue;
-      const before = order.slice(0, i).reverse().find(candidate => levels.some(level => level.id === candidate.id));
-      const after = order.slice(i + 1).find(candidate => levels.some(level => level.id === candidate.id));
-      const insertAt = before ? levels.findIndex(level => level.id === before.id) + 1 :
-        after ? levels.findIndex(level => level.id === after.id) : levels.length;
-      levels.splice(insertAt, 0, { id: option.id, label: option.label, active: false });
-    }
-  }
-  // A migrated legacy record may refer to an option absent from the recovered
-  // current configuration. Its saved identity and label remain readable.
+  // Retired choices with history remain represented by the immutable entry snapshot.
   for (const entry of relevant) {
     if (levels.some(level => level.id === entry.optionId)) continue;
     const position = Math.max(0, Math.min(levels.length, entry.positionAtEntry - 1));
@@ -80,12 +63,10 @@ function buildLevels(task: AnalyticsTask, relevant: AnalyticsEntry[], versions: 
 export function ratingTrend(input: RatingTrendInput): RatingTrendData {
   const dates = calendarDates(input.period);
   const dateSet = new Set(dates);
-  const currentEpoch = input.task.currentTrendEpochId;
   const relevant = input.entries.filter(entry => entry.taskId === input.task.id &&
-    entry.trendEpochIdAtEntry === currentEpoch && dateSet.has(entry.localDate))
+    dateSet.has(entry.localDate))
     .sort((a, b) => a.localDate.localeCompare(b.localDate));
-  const versions = input.versions.filter(version => version.taskId === input.task.id && version.trendEpochId === currentEpoch);
-  const levels = buildLevels(input.task, relevant, versions);
+  const levels = getHistoricalLevels(input.task, relevant);
   const byDate = new Map(relevant.map(entry => [entry.localDate, entry]));
   const observations: TrendObservation[] = [];
   dates.forEach((date, index) => {
@@ -94,14 +75,9 @@ export function ratingTrend(input: RatingTrendInput): RatingTrendData {
     const previous = index > 0 ? byDate.get(dates[index - 1]) : undefined;
     observations.push({ date, optionId: entry.optionId, labelAtEntry: entry.optionLabelAtEntry,
       levelIndex: levels.findIndex(level => level.id === entry.optionId),
-      scaleVersionId: entry.scaleVersionIdAtEntry,
-      connectsToPrevious: !!previous && previous.scaleVersionIdAtEntry === entry.scaleVersionIdAtEntry });
+      connectsToPrevious: !!previous });
   });
-  const scaleChangeDates = versions.filter(version => version.id !== versions[0]?.id &&
-    dateSet.has(version.effectiveLocalDate)).map(version => version.effectiveLocalDate);
-  const hasPriorEpoch = input.versions.some(version => version.taskId === input.task.id && version.trendEpochId !== currentEpoch);
-  const hasCurrentEntry = input.entries.some(entry => entry.taskId === input.task.id && entry.trendEpochIdAtEntry === currentEpoch);
-  return { dates, levels, observations, scaleChangeDates, epochId: currentEpoch, isNewEpochEmpty: hasPriorEpoch && !hasCurrentEntry };
+  return { dates, levels, observations };
 }
 type Calculator = (input: RatingTrendInput) => RatingTrendData;
 const calculators: Record<string, Calculator> = { ratingTrend };

@@ -26,8 +26,7 @@ export class DailyEntryRepository {
       const option = await db.getFirstAsync<TaskOption>('SELECT * FROM task_options WHERE id = ? AND taskId = ? AND active = 1', optionId, taskId);
       if (!option) throw new Error('This choice is no longer available.');
       const task = await db.getFirstAsync<{ id: string; active: number; createdAt: string;
-        createdLocalDate: string | null; archivedAt: string | null;
-        currentScaleVersionId: string; currentTrendEpochId: string }>('SELECT * FROM tasks WHERE id = ?', taskId);
+        createdLocalDate: string | null; archivedAt: string | null }>('SELECT * FROM tasks WHERE id = ?', taskId);
       if (!task) throw new Error('Task not found.');
       if (!task.active && date === localDate()) throw new Error('Restore this activity before recording today.');
       const existing = await db.getFirstAsync<DailyEntry>(
@@ -49,13 +48,13 @@ export class DailyEntryRepository {
       }
       const now = new Date().toISOString();
       const snapshot = createEntrySnapshot({ ...option, active: !!option.active });
-      await db.runAsync(`INSERT INTO daily_entries(id, taskId, optionId, localDate, createdAt, updatedAt, optionLabelAtEntry, positionAtEntry, rankAtEntry, normalizedWeightAtEntry, scaleVersionIdAtEntry, trendEpochIdAtEntry)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      await db.runAsync(`INSERT INTO daily_entries(id, taskId, optionId, localDate, createdAt, updatedAt, optionLabelAtEntry, positionAtEntry, rankAtEntry, normalizedWeightAtEntry)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(taskId, localDate) DO UPDATE SET optionId = excluded.optionId,
         updatedAt = excluded.updatedAt, optionLabelAtEntry = excluded.optionLabelAtEntry, positionAtEntry = excluded.positionAtEntry,
-        rankAtEntry = excluded.rankAtEntry, normalizedWeightAtEntry = excluded.normalizedWeightAtEntry,
-        scaleVersionIdAtEntry = excluded.scaleVersionIdAtEntry, trendEpochIdAtEntry = excluded.trendEpochIdAtEntry`,
-      this.id(), taskId, optionId, date, now, now, snapshot.optionLabelAtEntry, snapshot.positionAtEntry, snapshot.rankAtEntry, snapshot.normalizedWeightAtEntry, task.currentScaleVersionId, task.currentTrendEpochId);
+        rankAtEntry = excluded.rankAtEntry, normalizedWeightAtEntry = excluded.normalizedWeightAtEntry`,
+      this.id(), taskId, optionId, date, now, now, snapshot.optionLabelAtEntry, snapshot.positionAtEntry, snapshot.rankAtEntry, snapshot.normalizedWeightAtEntry);
+      await db.runAsync('UPDATE tasks SET levelsLocked = 1 WHERE id = ? AND levelsLocked = 0', taskId);
       return (await db.getFirstAsync<DailyEntry>('SELECT * FROM daily_entries WHERE taskId = ? AND localDate = ?', taskId, date))!;
     });
   }

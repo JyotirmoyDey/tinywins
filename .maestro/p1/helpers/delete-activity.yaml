@@ -1,0 +1,23 @@
+appId: com.plainleaf.tinywins
+---
+# Removes only the item named by output.activityName.
+- tapOn:
+    id: nav-home
+- extendedWaitUntil:
+    visible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000
+- tapOn:
+    id: .*activity-menu-.+
+    text: Actions for ${output.activityName}
+- tapOn:
+    id: delete-activity-action
+- assertVisible: Delete ${output.activityName}?
+- tapOn:
+    text: ^Delete$
+- extendedWaitUntil:
+    notVisible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000

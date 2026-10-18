@@ -12,19 +12,16 @@ const today = '2026-09-25';
 const task: AnalyticsTask = {
   id: 'study', name: 'Study', active: true, color: '#398F80',
   createdAt: '2026-09-01T08:00:00.000Z', updatedAt: '2026-09-25T12:00:00.000Z',
-  currentScaleVersionId: 'v2', currentTrendEpochId: 'epoch-2',
   options: [
     { id: 'low', label: 'Skipped', position: 1, rank: 1, normalizedWeight: 0 },
     { id: 'high', label: 'High', position: 2, rank: 2, normalizedWeight: 100 },
   ],
 };
-function entry(date: string, optionId = 'low', taskId = task.id,
-  scaleVersionIdAtEntry = 'v1', trendEpochIdAtEntry = 'epoch-1'): AnalyticsEntry {
+function entry(date: string, optionId = 'low', taskId = task.id): AnalyticsEntry {
   return { id: `${taskId}-${date}`, taskId, optionId, localDate: date,
     optionLabelAtEntry: optionId === 'low' ? 'Skipped' : 'High',
     positionAtEntry: optionId === 'low' ? 1 : 2,
-    normalizedWeightAtEntry: optionId === 'low' ? 0 : 100,
-    scaleVersionIdAtEntry, trendEpochIdAtEntry };
+    normalizedWeightAtEntry: optionId === 'low' ? 0 : 100 };
 }
 function calculate(period: { startDate: string; endDate: string },
   entries: AnalyticsEntry[] = [], selectedTask = task,
@@ -118,10 +115,9 @@ test('days before creation and future dates are excluded', () => {
     [], newTask).status, 'no-eligible-days');
 });
 
-test('scale additions, renames, archives and trend resets do not reset presence history', () => {
+test('level labels and historical scale changes do not affect presence history', () => {
   const result = calculate({ startDate: '2026-09-18', endDate: '2026-09-24' }, [
-    entry('2026-09-18', 'low', task.id, 'old-scale', 'old-epoch'),
-    entry('2026-09-19', 'high', task.id, 'new-scale', 'new-epoch'),
+    entry('2026-09-18', 'low'), entry('2026-09-19', 'high'),
   ]);
   assert.equal(result.recordedDays, 2);
   assert.equal(result.eligibleDays, 7);
@@ -155,8 +151,7 @@ test('My Data SQLite and Demo Data use the same calculator without mixing tasks'
       { id: 'skip', label: 'Skipped' }, { id: 'done', label: 'Done' },
     ] });
     await db.entries.upsert(saved.id, '2026-09-22', 'skip');
-    const own = getAnalyticsDataset([(await db.tasks.getById(saved.id))!],
-      await db.entries.getAll(), await db.tasks.getScaleVersions());
+    const own = getAnalyticsDataset([(await db.tasks.getById(saved.id))!], await db.entries.getAll());
     const demo = loadDemoDataset();
     const period = { startDate: '2026-09-16', endDate: '2026-09-22' };
     const myResult = calculate(period, own.entries, own.tasks[0], '7D');

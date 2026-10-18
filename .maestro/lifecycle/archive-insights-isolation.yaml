@@ -1,0 +1,131 @@
+appId: com.plainleaf.tinywins
+---
+# Requires one free active-item and Combined Insights slot. Never clears data.
+- evalScript: ${output.activityName = 'MArchive' + Date.now()}
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+- tapOn:
+    id: activity-name-input
+- inputText: ${output.activityName}
+- hideKeyboard
+- tapOn:
+    id: save-activity-button
+- extendedWaitUntil:
+    visible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000
+- tapOn:
+    id: .*activity-slider-.+
+    text: ${output.activityName}, how did it go today?
+- extendedWaitUntil:
+    visible:
+      id: .*activity-current-level-.+
+      text: A little
+    timeout: 20000
+
+# Fail rather than give a false pass if this item was not in All before archive.
+- tapOn:
+    id: nav-insights
+- assertVisible: Insights
+- assertVisible: All
+- runFlow:
+    when:
+      visible: Show all
+    commands:
+      - tapOn: Show all
+- scrollUntilVisible:
+    element:
+      id: .*journey-activity-.+
+      text: ${output.activityName}
+    direction: DOWN
+- assertVisible:
+    id: .*journey-activity-.+
+    text: ${output.activityName}
+- tapOn:
+    id: nav-home
+- tapOn:
+    id: .*activity-menu-.+
+    text: Actions for ${output.activityName}
+- tapOn:
+    id: archive-activity-action
+- assertVisible: Archive ${output.activityName}?
+- tapOn:
+    text: ^Archive$
+- extendedWaitUntil:
+    notVisible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000
+
+- tapOn:
+    id: nav-insights
+- assertVisible: All
+- runFlow:
+    when:
+      visible: Show all
+    commands:
+      - tapOn: Show all
+- assertNotVisible:
+    id: .*journey-activity-.+
+    text: ${output.activityName}
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- extendedWaitUntil:
+    visible:
+      id: .*archived-activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000
+- tapOn:
+    id: .*archived-view-insights-.+
+    text: View insights for ${output.activityName}
+- assertVisible:
+    id: archived-insights-title
+    text: ${output.activityName}
+- assertVisible: Archived
+- scrollUntilVisible:
+    element:
+      id: insights-today-rating
+    direction: DOWN
+- assertVisible:
+    id: insights-today-rating
+    text: A little
+
+# Restore this flow's own item. Its historical entry remains intact.
+- tapOn: Back to Archived
+- assertVisible:
+    id: archived-activities-screen
+- tapOn:
+    id: .*restore-activity-.+
+    text: Restore ${output.activityName}
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- extendedWaitUntil:
+    visible:
+      id: .*activity-current-level-.+
+      text: A little
+    timeout: 20000
+- tapOn:
+    id: .*activity-menu-.+
+    text: Actions for ${output.activityName}
+- tapOn:
+    id: delete-activity-action
+- assertVisible: Delete ${output.activityName}?
+- tapOn:
+    text: ^Delete$
+- extendedWaitUntil:
+    notVisible:
+      id: .*activity-name-.+
+      text: ${output.activityName}
+    timeout: 20000

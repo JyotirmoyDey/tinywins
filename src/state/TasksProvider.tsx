@@ -86,12 +86,10 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
     const option = task.options.find(o => o.id === optionId);
     if (optionId !== null && !option) throw new Error('Choice not found.');
     const previous = entryStore.get(task.id, date); const now = new Date().toISOString();
-    const transition = checkinTransition(previous?.optionId, optionId,
-      previous?.scaleVersionIdAtEntry, task.currentScaleVersionId);
+    const transition = checkinTransition(previous?.optionId, optionId);
     if (!transition) return;
     const next = option ? { id: previous?.id ?? randomUUID(), taskId: task.id, localDate: date,
-      createdAt: previous?.createdAt ?? now, updatedAt: now, ...createEntrySnapshot(option),
-      scaleVersionIdAtEntry: task.currentScaleVersionId, trendEpochIdAtEntry: task.currentTrendEpochId } : undefined;
+      createdAt: previous?.createdAt ?? now, updatedAt: now, ...createEntrySnapshot(option) } : undefined;
     // Paint first; no full-screen state update or waiting for a database round-trip.
     const save = entryStore.optimistic(task.id, date, next, async () => {
       const repos = await getRepositories();
@@ -106,8 +104,9 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
       if (transition === 'removed') trackCheckinRemoved(activityCount);
       else if (transition === 'changed') trackCheckinChanged(levelIndex, activityCount);
       else trackCheckinRecorded(levelIndex, activityCount);
+      if (optionId !== null && !task.levelsLocked) await reload();
     } catch (cause) { logger.error('Check-in save failed', { operation: 'database_write' }, cause); throw cause; }
-  }, [tasks]);
+  }, [tasks, reload]);
   const loadHistory = useCallback(async (taskId: string, dates: string[]) => {
     const checkpoint = entryStore.checkpoint();
     const repos = await getRepositories();

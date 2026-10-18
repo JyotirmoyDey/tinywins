@@ -6,7 +6,6 @@
   "calculator": "ratingDistribution",
   "location": "task-insights",
   "section": "everyday",
-  "scaleVersion": "current",
   "groupBy": "optionId",
   "metric": "count",
   "sortBy": "optionPosition",

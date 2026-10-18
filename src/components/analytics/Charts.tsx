@@ -3,12 +3,12 @@ import {Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimension
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Svg,{Circle,Line,Path,Text as SvgText} from 'react-native-svg';
 import {colors as c, spacing as s, typography as t} from '../../theme';
-export function AnalyticsCard({title,description,detail,contextLabel,children,footer,headerAction}:{
+export function AnalyticsCard({title,description,detail,contextLabel,children,footer,headerAction,testID}:{
   title:string;description?:string;detail?:string;contextLabel?:string;children:React.ReactNode;
-  footer?:string;headerAction?:React.ReactNode;
+  footer?:string;headerAction?:React.ReactNode;testID?:string;
 }){
   const [infoOpen,setInfoOpen]=useState(false);
-  return <View style={styles.card}>
+  return <View testID={testID} collapsable={false} style={styles.card}>
     <View style={styles.cardHeader}>
       <View style={styles.cardHeading}>
         <Text style={styles.cardTitle}>{title}</Text>

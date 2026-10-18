@@ -22,7 +22,6 @@ test('archive and restore repeatedly preserve identity, configuration, entries, 
   try {
     const task = await db.tasks.create(draft('Guitar'));
     await db.entries.upsert(task.id, '2026-09-20', task.options[1].id);
-    const versionsBefore = await db.tasks.getScaleVersions(task.id);
     await db.tasks.archive(task.id);
     await db.tasks.archive(task.id);
     assert.equal((await db.tasks.getById(task.id))?.active, false);
@@ -40,8 +39,6 @@ test('archive and restore repeatedly preserve identity, configuration, entries, 
     assert.equal((await db.entries.getForTaskAndDate(task.id, '2026-09-20'))?.optionLabelAtEntry,
       task.options[1].label);
     assert.deepEqual((await db.tasks.getById(task.id))?.options, task.options);
-    assert.deepEqual(await db.tasks.getScaleVersions(task.id), versionsBefore);
-    assert.equal((await db.tasks.getById(task.id))?.currentTrendEpochId, task.currentTrendEpochId);
   } finally { db.native.close(); }
 });
 
@@ -99,7 +96,6 @@ test('deleting archived tasks removes only their history and preserves active ta
     assert.ok(await db.entries.getForTaskAndDate(active.id, '2026-09-20'));
     assert.equal(await db.entries.getForTaskAndDate(archived.id, '2026-09-20'), null);
     assert.deepEqual(await db.tasks.getLifecycleTransitions(archived.id), []);
-    assert.deepEqual(await db.tasks.getScaleVersions(archived.id), []);
   } finally { db.native.close(); }
 });
 
@@ -177,24 +173,19 @@ test('archived task retains Insights history and appears in historical All Activ
     const task = await db.tasks.create(draft('Reading'));
     await db.entries.upsert(task.id, '2026-09-20', task.options[0].id);
     await db.tasks.archive(task.id);
-    const dataset = getAnalyticsDataset(await db.tasks.getAll(), await db.entries.getAll(),
-      await db.tasks.getScaleVersions(), await db.tasks.getLifecycleTransitions());
+    const dataset = getAnalyticsDataset(await db.tasks.getAll(), await db.entries.getAll(), await db.tasks.getLifecycleTransitions());
     const period = { startDate: '2026-09-20', endDate: '2026-09-26' };
     assert.equal(dataset.tasks[0].active, false);
-    assert.equal(getRatingTrend({ task: dataset.tasks[0], entries: dataset.entries,
-      versions: dataset.scaleVersions, period }).observations.length, 1);
-    assert.equal(getRatingDistribution(dataset.tasks[0], dataset.entries, period,
-      'current', dataset.scaleVersions).reduce((sum, row) => sum + row.count, 0), 1);
-    assert.equal(individualCalendarData(dataset.tasks[0], dataset.entries,
-      dataset.scaleVersions, '2026-09').cells.find(cell => cell.date === '2026-09-20')?.label,
+    assert.equal(getRatingTrend({ task: dataset.tasks[0], entries: dataset.entries, period }).observations.length, 1);
+    assert.equal(getRatingDistribution(dataset.tasks[0], dataset.entries, period).reduce((sum, row) => sum + row.count, 0), 1);
+    assert.equal(individualCalendarData(dataset.tasks[0], dataset.entries, '2026-09').cells.find(cell => cell.date === '2026-09-20')?.label,
     task.options[0].label);
-    assert.ok(getPeriodComparison({ task: dataset.tasks[0], entries: dataset.entries,
-      versions: dataset.scaleVersions, period }));
+    assert.ok(getPeriodComparison({ task: dataset.tasks[0], entries: dataset.entries, period }));
     assert.ok(getIndividualRecordingConsistency({ task: dataset.tasks[0],
       entries: dataset.entries, lifecycle: dataset.lifecycle, period, today: '2026-09-26',
       timeline: '7D' }));
     assert.ok(getWeekdayPatterns({ task: dataset.tasks[0], entries: dataset.entries,
-      versions: dataset.scaleVersions, period, timeline: '7D' }));
+      period, timeline: '7D' }));
     const journey = getJourneyTogether({ dataset, period });
     assert.equal(journey.series.length, 1);
     assert.equal(journey.series[0].latestRating, task.options[0].label);

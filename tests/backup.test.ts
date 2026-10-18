@@ -81,6 +81,11 @@ test('full history, settings, archive lifecycle, Unicode and long records surviv
     const second = await source.tasks.create({ ...sleepDraft, options: sleepDraft.options.map((option, index) =>
       index === 0 ? { ...option, description: 'A restless night' } : option) });
     await source.tasks.setCombinedInsightsSelection(second.id, false);
+    await source.tasks.update(first.id, { name: 'Guitar 🎸', options: [
+      ...first.options.slice(0, 2).map(o => ({ id: o.id, label: o.label, description: o.description })),
+      { id: 'new-unicode-option', label: 'Très bon 🌟', description: 'Musical progress' },
+      ...first.options.slice(2).map(o => ({ id: o.id, label: o.label, description: o.description })),
+    ] });
     const dates = Array.from({ length: 120 }, (_, index) => {
       const day = new Date(); day.setDate(day.getDate() - 119 + index); return localDate(day);
     });
@@ -88,11 +93,6 @@ test('full history, settings, archive lifecycle, Unicode and long records surviv
       if (index % 5 !== 0) await source.entries.upsert(first.id, date, first.options[index % 4].id);
       if (index % 3 === 0) await source.entries.upsert(second.id, date, second.options[0].id);
     }
-    await source.tasks.update(first.id, { name: 'Guitar 🎸', options: [
-      ...first.options.slice(0, 2).map(o => ({ id: o.id, label: o.label, description: o.description })),
-      { id: 'new-unicode-option', label: 'Très bon 🌟', description: 'Musical progress' },
-      ...first.options.slice(2).map(o => ({ id: o.id, label: o.label, description: o.description })),
-    ] });
     await source.tasks.archive(second.id);
     await source.tasks.restore(second.id);
     await source.tasks.archive(second.id);
@@ -110,7 +110,7 @@ test('full history, settings, archive lifecycle, Unicode and long records surviv
     assert.equal(after.tables.task_lifecycle_transitions.length, 3);
     assert.equal(after.tables.tasks.find(row => row.id === second.id)?.active, 0);
     assert.equal(after.tables.tasks.find(row => row.id === second.id)?.includeInCombinedInsights, 0);
-    assert.equal(after.tables.rating_scale_versions.length, 3);
+    assert.equal(after.tables.tasks.every(row => row.levelsLocked === 1), true);
     assert.equal(after.tables.daily_entries.length > 100, true);
     // A repeated restore is idempotent and leaves no duplicate daily entries.
     await restoreBackupPayload(destination.connection, inspected);
@@ -125,12 +125,31 @@ test('older backups without level descriptions import with absent descriptions',
     const current = await collectBackupPayload(source.connection);
     const old = structuredClone(current);
     old.sourceDatabaseVersion = 6;
+    old.tables.tasks = old.tables.tasks.map(({ levelsLocked: _levelsLocked, ...row }) => row);
     old.tables.task_options = old.tables.task_options.map(({ description: _description, ...row }) => row);
     const decoded = decodeBackupPayload(Buffer.from(JSON.stringify(old)));
     assert.equal(decoded.tables.task_options.every(row => row.description === null), true);
+    assert.equal(decoded.tables.tasks.every(row => row.levelsLocked === 0), true);
     await restoreBackupPayload(target.connection, decoded);
     assert.equal((await target.tasks.getById(task.id))?.options.every(option => option.description === undefined), true);
     assert.equal((await collectBackupPayload(target.connection)).tables.task_options.length, task.options.length);
+  } finally { source.native.close(); target.native.close(); }
+});
+
+test('older backups infer the permanent level lock from saved check-ins', async () => {
+  const source = await setup(); const target = await setup();
+  try {
+    const task = await source.tasks.create(draft('Recorded before upgrade'));
+    await source.entries.upsert(task.id, '2026-09-20', task.options[0].id);
+    const old = structuredClone(await collectBackupPayload(source.connection));
+    old.sourceDatabaseVersion = 7;
+    old.tables.tasks = old.tables.tasks.map(({ levelsLocked: _levelsLocked, ...row }) => row);
+    await restoreBackupPayload(target.connection, decodeBackupPayload(Buffer.from(JSON.stringify(old))));
+    assert.equal((await target.tasks.getById(task.id))?.levelsLocked, true);
+    assert.equal((await target.entries.getForTaskAndDate(task.id, '2026-09-20'))?.optionId, task.options[0].id);
+    old.tables.tasks = old.tables.tasks.map(row => ({ ...row, levelsLocked: 0 }));
+    await restoreBackupPayload(target.connection, decodeBackupPayload(Buffer.from(JSON.stringify(old))));
+    assert.equal((await target.tasks.getById(task.id))?.levelsLocked, true);
   } finally { source.native.close(); target.native.close(); }
 });
 

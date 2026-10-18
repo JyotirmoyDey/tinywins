@@ -1,6 +1,7 @@
 import config from './config/period-comparison.json';
-import { localDate, parseLocalDate, RatingScaleVersion } from '../domain/task';
+import { localDate, parseLocalDate } from '../domain/task';
 import { AnalyticsEntry } from './types';
+import { getHistoricalLevels } from './ratingTrend';
 import { PeriodComparisonInput, PeriodComparisonResult, PeriodComparisonRow,
   registerAnalyticsCalculator, runAnalyticsCalculator } from './engine';
 
@@ -9,7 +10,7 @@ if (config.id !== 'period-comparison' || config.calculator !== 'periodComparison
   config.type !== 'paired-horizontal-bar' || config.section !== 'patterns' ||
   config.timeline !== 'shared' || config.calculation.previousPeriod !== 'immediately-preceding-equal-days' ||
   config.calculation.groupBy !== 'optionId' || !config.calculation.excludeMissing ||
-  !config.calculation.requireCompatibleScale || config.presentation.barMaximum !== 100) {
+  config.presentation.barMaximum !== 100) {
   throw new Error('Invalid period comparison configuration.');
 }
 
@@ -28,13 +29,6 @@ export function precedingEqualPeriod(period: PeriodComparisonInput['period']) {
   const start = parseLocalDate(period.startDate);
   start.setDate(start.getDate() - days);
   return { startDate: localDate(start), endDate: localDate(end), days };
-}
-
-function order(version: RatingScaleVersion) {
-  return version.options.slice().sort((a, b) => a.position - b.position);
-}
-function identity(version: RatingScaleVersion) {
-  return JSON.stringify(order(version).map(option => option.id));
 }
 
 /** Compare recorded option identities only. Missing days never enter either denominator. */
@@ -56,25 +50,7 @@ export function periodComparison(input: PeriodComparisonInput): PeriodComparison
   if (!previousEntries.size) return { ...base, status: 'empty-previous' };
 
   const entries = [...previousEntries.values(), ...currentEntries.values()];
-  const versions = new Map(input.versions.filter(version => version.taskId === input.task.id)
-    .map(version => [version.id, version]));
-  const firstVersion = versions.get(entries[0].scaleVersionIdAtEntry);
-  if (!firstVersion || !firstVersion.options.length) return { ...base, status: 'incompatible' };
-  const scaleIdentity = identity(firstVersion);
-  const epoch = entries[0].trendEpochIdAtEntry;
-  const compatible = entries.every(entry => {
-    const version = versions.get(entry.scaleVersionIdAtEntry);
-    return version?.trendEpochId === epoch && entry.trendEpochIdAtEntry === epoch &&
-      identity(version) === scaleIdentity && version.options.some(option => option.id === entry.optionId);
-  });
-  if (!compatible) return { ...base, status: 'incompatible' };
-
-  const latestVersion = versions.get([...currentEntries.values()].at(-1)!.scaleVersionIdAtEntry)!;
-  const savedOptions = order(latestVersion);
-  const currentOptions = input.task.options.slice().sort((a, b) => a.position - b.position);
-  const labels = JSON.stringify(currentOptions.map(option => option.id)) === scaleIdentity
-    ? new Map(currentOptions.map(option => [option.id, option.label]))
-    : new Map(savedOptions.map(option => [option.id, option.label]));
+  const levels = getHistoricalLevels(input.task, entries);
   const counts = (values: Iterable<AnalyticsEntry>) => {
     const result = new Map<string, number>();
     for (const entry of values) result.set(entry.optionId, (result.get(entry.optionId) ?? 0) + 1);
@@ -82,11 +58,11 @@ export function periodComparison(input: PeriodComparisonInput): PeriodComparison
   };
   const currentCounts = counts(currentEntries.values());
   const previousCounts = counts(previousEntries.values());
-  const rows = savedOptions.map(option => {
+  const rows = levels.map((option, index) => {
     const currentCount = currentCounts.get(option.id) ?? 0;
     const previousCount = previousCounts.get(option.id) ?? 0;
-    return { optionId: option.id, label: labels.get(option.id) ?? option.label,
-      position: option.position, currentCount, previousCount,
+    return { optionId: option.id, label: option.label,
+      position: index + 1, currentCount, previousCount,
       currentPercentage: currentCount / current.recordedDays * 100,
       previousPercentage: previousCount / previous.recordedDays * 100 };
   });

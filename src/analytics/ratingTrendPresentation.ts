@@ -8,9 +8,6 @@ export interface WeeklyTrendPoint {
   id: string;
   weekStart: string;
   weekEnd: string;
-  scaleVersionId: string;
-  groupIndex: number;
-  groupsInWeek: number;
   medianLevelIndex: number;
   minLevelIndex: number;
   maxLevelIndex: number;
@@ -29,7 +26,6 @@ export interface AdaptiveTrend {
   slots: TrendGroupSlot[];
   groupedPoints: GroupedTrendPoint[];
   subtitle: string;
-  mixedScaleSlots: number;
 }
 export interface TrendGroupSlot {
   startDate: string;
@@ -41,7 +37,6 @@ export interface GroupedTrendPoint {
   slotIndex: number;
   medianLevelIndex: number;
   medianLabel: string;
-  scaleVersionId: string;
   recordedCount: number;
   connectsToPrevious: boolean;
 }
@@ -61,8 +56,7 @@ function nextWeek(monday: string) {
   return localDate(day);
 }
 
-/** Every week occupies one slot, including weeks with no entries. Scale versions
- * within a week form separate points so no median combines incompatible scales. */
+/** Every week occupies one slot, including weeks with no entries. */
 export function getWeeklyRatingTrend(data: RatingTrendData) {
   const weeks = [...new Set(data.dates.map(mondayOf))];
   const byWeek = new Map<string, TrendObservation[]>();
@@ -74,15 +68,8 @@ export function getWeeklyRatingTrend(data: RatingTrendData) {
   }
   const weeklyPoints: WeeklyTrendPoint[] = [];
   for (const weekStart of weeks) {
-    // Split chronological runs. An explicitly edited older day can introduce
-    // a newer scale between two older-scale observations in the same week.
-    const groups: [string, TrendObservation[]][] = [];
-    for (const observation of byWeek.get(weekStart) ?? []) {
-      const last = groups.at(-1);
-      if (last?.[0] === observation.scaleVersionId) last[1].push(observation);
-      else groups.push([observation.scaleVersionId, [observation]]);
-    }
-    groups.forEach(([scaleVersionId, observations], groupIndex) => {
+    const observations = byWeek.get(weekStart) ?? [];
+    if (observations.length) {
       const ordered = observations.map(item => item.levelIndex).sort((a, b) => a - b);
       const medianLevelIndex = ordered[Math.floor((ordered.length - 1) / 2)];
       const minLevelIndex = ordered[0], maxLevelIndex = ordered[ordered.length - 1];
@@ -94,13 +81,9 @@ export function getWeeklyRatingTrend(data: RatingTrendData) {
           label: data.levels[observation.levelIndex]?.label ?? observation.labelAtEntry, count: 1 });
       }
       const previous = weeklyPoints.at(-1);
-      const connectsToPrevious = !!previous && previous.weekStart !== weekStart &&
-        nextWeek(previous.weekStart) === weekStart &&
-        previous.scaleVersionId === scaleVersionId &&
-        previous.groupIndex === previous.groupsInWeek - 1 && groupIndex === 0;
+      const connectsToPrevious = !!previous && nextWeek(previous.weekStart) === weekStart;
       weeklyPoints.push({
-        id: `${weekStart}:${scaleVersionId}:${groupIndex}`, weekStart, weekEnd: sundayOf(weekStart),
-        scaleVersionId, groupIndex, groupsInWeek: groups.length,
+        id: weekStart, weekStart, weekEnd: sundayOf(weekStart),
         medianLevelIndex, minLevelIndex, maxLevelIndex,
         medianLabel: data.levels[medianLevelIndex]?.label ?? observations[Math.floor((observations.length - 1) / 2)].labelAtEntry,
         minLabel: data.levels[minLevelIndex]?.label ?? observations[0].labelAtEntry,
@@ -109,7 +92,7 @@ export function getWeeklyRatingTrend(data: RatingTrendData) {
           (data.levels.findIndex(level => level.id === a.optionId)) -
           (data.levels.findIndex(level => level.id === b.optionId))), connectsToPrevious,
       });
-    });
+    }
   }
   return { weeks, weeklyPoints };
 }
@@ -153,11 +136,9 @@ function portraitGroups(dates: string[], range: TrendRange): { slots: TrendGroup
   return { slots, subtitle: span === 1 ? 'Weekly median' : `${span}-week median`, weekly: true };
 }
 
-/** Only compatible scale versions may contribute to one median. Mixed-version
- * buckets remain blank in portrait; expanded daily history retains every entry. */
+/** Group recorded identities on the one categorical axis; empty slots stay blank. */
 function groupedMedians(data: RatingTrendData, slots: TrendGroupSlot[]) {
   const groupedPoints: GroupedTrendPoint[] = [];
-  let mixedScaleSlots = 0;
   let observationIndex = 0;
   slots.forEach((slot, slotIndex) => {
     const observations: TrendObservation[] = [];
@@ -167,19 +148,15 @@ function groupedMedians(data: RatingTrendData, slots: TrendGroupSlot[]) {
       data.observations[observationIndex].date <= slot.endDate)
       observations.push(data.observations[observationIndex++]);
     if (!observations.length) return;
-    const versions = new Set(observations.map(item => item.scaleVersionId));
-    if (versions.size !== 1) { mixedScaleSlots++; return; }
     const ordered = observations.map(item => item.levelIndex).sort((a, b) => a - b);
     const medianLevelIndex = ordered[Math.floor((ordered.length - 1) / 2)];
-    const scaleVersionId = observations[0].scaleVersionId;
     const previous = groupedPoints.at(-1);
-    groupedPoints.push({ id: `${slot.axisDate}:${scaleVersionId}`, slotIndex,
+    groupedPoints.push({ id: slot.axisDate, slotIndex,
       medianLevelIndex, medianLabel: data.levels[medianLevelIndex]?.label ?? observations[0].labelAtEntry,
-      scaleVersionId, recordedCount: observations.length,
-      connectsToPrevious: !!previous && previous.slotIndex === slotIndex - 1 &&
-        previous.scaleVersionId === scaleVersionId });
+      recordedCount: observations.length,
+      connectsToPrevious: !!previous && previous.slotIndex === slotIndex - 1 });
   });
-  return { groupedPoints, mixedScaleSlots };
+  return { groupedPoints };
 }
 
 export function getAdaptiveTrend(data: RatingTrendData, range: TrendRange): AdaptiveTrend {
