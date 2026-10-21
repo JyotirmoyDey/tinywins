@@ -32,7 +32,8 @@ export async function importLegacy(connection: Connection, raw: string | null, s
         options: labels.map(label => ({ id: id(), label })) }));
     }
     const initialGraphIds = initialCombinedTaskIds(tasks);
-    for (const task of tasks) {
+    const orderedTasks = [...tasks].sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+    for (const [sortPosition, task] of orderedTasks.entries()) {
       requireString(task.id); requireString(task.createdAt); requireString(task.updatedAt);
       if (!Array.isArray(task.options) || typeof task.active !== 'boolean') throw new Error('Invalid previous task.');
       // Previous installations may already contain longer names. Import them
@@ -44,9 +45,9 @@ export async function importLegacy(connection: Connection, raw: string | null, s
         'SELECT chartColor FROM tasks WHERE chartColor IS NOT NULL');
       const chartColor = nextTaskColor(usedColors.map(row => row.chartColor));
       const include = initialGraphIds.has(task.id);
-      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, includeInCombinedInsights) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, includeInCombinedInsights, sortPosition) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         task.id, task.name.trim(), task.createdAt, task.updatedAt, Number(task.active),
-        localDate(created), task.active ? null : task.updatedAt, chartColor, Number(include));
+        localDate(created), task.active ? null : task.updatedAt, chartColor, Number(include), sortPosition);
       if (!task.active) await db.runAsync(`INSERT INTO task_lifecycle_transitions
         (id, taskId, type, occurredAt, localDate, utcOffsetMinutes, timeZone, inferred)
         VALUES (?, ?, 'archived', ?, ?, ?, ?, 1)`,

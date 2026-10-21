@@ -8,6 +8,8 @@ export interface TaskOption {
 export interface Task {
   id: string; name: string; createdAt: string; updatedAt: string; active: boolean;
   includeInCombinedInsights: boolean;
+  /** Stable Home ordering, persisted independently of creation timestamps. */
+  sortPosition?: number;
   /** Saved local creation day; older records are backfilled best-effort. */
   createdLocalDate?: string | null; archivedAt?: string | null;
   /** Assigned once; archiving, restoring, and task ordering never change it. */

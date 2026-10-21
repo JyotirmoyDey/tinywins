@@ -5,7 +5,7 @@ import { MAX_PLAINTEXT_BYTES, PAYLOAD_VERSION, BackupFormatError } from './forma
 import { characterCount, MAX_OPTION_DESCRIPTION_CHARACTERS } from '../domain/inputLimits';
 
 const columns = {
-  tasks: ['id', 'name', 'createdAt', 'updatedAt', 'active', 'createdLocalDate', 'archivedAt', 'chartColor', 'includeInCombinedInsights', 'levelsLocked'],
+  tasks: ['id', 'name', 'createdAt', 'updatedAt', 'active', 'createdLocalDate', 'archivedAt', 'chartColor', 'includeInCombinedInsights', 'levelsLocked', 'sortPosition'],
   task_options: ['id', 'taskId', 'label', 'position', 'rank', 'normalizedWeight', 'active', 'createdAt', 'updatedAt', 'description'],
   daily_entries: ['id', 'taskId', 'optionId', 'localDate', 'createdAt', 'updatedAt', 'optionLabelAtEntry',
     'positionAtEntry', 'rankAtEntry', 'normalizedWeightAtEntry'],
@@ -47,15 +47,17 @@ function checkRow(table: BackupTable, row: Row) {
   const expected = columns[table];
   const legacyOption = table === 'task_options' && !('description' in row);
   const legacyTask = table === 'tasks' && !('levelsLocked' in row);
-  if (Object.keys(row).length !== expected.length - Number(legacyOption) - Number(legacyTask) ||
+  const legacySortPosition = table === 'tasks' && !('sortPosition' in row);
+  if (Object.keys(row).length !== expected.length - Number(legacyOption) - Number(legacyTask) - Number(legacySortPosition) ||
     expected.some(column => !(column in row) && !(legacyOption && column === 'description') &&
-      !(legacyTask && column === 'levelsLocked'))) fail();
+      !(legacyTask && column === 'levelsLocked') && !(legacySortPosition && column === 'sortPosition'))) fail();
   if (!string(row.id)) fail();
   if (table === 'tasks') {
     if (!string(row.name) || typeof row.name !== 'string' || !row.name.trim() || !timestamp(row.createdAt) ||
       !timestamp(row.updatedAt) || !integer(row.active, 0, 1) ||
       !integer(row.includeInCombinedInsights, 0, 1) ||
       !(!('levelsLocked' in row) || integer(row.levelsLocked, 0, 1)) ||
+      !(!('sortPosition' in row) || integer(row.sortPosition, 0)) ||
       !(row.createdLocalDate === null || date(row.createdLocalDate)) ||
       !(row.archivedAt === null || timestamp(row.archivedAt)) || !string(row.chartColor, true)) fail();
   } else if (table === 'task_options') {
@@ -116,9 +118,22 @@ export function validateBackupPayload(value: unknown): BackupPayload {
   // Older backups predate descriptions and the permanent level lock. Infer the
   // lock from retained entries; absence cannot prove a cleared past check-in.
   const recordedTaskIds = new Set(payload.tables.daily_entries.map(row => row.taskId));
+  const restoreOrder = new Map<string, string>();
+  for (const transition of payload.tables.task_lifecycle_transitions) {
+    if (transition.type !== 'restored') continue;
+    const current = restoreOrder.get(String(transition.taskId));
+    if (!current || String(transition.occurredAt) > current)
+      restoreOrder.set(String(transition.taskId), String(transition.occurredAt));
+  }
+  const hasLegacyOrdering = payload.tables.tasks.some(row => !('sortPosition' in row));
+  const initialPositions = new Map([...payload.tables.tasks]
+    .sort((a, b) => (restoreOrder.get(String(a.id)) ?? String(a.createdAt)).localeCompare(
+      restoreOrder.get(String(b.id)) ?? String(b.createdAt)) || String(a.id).localeCompare(String(b.id)))
+    .map((row, position) => [String(row.id), position]));
   return { ...payload, tables: { ...payload.tables,
     tasks: payload.tables.tasks.map(row => ({ ...row,
-      levelsLocked: recordedTaskIds.has(row.id) ? 1 : (row.levelsLocked ?? 0) })),
+      levelsLocked: recordedTaskIds.has(row.id) ? 1 : (row.levelsLocked ?? 0),
+      sortPosition: hasLegacyOrdering ? initialPositions.get(String(row.id))! : row.sortPosition })),
     task_options: payload.tables.task_options.map(row => 'description' in row ? row : { ...row, description: null }) } };
 }
 
@@ -132,6 +147,14 @@ async function readTables(db: SqlDatabase): Promise<BackupTables> {
   const result = {} as BackupTables;
   for (const table of tableNames) result[table] = await db.getAllAsync<Row>(`SELECT * FROM ${table} ORDER BY id`);
   return result;
+}
+function tablesMatch(actual: BackupTables, expected: BackupTables) {
+  return tableNames.every(table => actual[table].length === expected[table].length &&
+    actual[table].every((row, index) => {
+      const other = expected[table][index];
+      return Object.keys(other).length === Object.keys(row).length &&
+        Object.keys(other).every(key => row[key] === other[key]);
+    }));
 }
 export async function collectBackupPayload(connection: Connection): Promise<BackupPayload> {
   return connection.transaction(async db => {
@@ -177,7 +200,7 @@ export async function restoreBackupPayload(connection: Connection, payload: Back
     await db.runAsync(`INSERT INTO app_metadata(key, value) VALUES ('legacyImported', '1')
       ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
     await checkDatabase(db);
-    if (JSON.stringify(await readTables(db)) !== JSON.stringify(normalized.tables))
+    if (!tablesMatch(await readTables(db), normalized.tables))
       throw new BackupFormatError('The restored data could not be verified.');
   });
 }

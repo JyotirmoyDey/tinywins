@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -16,7 +16,7 @@ const trackColor = '#E9E9E5';
 const unrecordedColor = '#DADAD6';
 const thumbSize = 20;
 
-export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { task: Task; date: string }) {
+export const TaskSliderCard = memo(function TaskSliderCard({ task, date, dragHandle }: { task: Task; date: string; dragHandle?: ReactNode }) {
   const router = useRouter();
   const { select: saveSelection, reload } = useTaskActions();
   const entry = useEntry(task.id, date);
@@ -153,6 +153,7 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date }: { tas
   };
   return <View testID={`activity-card-${task.id}`} collapsable={false} style={styles.card}>
     <View style={styles.heading}>
+      {dragHandle}
       <Pressable testID={`activity-insights-${task.id}`} accessibilityRole="button" accessibilityLabel={`${task.name}, insights`}
         onPress={() => router.navigate({ pathname: '/insights', params: { task: task.id, mode: 'normal' } })} style={styles.taskLink}>
         <Text testID={`activity-name-${task.id}`} numberOfLines={2} style={styles.taskName}>{task.name}</Text>

@@ -28,10 +28,10 @@ async function initialize() {
   } catch (error) { await database.closeAsync(); throw error; }
 }
 
-export async function replaceLocalWithOneYearTestData() {
+export async function replaceLocalWithScreenshotData() {
   if (!__DEV__) throw new Error('Test data import is available only in development.');
-  const { loadDemoDataset } = await import('../analytics/demoData');
-  const dataset = loadDemoDataset();
+  const { loadScreenshotDataset } = await import('../analytics/screenshotDemoData');
+  const dataset = loadScreenshotDataset();
   const repos = await getRepositories();
   await AsyncStorage.removeItem(LEGACY_DATABASE_KEY);
   await repos.demoImporter.replaceLocalData(dataset);

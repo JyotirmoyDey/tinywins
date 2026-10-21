@@ -55,6 +55,7 @@ const migrations = [
    UPDATE tasks SET levelsLocked = 1 WHERE EXISTS (
      SELECT 1 FROM daily_entries WHERE daily_entries.taskId = tasks.id);`,
   `SELECT 1;`,
+  `ALTER TABLE tasks ADD COLUMN sortPosition INTEGER NOT NULL DEFAULT 0;`,
 ];
 export const CURRENT_DATABASE_VERSION = migrations.length;
 export async function migrate(connection: Connection) {
@@ -131,6 +132,13 @@ export async function migrate(connection: Connection) {
         if (taskColumns.some(column => column.name === 'currentTrendEpochId')) await db.execAsync('ALTER TABLE tasks DROP COLUMN currentTrendEpochId');
         if (entryColumns.some(column => column.name === 'scaleVersionIdAtEntry')) await db.execAsync('ALTER TABLE daily_entries DROP COLUMN scaleVersionIdAtEntry');
         if (entryColumns.some(column => column.name === 'trendEpochIdAtEntry')) await db.execAsync('ALTER TABLE daily_entries DROP COLUMN trendEpochIdAtEntry');
+      } else if (index === 9) {
+        await db.execAsync(migrations[index]);
+        const tasks = await db.getAllAsync<{ id: string }>(`SELECT id FROM tasks ORDER BY
+          COALESCE((SELECT MAX(occurredAt) FROM task_lifecycle_transitions
+            WHERE taskId = tasks.id AND type = 'restored'), createdAt), id`);
+        for (const [sortPosition, task] of tasks.entries()) await db.runAsync(
+          'UPDATE tasks SET sortPosition = ? WHERE id = ?', sortPosition, task.id);
       } else await db.execAsync(migrations[index]);
       await db.execAsync(`PRAGMA user_version = ${index + 1}`);
     }

@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { randomUUID } from 'expo-crypto';
 import { Task, TaskLifecycleTransition, createEntrySnapshot, localDate } from '../domain/task';
 import { TaskRepository } from '../data/repository';
-import { getRepositories, replaceLocalWithOneYearTestData } from '../data/runtime';
+import { getRepositories, replaceLocalWithScreenshotData } from '../data/runtime';
 import { resetLocalData } from '../data/resetLocalData';
 import { EntryStore } from './EntryStore';
 import { BackupPayload } from '../backup/data';
@@ -22,7 +22,8 @@ interface Actions {
   reload: () => Promise<void>;
   announce: (message: string) => void;
   clearLocalData: () => Promise<void>;
-  loadOneYearTestData: () => Promise<void>;
+  reorderActivities: (ids: string[]) => Promise<void>;
+  loadScreenshotData: () => Promise<void>;
   restoreBackup: (payload: BackupPayload) => Promise<void>;
 }
 interface TaskState { data: { tasks: Task[]; lifecycle: TaskLifecycleTransition[] };
@@ -116,8 +117,18 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
     try { await resetLocalData(); }
     finally { entryStore.clear(); await reload(); }
   }, [reload]);
-  const loadOneYearTestData = useCallback(async () => {
-    try { await replaceLocalWithOneYearTestData(); }
+  const reorderActivities = useCallback(async (ids: string[]) => {
+    try {
+      const repos = await getRepositories();
+      await repos.tasks.reorderActive(ids);
+      await reload();
+    } catch (cause) {
+      logger.error('Activity order save failed', { operation: 'database_write' }, cause);
+      throw cause;
+    }
+  }, [reload]);
+  const loadScreenshotData = useCallback(async () => {
+    try { await replaceLocalWithScreenshotData(); }
     finally { entryStore.clear(); await reload(); }
   }, [reload]);
   const restoreBackup = useCallback(async (payload: BackupPayload) => {
@@ -127,8 +138,8 @@ export function TasksProvider({ children }: React.PropsWithChildren) {
     await reload();
   }, [reload]);
   const actions = useMemo(() => ({ mutate, select, loadHistory, reload, announce,
-    clearLocalData, loadOneYearTestData, restoreBackup }),
-    [mutate, select, loadHistory, reload, announce, clearLocalData, loadOneYearTestData, restoreBackup]);
+    clearLocalData, reorderActivities, loadScreenshotData, restoreBackup }),
+    [mutate, select, loadHistory, reload, announce, clearLocalData, reorderActivities, loadScreenshotData, restoreBackup]);
   const state = useMemo(() => ({ data: { tasks, lifecycle }, today, loading, error, notice }),
     [tasks, lifecycle, today, loading, error, notice]);
   return <ActionsContext.Provider value={actions}><StateContext.Provider value={state}>{children}</StateContext.Provider></ActionsContext.Provider>;

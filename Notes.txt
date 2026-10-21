@@ -1,9 +1,7 @@
-    private int plainRecur(int idx, int curProfit, int curPeople){
-        if(idx >= group.length){
-            return curProfit >= minProfit ? 1: 0;
-        }
+Checklist tinywins:
+Chewck telemetry in expo go. Too many logs and events.
+Verify backup and recovery are working.
+verify arcvhiving is working
+verify backup data with 3 years of data , size.
+verify telemetrty in firebase.
 
-        int take = curPeople+group[idx] <= n ? plainRecur(idx+1, curProfit+profit[idx], curPeople+group[idx]): 0;
-        int skip = plainRecur(idx+1, curProfit, curPeople);
-
-        return take+skip;

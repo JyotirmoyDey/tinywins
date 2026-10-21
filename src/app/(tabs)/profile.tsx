@@ -9,7 +9,7 @@ import { setDevInsightsSource, useDevInsightsSource } from '../../analytics/devD
 import { colors as c, spacing as s, typography as t } from '../../theme';
 export default function Profile() {
   const router = useRouter();
-  const { data, clearLocalData, loadOneYearTestData } = useTasks();
+  const { data, clearLocalData, loadScreenshotData } = useTasks();
   const insightsSource = useDevInsightsSource();
   const resetPending = useRef(false);
   const [resetting, setResetting] = useState(false);
@@ -22,28 +22,28 @@ export default function Profile() {
     try {
       await clearLocalData();
       setDevInsightsSource('my');
-      Alert.alert('Local data cleared', 'Your tracked items and recordings have been removed from this device.');
+      Alert.alert('Local data deleted', 'Your activities, check-ins, and archived items were removed from this device. Firebase analytics already sent and backup files saved elsewhere are unchanged.');
     } catch {
       Alert.alert('Could not finish clearing data', 'Please try again. Some local data may remain.');
     } finally { resetPending.current = false; setResetting(false); }
   };
   const confirmReset = () => Alert.alert('Delete all local TinyWins data?',
-    'This permanently removes everything you track, your rating choices, recordings, and archived items from this device.',
+    'This permanently removes everything you track, your level choices, check-ins, and archived items from this device. It does not delete analytics already sent to Firebase or backup files saved elsewhere.',
     [{ text: 'Cancel', style: 'cancel' },
-      { text: 'Delete data', style: 'destructive', onPress: () => void reset() }]);
+      { text: 'Delete local data', style: 'destructive', onPress: () => void reset() }]);
   const importTestData = async () => {
     if (importPending.current) return;
     importPending.current = true; setImporting(true);
     try {
-      await loadOneYearTestData();
+      await loadScreenshotData();
       setDevInsightsSource('my');
-      Alert.alert('Test data ready', 'Eight items and their recordings are now stored in My Data.');
+      Alert.alert('Screenshot data ready', 'Five activities and their 180 days of check-ins are now stored in My Data.');
     } catch {
-      Alert.alert('Could not load test data', 'Your previous local records were kept. Please try again.');
+      Alert.alert('Could not load screenshot data', 'Your previous local records were kept. Please try again.');
     } finally { importPending.current = false; setImporting(false); }
   };
-  const confirmImport = () => Alert.alert('Use one-year test data?',
-    'This replaces everything you track and its recordings on this device with the eight items in the test file.',
+  const confirmImport = () => Alert.alert('Load 180-day screenshot data?',
+    'This replaces everything you track and its recordings on this device with the five activities in the screenshot dataset.',
     [{ text: 'Cancel', style: 'cancel' },
       { text: 'Load test data', onPress: () => void importTestData() }]);
   return <SafeAreaView style={styles.screen} edges={['top']}>
@@ -81,16 +81,16 @@ export default function Profile() {
           <Text style={styles.rowDetail}>{insightsSource === 'my' ? 'My Data' : 'Demo Data'}  ›</Text>
         </View>
       </MenuView>}
-      {__DEV__ && <Pressable accessibilityRole="button" accessibilityLabel="Load one-year test data into My Data"
+      {__DEV__ && <Pressable accessibilityRole="button" accessibilityLabel="Load 180-day screenshot data into My Data"
         accessibilityState={{ disabled: importing || resetting }} disabled={importing || resetting}
         onPress={confirmImport} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-        <Text style={styles.rowTitle}>{importing ? 'Loading test data…' : 'Load one-year test data'}</Text>
+        <Text style={styles.rowTitle}>{importing ? 'Loading screenshot data…' : 'Load 180-day screenshot data'}</Text>
       </Pressable>}
-      {__DEV__ && <Pressable accessibilityRole="button" accessibilityLabel="Delete all local TinyWins data"
+      <Pressable accessibilityRole="button" accessibilityLabel="Delete all local TinyWins data"
         accessibilityState={{ disabled: resetting || importing }} disabled={resetting || importing} onPress={confirmReset}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-        <Text style={styles.deleteLabel}>{resetting ? 'Clearing local data…' : 'Delete local data'}</Text>
-      </Pressable>}
+        <Text style={styles.deleteLabel}>{resetting ? 'Clearing local data…' : 'Delete all local data'}</Text>
+      </Pressable>
     </View>
   </SafeAreaView>;
 }

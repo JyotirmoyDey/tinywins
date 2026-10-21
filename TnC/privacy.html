@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">
+<title>Privacy Policy | TinyWins</title><meta name="description" content="TinyWins Privacy Policy — effective 19 October 2026."><style>
+:root{color-scheme:light;--text:#141414;--muted:#666;--line:#ddd;--bg:#fafafa;--link:#205e3c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.7 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:760px;margin:0 auto;padding:34px 22px 72px}nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:18px;font-size:.93rem}
+.brand{font-weight:700;letter-spacing:-.02em;color:var(--text);text-decoration:none}a{color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px}a:hover{text-decoration-thickness:2px}
+h1{font-size:clamp(2rem,6vw,2.9rem);line-height:1.2;letter-spacing:-.035em;margin:34px 0 12px}h2{font-size:1.25rem;line-height:1.35;margin:34px 0 9px;letter-spacing:-.01em}
+p,ul{margin:10px 0 15px}li{margin:5px 0}ul{padding-left:24px}strong{font-weight:650}code{overflow-wrap:anywhere;font-size:.92em;background:#eee;padding:1px 4px;border-radius:4px}
+.meta{color:var(--muted);font-size:.9rem}.intro{border-left:3px solid #aaa;padding-left:14px}.document a{overflow-wrap:anywhere}
+footer{margin-top:52px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:.87rem}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--text:#f3f3f3;--muted:#aaa;--line:#414141;--bg:#171717;--link:#a4dab7}code{background:#303030}}
+@media print{body{background:white;color:black}main{max-width:none}nav,footer{display:none}a{color:inherit;text-decoration:none}h2{break-after:avoid}}
+</style></head><body><main>
+<nav aria-label="Legal document navigation"><span class="brand">TinyWins</span><a href="terms.html">Terms & Conditions</a></nav>
+<article class="document"><h1>TinyWins — Privacy Policy</h1>
+<p><strong>Effective date:</strong> 19 October 2026<br/>
+<strong>App publisher / data contact:</strong> [DEVELOPER LEGAL NAME]<br/>
+<strong>Privacy contact:</strong> [CONTACT EMAIL]</p>
+<h2 id="1-our-approach-to-privacy">1. Our approach to privacy</h2>
+<p>TinyWins is a local-first activity-tracking app. You use it to create activities, define rating levels, record daily check-ins, and view insights. <strong>Your activity names, level labels and descriptions, and daily check-in history are kept in the App's local storage on your device; TinyWins does not operate an account system or a cloud database for those records.</strong></p>
+<p>We do use third-party services for analytics, crash diagnostics, performance measurement, and software updates. Those services receive technical and usage information described below. Accordingly, <strong>"local-first" does not mean the App sends no information over the internet</strong>.</p>
+<p>This Policy explains what information is handled, why, where it goes, and what you can control.</p>
+<h2 id="2-information-kept-on-your-device">2. Information kept on your device</h2>
+<p>TinyWins stores the information necessary for its core functionality in a local SQLite database, including:</p>
+<ul>
+<li>Your activities and their names, creation dates, archive status, and settings.</li>
+<li>The rating levels you define, including their labels, descriptions, order, and scores.</li>
+<li>Your dated check-ins and related history used to generate charts.</li>
+<li>Activity archive/restore history, dates, and locally recorded time-zone information used for date calculations.</li>
+</ul>
+<p>An earlier version of the App may also have left a legacy migration copy in local AsyncStorage. The App uses that copy for migration and deletes it when you use the full local-data reset.</p>
+<p>We do not intentionally transmit the above activity names, descriptions, or complete check-in history to a TinyWins server or include those text fields in our predefined analytics events. The App does not ask you to create an account or provide a name, email address, or phone number to use its core features.</p>
+<h2 id="3-usage-analytics-sent-to-google-firebase">3. Usage analytics sent to Google Firebase</h2>
+<p>TinyWins uses <strong>Google Firebase Analytics</strong> to understand how the App is used and to improve its features. Our own analytics events include activity creation, archiving, restoration and deletion; recording, changing or removing check-ins; opening insights and charts; changing date ranges; backup import/export outcomes; and display-orientation changes.</p>
+<p>Our predefined events can include limited details such as counts, selected chart or date-range types, operation results, and the <strong>ordinal position (<code>level_index</code>) of a rating selected for a check-in</strong>. This position can indicate which level you selected, but the event does not contain your activity name, your custom level label, or the full activity history.</p>
+<p>Firebase Analytics also automatically collects applicable app lifecycle and session events, an app-instance identifier, and device/app information such as platform, operating-system version, and technical context. Google may process network information such as IP addresses and derive approximate geographic information. This is <strong>pseudonymous technical and behavioral information, not necessarily anonymous or only aggregate data</strong>.</p>
+<h2 id="4-crash-reporting-and-performance-monitoring">4. Crash reporting and performance monitoring</h2>
+<p>We use <strong>Google Firebase Crashlytics</strong> to identify crashes and errors. Reports may contain stack traces, error messages, app state, device details, a Crashlytics installation identifier, and recent analytics-event breadcrumbs. Our own application logs are restricted to predefined messages and approved metadata, but original exception messages and third-party SDK diagnostics may contain details we did not explicitly add.</p>
+<p>We use <strong>Google Firebase Performance Monitoring</strong> to measure app startup and screen behavior, rendering, supported network requests, and the duration of selected operations such as loading insights and importing or exporting a backup. Depending on the SDK and platform, performance data can include request URL patterns, timing, payload sizes, device/app information, and CPU or memory metrics.</p>
+<p>We use this information to investigate failures, identify slow operations, and improve reliability. We do not use these services to provide advertisements in the current version of TinyWins.</p>
+<h2 id="5-software-updates-version-checks-and-website-hosting">5. Software updates, version checks, and website hosting</h2>
+<p><strong>Expo Application Services (Expo / 650 Industries, Inc.)</strong> supports software update checks. These requests can transmit app and platform information, runtime/update identifiers, and network or installation-scoped request information needed to deliver updates.</p>
+<p>The App also requests a public version configuration file hosted through <strong>GitHub Pages (GitHub, Inc.)</strong> to determine whether an app update is available or required. That request does not intentionally include the activity records described in Section 2, but ordinary web requests may expose an IP address and standard request headers to the hosting provider.</p>
+<p>If you open our legal-document pages hosted on GitHub Pages, the hosting provider may similarly process ordinary website-access information. The legal pages themselves are static and do not add their own analytics scripts or advertising trackers.</p>
+<h2 id="6-encrypted-backup-files">6. Encrypted backup files</h2>
+<p>You can optionally export your activity data into an encrypted <code>.tinywins</code> backup file. TinyWins uses <strong>AES-256-GCM</strong> encryption and derives the key from a password you choose using <strong>PBKDF2-HMAC-SHA256 (600,000 iterations)</strong>. Your backup password is not stored by TinyWins or sent to our servers.</p>
+<p>On Android, you select a destination folder. On iOS, the export uses a temporary local file and the operating system's sharing interface. <strong>We do not automatically upload these backup files to a TinyWins-operated server.</strong> If you save or share a backup using a third-party service, its storage and handling of that file are governed by its own practices. Anyone with access to the backup file and its correct password may be able to restore its contents.</p>
+<p>Keep the password secure. If it is lost, we cannot recover the exported data for you.</p>
+<h2 id="7-android-and-ios-system-backups">7. Android and iOS system backups</h2>
+<p>TinyWins' Android configuration excludes its SQLite database locations, including the default Expo SQLite folder, from Android cloud backup and device-to-device transfer rules. These exclusions are part of the Android app configuration; other eligible app files may still be handled by Android's backup mechanisms, and earlier device backups may remain. These rules are separate from the encrypted export you initiate yourself.</p>
+<p>Platform-level backups on iOS are controlled by Apple and the App's native configuration. The current audit did not independently verify iOS backup exclusions. We therefore do not claim that every form of system backup is disabled on every platform.</p>
+<h2 id="8-when-information-is-shared-and-where-it-may-be-processed">8. When information is shared and where it may be processed</h2>
+<p>For the purposes explained above, technical and usage information is processed through <strong>Google Firebase</strong>, <strong>Expo</strong>, and <strong>GitHub Pages</strong>. We do not sell your activity records or operate an advertising-data business. We do not intentionally send your activity names or descriptions to these providers as custom event fields.</p>
+<p>These providers may process information in countries other than your country of residence, subject to their security measures and legal requirements. You can read their policies:</p>
+<ul>
+<li><a href="https://policies.google.com/privacy">Google Privacy Policy</a></li>
+<li><a href="https://expo.dev/privacy">Expo Privacy Policy</a></li>
+<li><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub Privacy Statement</a></li>
+</ul>
+<p>The operating system, app store, and any storage or sharing destination you choose may process information under their own policies.</p>
+<h2 id="9-data-security">9. Data security</h2>
+<p>We use device-local app storage for core records, encryption for user-exported backups, restricted app-defined telemetry fields, and HTTPS connections for supported network services. Firebase and the other providers apply their own service security controls.</p>
+<p>No device, application, encryption method, or network service can be guaranteed completely secure. You should secure your phone, protect backup passwords, and choose trusted locations for saved backup files.</p>
+<h2 id="10-retention-deletion-and-your-choices">10. Retention, deletion, and your choices</h2>
+<p><strong>On your device:</strong> Activity records remain until you remove them, reset local data, or uninstall the App, subject to platform-specific storage and backup behavior. You can delete an individual activity, clear a check-in, remove archived activities, or use <strong>Profile → Delete all local data</strong>. A full local-data reset clears the App's activity records and its legacy migration payload, but retains a small internal migration flag that prevents deleted legacy records from being re-imported.</p>
+<p><strong>Exported files:</strong> A saved <code>.tinywins</code> file remains wherever you chose to store or share it until you delete it there. Deleting local App data does not delete independently saved exports.</p>
+<p><strong>Third-party analytics and diagnostics:</strong> Firebase retains information according to the relevant service's settings, retention periods, and deletion mechanisms. Google Analytics user/event-level retention is configurable, and some aggregated reports can persist independently of those limits; Crashlytics and Performance Monitoring follow their applicable Google retention policies. Uninstalling TinyWins or deleting its local data <strong>does not automatically erase previously collected data from Google's systems</strong>. The App does not currently provide an in-app request to erase historical Firebase Analytics records or reset the Analytics app-instance identifier.</p>
+<p>To ask about privacy, access, correction, deletion, or another data right available under applicable law, contact us using the address below. Because TinyWins has no account system and does not know your name or email from normal app use, we may not be able to identify which pseudonymous Firebase records relate to you from your email alone. We will evaluate requests and respond as required by applicable law.</p>
+<h2 id="11-children-and-changes-to-the-app">11. Children and changes to the App</h2>
+<p>TinyWins is a general-purpose personal activity tracker, not a service specifically directed to children. If a parent or guardian believes a child has used the App in a way that raises a privacy concern, please contact us. We do not use account registration to verify age. Any additional measures required for younger users or particular jurisdictions must be assessed before the App is offered to those audiences.</p>
+<p>If we add accounts, cloud synchronization, advertising, or payments in the future, we will review the resulting data practices and update this Policy as necessary before introducing those features.</p>
+<h2 id="12-changes-to-this-policy">12. Changes to this policy</h2>
+<p>We may revise this Policy when TinyWins, third-party services, or legal requirements change. We will publish the revised Policy with an updated effective date and provide additional notice where appropriate or required by law.</p>
+<h2 id="13-contact">13. Contact</h2>
+<p><strong>Publisher:</strong> [DEVELOPER LEGAL NAME]<br/>
+<strong>Privacy contact:</strong> [CONTACT EMAIL]</p>
+<p>Please use this contact for questions, concerns, or applicable privacy-rights requests. Our <a href="terms.html">Terms &amp; Conditions</a> provide additional information about using TinyWins.</p>
+</article><footer>© 2026 TinyWins · <a href="terms.html">Terms & Conditions</a></footer>
+</main></body></html>

@@ -15,17 +15,17 @@ export class DemoImportService {
       // This includes previously archived tasks and their dependent history.
       await db.runAsync('DELETE FROM tasks');
       const initialGraphIds = initialCombinedTaskIds(dataset.tasks);
-      for (const task of dataset.tasks) {
+      for (const [sortPosition, task] of dataset.tasks.entries()) {
         await db.runAsync(`INSERT INTO tasks
-          (id,name,createdAt,updatedAt,active,createdLocalDate,archivedAt,chartColor,includeInCombinedInsights)
-          VALUES (?,?,?,?,1,?,NULL,?,?)`,
+          (id,name,createdAt,updatedAt,active,createdLocalDate,archivedAt,chartColor,includeInCombinedInsights,sortPosition)
+          VALUES (?,?,?,?,1,?,NULL,?,?,?)`,
         task.id, task.name, task.createdAt, task.updatedAt, task.createdLocalDate ?? null,
-        task.chartColor ?? task.color, Number(initialGraphIds.has(task.id)));
+        task.chartColor ?? task.color, Number(initialGraphIds.has(task.id)), task.sortPosition ?? sortPosition);
         for (const option of task.options) await db.runAsync(`INSERT INTO task_options
           (id,taskId,label,position,rank,normalizedWeight,active,createdAt,updatedAt,description)
           VALUES (?,?,?,?,?,?,1,?,?,?)`,
         option.id, task.id, option.label, option.position, option.rank,
-        option.normalizedWeight, task.createdAt, task.updatedAt, null);
+        option.normalizedWeight, task.createdAt, task.updatedAt, option.description ?? null);
       }
       for (const entry of dataset.entries) {
         const recordedAt = `${entry.localDate}T12:00:00.000Z`;

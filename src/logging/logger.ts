@@ -6,7 +6,9 @@ const messages = [
   'Insights opened', 'Insights data loaded', 'Insights data load failed',
   'Date range changed', 'Orientation changed', 'Orientation lock failed',
   'Activity create started', 'Activity create completed', 'Activity create failed',
-  'Activity edit failed', 'Activity archive completed', 'Activity archive failed',
+  'Activity edit failed', 'Activity order save failed', 'Activity archive completed', 'Activity archive failed',
+  'Activity reorder layout diagnostic',
+  'Activity reorder drag started', 'Activity reorder drag finished',
   'Activity restore completed', 'Activity restore failed', 'Activity delete completed', 'Activity delete failed',
   'Check-in save failed', 'Backup export started', 'Backup export completed',
   'Backup export failed', 'Backup export unverified', 'Backup import started', 'Backup import completed',
@@ -33,6 +35,10 @@ export interface LogMetadata {
   level_count?: number;
   level_index?: number;
   range_days?: number;
+  measurement_callback_count?: number;
+  measurement_update_count?: number;
+  target_index?: number;
+  drag_distance?: number;
 }
 
 const allowed: Record<string, readonly string[]> = {
@@ -43,7 +49,8 @@ const allowed: Record<string, readonly string[]> = {
   date_range: ['1d', '7d', '30d', '90d', 'custom'],
   failure_category: ['encryption', 'file_io', 'validation', 'database', 'invalid_format', 'unknown'],
 };
-const counts = new Set(['activity_count', 'level_count', 'level_index', 'range_days']);
+const counts = new Set(['activity_count', 'level_count', 'level_index', 'range_days',
+  'measurement_callback_count', 'measurement_update_count', 'target_index', 'drag_distance']);
 function safeMetadata(metadata?: LogMetadata): Record<string, string | number> {
   const result: Record<string, string | number> = {};
   if (!metadata) return result;

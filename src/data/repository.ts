@@ -39,8 +39,7 @@ export class TaskRepository {
   getAll(): Promise<Task[]> {
     return this.connection.run(async db => {
       const tasks = await db.getAllAsync<TaskRow>(`SELECT * FROM tasks ORDER BY
-        COALESCE((SELECT MAX(occurredAt) FROM task_lifecycle_transitions
-          WHERE taskId = tasks.id AND type = 'restored'), createdAt), id`);
+        sortPosition, id`);
       const options = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE active = 1 ORDER BY position');
       return tasks.map(task => ({ ...task, active: !!task.active, levelsLocked: !!task.levelsLocked,
         includeInCombinedInsights: !!task.includeInCombinedInsights,
@@ -69,8 +68,10 @@ export class TaskRepository {
       const usedColors = await db.getAllAsync<{ chartColor: string }>(
         'SELECT chartColor FROM tasks WHERE chartColor IS NOT NULL');
       const chartColor = nextTaskColor(usedColors.map(row => row.chartColor));
-      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, includeInCombinedInsights) VALUES (?, ?, ?, ?, 1, ?, NULL, ?, ?, ?)',
-        id, draft.name.trim(), now, now, localDate(), chartColor, Number(include));
+      const sortPosition = (await db.getFirstAsync<{ nextPosition: number }>(
+        'SELECT COALESCE(MAX(sortPosition), -1) + 1 AS nextPosition FROM tasks'))!.nextPosition;
+      await db.runAsync('INSERT INTO tasks(id, name, createdAt, updatedAt, active, createdLocalDate, archivedAt, chartColor, includeInCombinedInsights, sortPosition) VALUES (?, ?, ?, ?, 1, ?, NULL, ?, ?, ?)',
+        id, draft.name.trim(), now, now, localDate(), chartColor, Number(include), sortPosition);
       const options = normalizeOptions(id, draft.options, now);
       for (const option of options) await insertOption(db, option);
       return (await readTask(db, id))!;
@@ -106,6 +107,26 @@ export class TaskRepository {
   }
   archive(id: string) { return this.setActive(id, false); }
   restore(id: string) { return this.setActive(id, true); }
+  reorderActive(ids: string[]) {
+    return this.connection.transaction(async db => {
+      const rows = await db.getAllAsync<{ id: string; active: number; sortPosition: number }>(
+        'SELECT id, active, sortPosition FROM tasks ORDER BY sortPosition, id');
+      const activeIds = rows.filter(row => row.active).map(row => row.id);
+      if (ids.length !== activeIds.length || new Set(ids).size !== ids.length ||
+        ids.some(id => !activeIds.includes(id))) throw new Error('The activity order changed. Please try again.');
+      if (ids.every((id, index) => id === activeIds[index])) return;
+      const reordered = rows.map(row => row.id);
+      const activeSlots = rows.flatMap((row, index) => row.active ? [index] : []);
+      activeSlots.forEach((slot, index) => { reordered[slot] = ids[index]; });
+      // Use a temporary range so the update remains safe if a future schema
+      // adds a uniqueness constraint on the sort position.
+      const offset = Math.max(-1, ...rows.map(row => row.sortPosition)) + rows.length + 1;
+      for (let index = 0; index < reordered.length; index++)
+        await db.runAsync('UPDATE tasks SET sortPosition = ? WHERE id = ?', offset + index, reordered[index]);
+      for (let index = 0; index < reordered.length; index++)
+        await db.runAsync('UPDATE tasks SET sortPosition = ? WHERE id = ?', index, reordered[index]);
+    });
+  }
   private setActive(id: string, active: boolean) {
     return this.connection.transaction(async db => {
       const task = await readTask(db, id);

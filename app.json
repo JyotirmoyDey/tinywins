@@ -23,6 +23,7 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
+      "./plugins/withAndroidDatabaseBackupExclusion",
       [
         "expo-screen-orientation",
         {
