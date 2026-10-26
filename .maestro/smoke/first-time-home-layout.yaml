@@ -1,22 +1,73 @@
 appId: com.plainleaf.tinywins
+env:
+  RESET_LOCAL_DATA: ${RESET_LOCAL_DATA || 'true'}
 ---
-# Runs on a device with no saved activities; does not clear or modify app data.
+# WARNING: Deletes all local activities, check-ins and archived items by default.
+# Uses the app's reset action, not clearState, to retain the Metro connection.
+# Use -e RESET_LOCAL_DATA=false only on an already-empty device to skip reset.
+# Run create-and-persist afterward to recreate the lifecycle-test fixture.
+# The suggested activity is never saved.
 - launchApp
+- assertVisible:
+    id: home-screen
+- runFlow:
+    when:
+      true: ${RESET_LOCAL_DATA == 'true'}
+    commands:
+      - tapOn:
+          id: nav-profile
+      - tapOn:
+          text: ^Delete all local (TinyWins )?data$
+      - assertVisible:
+          text: '^Delete all local TinyWins data\?$'
+      - tapOn:
+          text: (?i)^Delete local data$
+      - assertVisible:
+          text: ^Local data deleted$
+      - tapOn:
+          text: (?i)^OK$
+      - tapOn:
+          id: nav-home
 - assertVisible:
     id: home-screen
 - assertVisible:
     text: Little things, worth noticing.
+    label: "Verify empty Home after local-data reset"
+- scrollUntilVisible:
+    element:
+      id: activity-example-exercise
+    direction: DOWN
 - assertVisible:
     id: activity-example-exercise
+- scrollUntilVisible:
+    element:
+      id: activity-example-reading
+    direction: DOWN
 - assertVisible:
     id: activity-example-reading
+- scrollUntilVisible:
+    element:
+      id: activity-example-music-practice
+    direction: DOWN
 - assertVisible:
     id: activity-example-music-practice
+- scrollUntilVisible:
+    element:
+      id: activity-example-learning
+    direction: DOWN
 - assertVisible:
     id: activity-example-learning
+- scrollUntilVisible:
+    element:
+      id: create-my-own-activity
+    direction: DOWN
 - assertVisible:
     id: create-my-own-activity
 - takeScreenshot: first-time-home-grid
+- scrollUntilVisible:
+    element:
+      id: activity-example-reading
+    direction: UP
 - tapOn:
     id: activity-example-reading
 - assertVisible:

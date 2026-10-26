@@ -3,7 +3,18 @@ import { initialCombinedTaskIds } from '../config/combinedInsights';
 import { AnalyticsDataset } from './types';
 import { localDate, parseLocalDate } from '../domain/task';
 
-const raw = require('../assets/demo/tinywins-demo-180d.json');
+type JsonContext = {
+  keys: () => string[];
+  (key: string): unknown;
+};
+
+declare global {
+  namespace NodeJS {
+    interface Require {
+      context: (directory: string, useSubdirectories?: boolean, pattern?: RegExp) => JsonContext;
+    }
+  }
+}
 
 type ScreenshotLevel = { value: number; title: string; description?: string };
 type ScreenshotActivity = { key: string; name: string; levels: ScreenshotLevel[] };
@@ -19,9 +30,10 @@ type ScreenshotFixture = {
 };
 
 /** Maps the screenshot fixture into ordinary local records. Relative day offsets
- * keep the latest sample on the device's current local day. */
-export function loadScreenshotDataset(today = localDate()): AnalyticsDataset {
-  const fixture = raw as ScreenshotFixture;
+ * keep the latest sample on the device's current local day. When no fixture is
+ * provided (the app path), Metro discovers the sole JSON file in assets/demo. */
+export function loadScreenshotDataset(today = localDate(), fixtureInput?: unknown): AnalyticsDataset {
+  const fixture = (fixtureInput ?? loadOnlyBundledScreenshotFixture()) as ScreenshotFixture;
   validateScreenshotFixture(fixture);
   const endDate = parseLocalDate(today);
   const startDate = new Date(endDate);
@@ -77,6 +89,28 @@ export function loadScreenshotDataset(today = localDate()): AnalyticsDataset {
     };
   });
   return { tasks, entries, lifecycle: [] };
+}
+
+/** Selects the only JSON file in the screenshot-demo folder. Requiring exactly
+ * one makes filename swaps easy while preventing an ambiguous fixture choice. */
+export function selectOnlyJsonFixture(context: JsonContext): unknown {
+  const jsonFiles = context.keys().filter(key => key.toLowerCase().endsWith('.json'));
+  if (jsonFiles.length !== 1) {
+    throw new Error(`Expected exactly one screenshot demo JSON file, found ${jsonFiles.length}.`);
+  }
+  const imported = context(jsonFiles[0]) as { default?: unknown } | unknown;
+  return imported && typeof imported === 'object' && 'default' in imported
+    ? (imported as { default: unknown }).default
+    : imported;
+}
+
+function loadOnlyBundledScreenshotFixture() {
+  if (typeof require.context !== 'function') {
+    throw new Error('Screenshot demo discovery requires the Expo Metro bundler.');
+  }
+  // Keep this as a direct call: Metro statically recognizes this syntax and
+  // includes the matched JSON modules in the application bundle.
+  return selectOnlyJsonFixture(require.context('../assets/demo', false, /\.json$/i));
 }
 
 function dateBefore(date: string, days: number) {

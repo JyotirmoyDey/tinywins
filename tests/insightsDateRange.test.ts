@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { availableCustomRange, dateFromPicker, earliestAvailableDate, earliestRecordedDate, formatDateCell, formatLocalDate, pickerValue, getInsightsPeriod, updateCustomRangeDraft, validateCustomRange } from '../src/analytics/insightsDateRange';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { dateMenuActions } from '../src/components/analytics/dateMenuActions';
 import { localDate } from '../src/domain/task';
 

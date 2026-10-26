@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { getIndividualRecordingConsistency } from '../src/analytics/recordingConsistency';
 import { consistencyDateTicks } from '../src/components/analytics/recordingConsistencyLayout';
 import { AnalyticsEntry, AnalyticsTask } from '../src/analytics/types';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { getInsightsPeriod } from '../src/analytics/insightsDateRange';
 import { getAnalyticsDataset } from '../src/analytics/service';
 import { setup } from './sqlite';

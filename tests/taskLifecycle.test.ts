@@ -11,7 +11,7 @@ import { getAnalyticsDataset, getRecordingConsistency } from '../src/analytics/s
 import { getIndividualRecordingConsistency } from '../src/analytics/recordingConsistency';
 import { getRatingTrend } from '../src/analytics/ratingTrend';
 import { getJourneyTogether } from '../src/analytics/journeyTogether';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { getRatingDistribution } from '../src/analytics/ratingDistribution';
 import { individualCalendarData } from '../src/components/analytics/individualCalendar';
 import { getPeriodComparison } from '../src/analytics/periodComparison';

@@ -1,0 +1,111 @@
+appId: com.plainleaf.tinywins
+---
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-android-nav-workout
+- assertVisible:
+    id: activity-card-android-nav-reading
+
+# Background from an Insights session and resume the existing process.
+- tapOn:
+    id: activity-insights-android-nav-workout
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 30 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 30D$
+- pressKey: HOME
+- launchApp:
+    stopApp: false
+- assertVisible:
+    id: insights-portrait-screen
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 30D$
+
+# Commit one slider update, then immediately background and resume.
+- tapOn:
+    id: nav-home
+- tapOn:
+    id: activity-slider-android-nav-workout
+    point: 50%,50%
+- waitForAnimationToEnd
+- assertVisible:
+    id: activity-card-android-nav-workout
+    containsDescendants:
+      - id: activity-current-level-android-nav-workout
+        text: ^Moderate$
+- pressKey: HOME
+- launchApp:
+    stopApp: false
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-android-nav-workout
+    containsDescendants:
+      - id: activity-current-level-android-nav-workout
+        text: ^Moderate$
+
+# A draft name edit survives ordinary background/resume in the existing
+# in-memory editor, then is explicitly discarded without saving.
+- tapOn:
+    id: activity-menu-android-nav-workout
+- tapOn:
+    id: edit-activity-action
+- assertVisible:
+    id: activity-editor-screen
+- tapOn:
+    id: activity-name-input
+- eraseText: 100
+- inputText: Workout draft retained
+- hideKeyboard
+- pressKey: HOME
+- launchApp:
+    stopApp: false
+- assertVisible:
+    id: activity-editor-screen
+- assertVisible:
+    id: activity-name-input
+    text: ^Workout draft retained$
+- hideKeyboard
+- pressKey: BACK
+- assertVisible: Discard changes?
+- tapOn:
+    text: ^Discard$
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-android-nav-workout
+- assertNotVisible: Workout draft retained
+
+# stopApp terminates TinyWins; relaunch without clearing app data verifies
+# recovery after process death, separately from the Home/resume checks above.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-android-nav-workout
+    containsDescendants:
+      - id: activity-current-level-android-nav-workout
+        text: ^Moderate$
+- assertVisible:
+    id: activity-card-android-nav-reading
+- tapOn:
+    id: activity-insights-android-nav-workout
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 30 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^3 check-ins$
+- assertVisible: Moderate

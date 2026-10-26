@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { getRatingTrend, ratingTrendConfig } from '../src/analytics/ratingTrend';
 import { getAdaptiveTrend } from '../src/analytics/ratingTrendPresentation';
 import { connectedTrendSegments, isolatedTrendFragments, trendCurvePath, TrendCurvePoint } from '../src/components/analytics/trendCurve';

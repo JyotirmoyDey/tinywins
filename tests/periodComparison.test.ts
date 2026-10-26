@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getPeriodComparison, precedingEqualPeriod } from '../src/analytics/periodComparison';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { AnalyticsEntry, AnalyticsTask } from '../src/analytics/types';
 import { getAnalyticsDataset } from '../src/analytics/service';
 import { setup } from './sqlite';

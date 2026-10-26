@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { localDate, parseLocalDate } from '../src/domain/task';
 import { RatingTrendData, TrendObservation, getRatingTrend } from '../src/analytics/ratingTrend';
 import { getAdaptiveTrend, getWeeklyRatingTrend, mondayOf, weeklyLabelIndices } from '../src/analytics/ratingTrendPresentation';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 
 const names = ['Skipped', 'Average', 'High'];
 function fixture(dayCount: number, selected: { day: number; level: number; version?: string }[],

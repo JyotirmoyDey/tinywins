@@ -15,14 +15,15 @@ import { trackBackupExported, trackBackupFailed, trackBackupImported, withPerfor
 import { logger } from '../logging/logger';
 
 type Stage = 'choice' | 'create' | 'ready' | 'password' | 'preview';
-function PasswordField({ label, value, onChange, visible, onToggle }: {
+function PasswordField({ label, value, onChange, visible, onToggle, testID }: {
   label: string; value: string; onChange: (value: string) => void;
   visible: boolean; onToggle: () => void;
+  testID: string;
 }) {
   return <View style={styles.field}>
     <Text style={styles.fieldLabel}>{label}</Text>
     <View style={styles.passwordRow}>
-      <TextInput value={value} onChangeText={onChange} secureTextEntry={!visible}
+      <TextInput testID={testID} value={value} onChangeText={onChange} secureTextEntry={!visible}
         autoCapitalize="none" autoCorrect={false} textContentType="password"
         accessibilityLabel={label} placeholder="Password" placeholderTextColor={c.textTertiary}
         style={styles.input} returnKeyType="done" />
@@ -113,7 +114,7 @@ export default function BackupScreen() {
     try {
       const result = await unlockLocalBackup(file, password);
       setPayload(result); setFile(null); setPassword(''); setStage('preview');
-    } catch (cause) { logger.error('Backup import rejected', { operation: 'backup_import', failure_category: 'validation' }, cause); trackBackupFailed('import', 'validation'); setError(message(cause)); }
+    } catch (cause) { logger.warn('Backup import rejected', { operation: 'backup_import', failure_category: 'validation' }); trackBackupFailed('import', 'validation'); setError(message(cause)); }
     finally { setBusy(null); operation.current = false; }
   };
   const restore = async () => {
@@ -137,43 +138,43 @@ export default function BackupScreen() {
     [{ text: 'Cancel', style: 'cancel' },
       { text: 'Restore', style: 'destructive', onPress: () => void restore() }]);
   const preview = payload && backupPreview(payload);
-  return <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+  return <SafeAreaView testID="backup-screen" style={styles.screen} edges={['top', 'bottom']}>
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Pressable accessibilityRole="button" accessibilityLabel={stage === 'choice' ? 'Back to Profile' : 'Cancel'}
+        <Pressable testID="backup-back" accessibilityRole="button" accessibilityLabel={stage === 'choice' ? 'Back to Profile' : 'Cancel'}
           onPress={() => stage === 'choice' ? router.back() : cancel()} style={styles.back}>
           <Text style={styles.backText}>{stage === 'choice' ? '‹ Profile' : 'Cancel'}</Text>
         </Pressable>
-        <Text style={styles.title}>Backup &amp; Restore</Text>
+        <Text testID="backup-screen-title" style={styles.title}>Backup &amp; Restore</Text>
         {stage === 'choice' && <View style={styles.group}>
           <Text style={styles.body}>Keep a password-protected copy of your TinyWins data in a location you choose.</Text>
           {!backupAvailable && <Text style={styles.note}>Backup &amp; Restore needs a TinyWins development or production build. It is unavailable in Expo Go.</Text>}
-          <Button label="Create Backup" onPress={() => { setError(null); setStage('create'); }} disabled={!!busy || !backupAvailable}/>
-          <Button label="Restore Backup" onPress={() => void chooseFile()} subtle disabled={!!busy || !backupAvailable}/>
+          <Button testID="backup-open-create" label="Create Backup" onPress={() => { setError(null); setStage('create'); }} disabled={!!busy || !backupAvailable}/>
+          <Button testID="backup-open-import" label="Restore Backup" onPress={() => void chooseFile()} subtle disabled={!!busy || !backupAvailable}/>
           <Text style={styles.note}>TinyWins cannot recover a forgotten backup password.</Text>
         </View>}
         {stage === 'create' && <View style={styles.group}>
           <Text style={styles.body}>Create an encrypted file, then choose how to save or share it.</Text>
-          <PasswordField label="Password" value={password} onChange={setPassword}
+          <PasswordField testID="backup-create-password" label="Password" value={password} onChange={setPassword}
             visible={visible} onToggle={() => setVisible(value => !value)}/>
-          <PasswordField label="Confirm password" value={confirmation} onChange={setConfirmation}
+          <PasswordField testID="backup-confirm-password" label="Confirm password" value={confirmation} onChange={setConfirmation}
             visible={visible} onToggle={() => setVisible(value => !value)}/>
           <Text style={styles.note}>At least 12 characters. Keep this password somewhere safe; it cannot be recovered.</Text>
-          <Button label="Create encrypted backup" onPress={() => void create()} disabled={!!busy}/>
+          <Button testID="backup-create-encrypted" label="Create encrypted backup" onPress={() => void create()} disabled={!!busy}/>
         </View>}
         {stage === 'ready' && <View style={styles.group}>
           <Text style={styles.body}>Your encrypted backup is ready.</Text>
-          <Button label={Platform.OS === 'ios' ? 'Save to Files' : 'Save to Device'}
+          <Button testID="backup-save-file" label={Platform.OS === 'ios' ? 'Save to Files' : 'Save to Device'}
             onPress={() => void save()} disabled={!!busy || !encrypted}/>
           <Button label="Share Backup" onPress={() => void share()} subtle disabled={!!busy || !encrypted}/>
           {Platform.OS === 'ios' && <Text style={styles.note}>Choose Save to Files in the share sheet. Check Files afterward; iOS does not confirm which action you chose.</Text>}
-          <Button label="Done" onPress={clear} subtle disabled={!!busy}/>
+          <Button testID="backup-done" label="Done" onPress={clear} subtle disabled={!!busy}/>
         </View>}
         {stage === 'password' && <View style={styles.group}>
           <Text style={styles.body}>Enter the password for the selected backup. Your current data will not change yet.</Text>
-          <PasswordField label="Backup password" value={password} onChange={setPassword}
+          <PasswordField testID="backup-import-password" label="Backup password" value={password} onChange={setPassword}
             visible={visible} onToggle={() => setVisible(value => !value)}/>
-          <Button label="Preview backup" onPress={() => void inspect()} disabled={!!busy || !password}/>
+          <Button testID="backup-preview" label="Preview backup" onPress={() => void inspect()} disabled={!!busy || !password}/>
         </View>}
         {stage === 'preview' && preview && <View style={styles.group}>
           <Text style={styles.sectionTitle}>Ready to restore</Text>
@@ -184,11 +185,11 @@ export default function BackupScreen() {
             <Text style={styles.previewRow}>{preview.recordings} historical recordings</Text>
           </View>
           <Text style={styles.warning}>Restoring this backup will replace your current TinyWins data.</Text>
-          <Button label="Restore" onPress={confirmRestore} disabled={!!busy}/>
+          <Button testID="backup-restore" label="Restore" onPress={confirmRestore} disabled={!!busy}/>
         </View>}
-        {busy && <Text accessibilityLiveRegion="polite" style={styles.status}>{busy}</Text>}
-        {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-        {notice && <Text accessibilityLiveRegion="polite" style={styles.note}>{notice}</Text>}
+        {busy && <Text testID="backup-busy-status" accessibilityLiveRegion="polite" style={styles.status}>{busy}</Text>}
+        {error && <Text testID="backup-error" accessibilityRole="alert" style={styles.error}>{error}</Text>}
+        {notice && <Text testID="backup-status" accessibilityLiveRegion="polite" style={styles.note}>{notice}</Text>}
       </ScrollView>
     </KeyboardAvoidingView>
   </SafeAreaView>;

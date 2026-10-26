@@ -4,7 +4,7 @@ import { setup } from './sqlite';
 import { getAnalyticsDataset } from '../src/analytics/service';
 import { getRatingTrend, ratingTrendConfig } from '../src/analytics/ratingTrend';
 import { getInsightsPeriod } from '../src/analytics/insightsDateRange';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 
 const period = { startDate: '2026-09-15', endDate: '2026-09-24' };
 async function chart(db: Awaited<ReturnType<typeof setup>>, taskId: string, range = period) {
@@ -77,15 +77,15 @@ test('deleting or reordering levels is blocked after recording, even after clear
   db.native.close();
 });
 
-test('cosmetic rename preserves historical tooltip label without version metadata', async () => {
+test('level label changes are blocked after recording and the original historical meaning stays intact', async () => {
   const db = await setup();
   const task = await db.tasks.create({ name: 'Study', options: optionDraft(['Low', 'Good', 'High']) });
   await db.entries.upsert(task.id, '2026-09-20', task.options[1].id);
-  const renamed = await db.tasks.update(task.id, { name: task.name, options: task.options.map(option => ({
+  await assert.rejects(db.tasks.update(task.id, { name: task.name, options: task.options.map(option => ({
     id: option.id, label: option.label === 'Good' ? 'Excellent' : option.label,
-  })) });
+  })) }), /permanent/);
   const result = await chart(db, task.id);
-  assert.equal(result.levels[1].label, 'Excellent');
+  assert.equal(result.levels[1].label, 'Good');
   assert.equal(result.observations[0].labelAtEntry, 'Good');
   db.native.close();
 });

@@ -4,7 +4,7 @@ import { getWeekdayPatterns } from '../src/analytics/weekdayPatterns';
 import { getInsightsPeriod } from '../src/analytics/insightsDateRange';
 import { AnalyticsEntry, AnalyticsTask } from '../src/analytics/types';
 import { heatmapCellWidth, heatmapGridWidth } from '../src/components/analytics/weekdayPatternsLayout';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { getAnalyticsDataset } from '../src/analytics/service';
 import { setup } from './sqlite';
 

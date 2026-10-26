@@ -1,0 +1,345 @@
+appId: com.plainleaf.tinywins
+---
+# The runner seeds 3 activities, 9 levels, and 6 check-ins.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-delete-all-empty-workout
+- assertVisible:
+    id: activity-card-delete-all-empty-reading
+- assertVisible:
+    id: activity-card-delete-all-empty-guitar
+
+# Initial All Activities analytics contain all three seeded activities.
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-delete-all-empty-workout
+- assertVisible:
+    id: journey-activity-delete-all-empty-reading
+- assertVisible:
+    id: journey-activity-delete-all-empty-guitar
+- scrollUntilVisible:
+    element:
+      id: insights-combined-recorded-count
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^6 of 12 days recorded$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-calendar
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-combined-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekly-checkins
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekly-checkins
+
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen
+
+# Delete Workout through the permanent-delete UI.
+- scrollUntilVisible:
+    element:
+      id: activity-menu-delete-all-empty-workout
+    direction: DOWN
+- tapOn:
+    id: activity-menu-delete-all-empty-workout
+- tapOn:
+    id: delete-activity-action
+- assertVisible:
+    text: ^Delete Workout\?$
+- tapOn:
+    text: (?i)^Delete$
+- extendedWaitUntil:
+    notVisible:
+      id: activity-card-delete-all-empty-workout
+    timeout: 20000
+- assertVisible:
+    id: activity-card-delete-all-empty-reading
+- assertVisible:
+    id: activity-card-delete-all-empty-guitar
+- assertNotVisible:
+    id: activity-card-delete-all-empty-workout
+
+# Permanent deletion does not move Workout into Archived.
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible: No archived items yet.
+- assertNotVisible: Restore
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+
+# The combined graph now contains Reading and Guitar only.
+- tapOn:
+    id: nav-insights
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertNotVisible:
+    id: journey-activity-delete-all-empty-workout
+- assertVisible:
+    id: journey-activity-delete-all-empty-reading
+- assertVisible:
+    id: journey-activity-delete-all-empty-guitar
+- scrollUntilVisible:
+    element:
+      id: insights-combined-recorded-count
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^3 of 8 days recorded$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-combined-consistency
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-calendar
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-combined-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekly-checkins
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekly-checkins
+
+- tapOn:
+    id: nav-home
+- scrollUntilVisible:
+    element:
+      id: activity-menu-delete-all-empty-reading
+    direction: DOWN
+- tapOn:
+    id: activity-menu-delete-all-empty-reading
+- tapOn:
+    id: delete-activity-action
+- assertVisible:
+    text: ^Delete Reading\?$
+- tapOn:
+    text: (?i)^Delete$
+- extendedWaitUntil:
+    notVisible:
+      id: activity-card-delete-all-empty-reading
+    timeout: 20000
+- assertVisible:
+    id: activity-card-delete-all-empty-guitar
+- assertNotVisible:
+    id: activity-card-delete-all-empty-reading
+
+# With Guitar as the only active item, only its one check-in contributes.
+- tapOn:
+    id: nav-insights
+- assertVisible:
+    id: insights-activity-menu
+    text: ^Showing All$
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: UP
+- assertNotVisible:
+    id: journey-activity-delete-all-empty-workout
+- assertNotVisible:
+    id: journey-activity-delete-all-empty-reading
+- assertVisible:
+    id: journey-activity-delete-all-empty-guitar
+- scrollUntilVisible:
+    element:
+      id: insights-combined-recorded-count
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^1 of 4 days recorded$
+
+# Delete the final active activity. This is the normal-to-first-time-empty
+# transition under test; the next assertions ensure the screen fully rebinds.
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: activity-card-delete-all-empty-guitar
+- tapOn:
+    id: activity-menu-delete-all-empty-guitar
+- tapOn:
+    id: delete-activity-action
+- assertVisible:
+    text: ^Delete Guitar\?$
+- tapOn:
+    text: (?i)^Delete$
+- extendedWaitUntil:
+    visible:
+      id: home-empty-state
+    timeout: 20000
+- assertVisible: Little things, worth noticing.
+- assertVisible: Pick something that matters to you. Record how your days go, and discover your patterns over time.
+- assertVisible:
+    id: create-my-own-activity
+- assertVisible:
+    id: add-activity-button
+- assertNotVisible:
+    id: activity-card-delete-all-empty-workout
+- assertNotVisible:
+    id: activity-card-delete-all-empty-reading
+- assertNotVisible:
+    id: activity-card-delete-all-empty-guitar
+- assertNotVisible: What I'm Tracking
+- assertNotVisible: 0 of 5 in Insights
+
+# All remains available, but has no stale activity/chart contributions.
+- tapOn:
+    id: nav-insights
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: insights-no-activities-title
+    direction: UP
+- assertVisible:
+    id: insights-no-activities-title
+- assertVisible: No insights yet
+- assertVisible: Add an activity and start recording your days. Your insights will appear here as your history grows.
+- assertNotVisible: Nothing selected yet.
+- assertNotVisible: Tap the graph icon on Home to add something to Insights.
+- assertNotVisible:
+    id: insights-chart-journey-together
+- assertNotVisible:
+    id: insights-chart-combined-consistency
+- assertNotVisible:
+    id: insights-chart-combined-calendar
+- assertNotVisible:
+    id: insights-chart-weekly-checkins
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 7 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 7D$
+- assertVisible: No insights yet
+- assertNotVisible: Nothing selected yet.
+- assertNotVisible: Workout
+- assertNotVisible: Reading
+- assertNotVisible: Guitar
+
+# Deleted activities are not archived and cannot be restored.
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible: No archived items yet.
+- assertNotVisible: Restore
+
+# Both empty states remain after a process stop/relaunch.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: home-empty-state
+- assertVisible: Little things, worth noticing.
+- assertVisible:
+    id: create-my-own-activity
+- assertNotVisible:
+    id: activity-card-delete-all-empty-workout
+- assertNotVisible:
+    id: activity-card-delete-all-empty-reading
+- assertNotVisible:
+    id: activity-card-delete-all-empty-guitar
+- tapOn:
+    id: nav-insights
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible: No insights yet
+- assertVisible: Add an activity and start recording your days. Your insights will appear here as your history grows.
+- assertNotVisible: Nothing selected yet.
+- assertNotVisible:
+    id: insights-chart-journey-together
+- assertNotVisible:
+    id: insights-chart-combined-consistency
+- assertNotVisible:
+    id: insights-chart-combined-calendar
+- assertNotVisible:
+    id: insights-chart-weekly-checkins
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible: No archived items yet.
+
+# Verify recovery from empty Home without creating a new persisted item.
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- tapOn:
+    id: create-my-own-activity
+- assertVisible:
+    id: activity-editor-screen
+- assertVisible:
+    id: activity-name-input
+- pressKey: BACK
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: home-empty-state
+- assertNotVisible:
+    id: activity-card-delete-all-empty-workout
+- assertNotVisible:
+    id: activity-card-delete-all-empty-reading
+- assertNotVisible:
+    id: activity-card-delete-all-empty-guitar

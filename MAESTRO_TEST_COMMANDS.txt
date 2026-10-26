@@ -1,0 +1,50 @@
+TinyWins Maestro test commands
+==============================
+
+Run these commands from the TinyWins project root:
+
+Smoke tests
+-----------
+maestro test .maestro/smoke.yaml
+maestro test .maestro/smoke/app-launch.yaml
+maestro test .maestro/smoke/create-and-persist.yaml
+maestro test .maestro/smoke/character-limits.yaml
+maestro test .maestro/smoke/level-keyboard-visibility.yaml
+maestro test .maestro/smoke/level-removal-undo.yaml
+
+First-time Home (dedicated test device only)
+-------------------------------------------
+WARNING: This command permanently deletes all local activities, check-ins,
+and archived items through Profile before testing. It retains the Metro
+connection. It also removes the fixture needed by the lifecycle tests below;
+run create-and-persist again afterward to recreate that fixture.
+maestro test .maestro/smoke/first-time-home-layout.yaml
+
+For an already-empty device only (does not delete anything):
+maestro test -e RESET_LOCAL_DATA=false .maestro/smoke/first-time-home-layout.yaml
+
+Lifecycle tests
+---------------
+maestro test .maestro/lifecycle/record-and-persist.yaml
+maestro test .maestro/lifecycle/edit-and-persist.yaml
+maestro test .maestro/lifecycle/level-lock-after-recording.yaml
+maestro test .maestro/lifecycle/delete-and-persist.yaml
+maestro test .maestro/lifecycle/archive-insights-isolation.yaml
+maestro test .maestro/lifecycle/archive-restore-and-persist.yaml
+
+P1 regression tests
+-------------------
+maestro test .maestro/p1/date-filters.yaml
+maestro test .maestro/p1/insights-navigation.yaml
+maestro test .maestro/p1/chart-rotation.yaml
+maestro test .maestro/p1/empty-insights.yaml
+
+Notes
+-----
+- The helper flows in .maestro/p1/helpers/ are invoked by the P1 tests; they are not standalone tests.
+- .maestro/lifecycle/backup-restore.md and .maestro/p1/record-edit-history.md are documentation/manual procedures, not runnable Maestro YAML flows.
+- The create-and-persist lifecycle flow is located at .maestro/smoke/create-and-persist.yaml.
+- These commands were listed from the current .maestro YAML files; they have not been run as part of creating this list.
+
+
+maestro test .maestro/p0/backup-export-import.yaml

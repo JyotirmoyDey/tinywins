@@ -1,0 +1,156 @@
+appId: com.plainleaf.tinywins
+---
+# Initial records are seeded and checked by `npm run e2e -- slider-interactions`.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-slider-interactions-workout
+- assertVisible:
+    id: activity-card-slider-interactions-reading
+- assertVisible:
+    id: activity-current-level-slider-interactions-workout
+    text: ^Not recorded$
+- assertVisible:
+    id: activity-current-level-slider-interactions-reading
+    text: ^Some reading$
+
+# Confirm the existing historical Workout check-in before touching today's slider.
+- tapOn:
+    id: activity-menu-slider-interactions-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: activity-history-screen
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Light$
+- assertVisible:
+    id: history-value-today
+    text: ^—$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen
+
+# Rapid discrete interactions on the actual five-position slider. These select
+# Level 1 → 5 → 2 → 4 → 3 without reading/waiting between intermediate commits.
+- tapOn:
+    id: activity-slider-slider-interactions-workout
+    point: 5%,50%
+- assertVisible:
+    id: activity-current-level-slider-interactions-workout
+    text: ^Very Light$
+- tapOn:
+    id: activity-slider-slider-interactions-workout
+    point: 95%,50%
+- tapOn:
+    id: activity-slider-slider-interactions-workout
+    point: 28%,50%
+- tapOn:
+    id: activity-slider-slider-interactions-workout
+    point: 72%,50%
+- tapOn:
+    id: activity-slider-slider-interactions-workout
+    point: 50%,50%
+- assertVisible:
+    id: activity-current-level-slider-interactions-workout
+    text: ^Moderate$
+
+# Reading its history waits behind queued database work and verifies the latest
+# committed value, not only the optimistic slider label.
+- tapOn:
+    id: activity-menu-slider-interactions-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Light$
+- assertVisible:
+    id: history-value-today
+    text: ^Moderate$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen
+
+# Update the existing same-day record rapidly: Level 3 → 1 → 4 → 5.
+- tapOn:
+    id: activity-slider-slider-interactions-workout
+    point: 50%,50%
+- tapOn:
+    id: activity-slider-slider-interactions-workout
+    point: 5%,50%
+- tapOn:
+    id: activity-slider-slider-interactions-workout
+    point: 72%,50%
+- tapOn:
+    id: activity-slider-slider-interactions-workout
+    point: 95%,50%
+- assertVisible:
+    id: activity-current-level-slider-interactions-workout
+    text: ^Very Intense$
+
+# Navigate away and back; the exact persisted record must still win.
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: activity-current-level-slider-interactions-workout
+    text: ^Very Intense$
+- assertVisible:
+    id: activity-current-level-slider-interactions-reading
+    text: ^Some reading$
+- tapOn:
+    id: activity-menu-slider-interactions-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Light$
+- assertVisible:
+    id: history-value-today
+    text: ^Very Intense$
+- tapOn:
+    id: activity-history-back
+
+# Persistence after process restart and production Insights distribution.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-current-level-slider-interactions-workout
+    text: ^Very Intense$
+- assertVisible:
+    id: activity-current-level-slider-interactions-reading
+    text: ^Some reading$
+- tapOn:
+    id: activity-menu-slider-interactions-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Light$
+- assertVisible:
+    id: history-value-today
+    text: ^Very Intense$
+- tapOn:
+    id: activity-history-back
+- tapOn:
+    id: activity-insights-slider-interactions-workout
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^2 check-ins$

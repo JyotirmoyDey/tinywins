@@ -1,0 +1,118 @@
+appId: com.plainleaf.tinywins
+---
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-android-nav-workout
+- assertVisible:
+    id: activity-card-android-nav-reading
+
+# Android Back from individual Insights returns to the preceding Home screen.
+- tapOn:
+    id: activity-insights-android-nav-workout
+- assertVisible:
+    id: insights-portrait-screen
+- pressKey: BACK
+- assertVisible:
+    id: home-screen
+
+# System Back from the Insights tab follows the tab navigator's root history.
+- tapOn:
+    id: nav-insights
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- pressKey: BACK
+- assertVisible:
+    id: home-screen
+
+# Back first closes the keyboard; a second Back invokes the existing discard
+# confirmation for an unsaved editor draft.
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+- tapOn:
+    id: activity-name-input
+- inputText: Temporary Back Draft
+- pressKey: BACK
+- assertVisible:
+    id: activity-editor-screen
+- assertVisible:
+    id: activity-name-input
+- pressKey: BACK
+- assertVisible: Discard changes?
+- tapOn:
+    text: ^Discard$
+- assertVisible:
+    id: home-screen
+- assertNotVisible: Temporary Back Draft
+
+# Back cancels the native archive confirmation; no destructive operation occurs.
+- tapOn:
+    id: activity-menu-android-nav-workout
+- tapOn:
+    id: archive-activity-action
+- assertVisible:
+    text: ^Archive Workout\?$
+- pressKey: BACK
+- assertVisible:
+    text: ^Archive Workout\?$
+- tapOn:
+    text: ^Cancel$
+- assertNotVisible:
+    text: ^Archive Workout\?$
+- assertVisible:
+    id: activity-card-android-nav-workout
+
+# The expanded trend route installs a hardware-back handler that closes only
+# the overlay and returns to Insights.
+- tapOn:
+    id: activity-insights-android-nav-workout
+- assertVisible:
+    id: insights-portrait-screen
+- tapOn:
+    id: expand-trend-chart
+- assertVisible:
+    id: expanded-trend-screen
+- pressKey: BACK
+- assertVisible:
+    id: insights-portrait-screen
+- assertNotVisible:
+    id: expanded-trend-screen
+
+# Canceling the custom date sheet leaves the already-applied 30D filter intact.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 30 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 30D$
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Custom range$
+- assertVisible:
+    id: custom-date-range-sheet
+- pressKey: BACK
+- assertNotVisible:
+    id: custom-date-range-sheet
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 30D$
+
+# The root tab has no custom BackHandler. Return/relaunch is accepted whether
+# Android leaves the app in the background or exits its current activity.
+- tapOn:
+    id: nav-home
+- pressKey: BACK
+- launchApp:
+    stopApp: false
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-android-nav-workout
+- assertVisible:
+    id: activity-card-android-nav-reading

@@ -12,12 +12,22 @@ appId: com.plainleaf.tinywins
 - tapOn:
     id: activity-name-input
 - inputText: Maestro Persistence Test
-# A new activity already has three valid default levels: Low, Medium, High.
+# A new activity has three valid defaults: Not today, A little, Quite a bit.
 - hideKeyboard
 - tapOn:
     id: save-activity-button
 - assertVisible:
     id: home-screen
+# Home remains mounted underneath the editor route, so also verify the editor closed.
+- assertNotVisible:
+    id: activity-editor-screen
+# New activities are appended to the end of the draggable list, which may put
+# their cards below the viewport on a tall-card Home screen.
+- scrollUntilVisible:
+    element:
+      id: .*activity-name-.+
+      text: ^Maestro Persistence Test$
+    direction: DOWN
 - assertVisible:
     id: .*activity-name-.+
     text: ^Maestro Persistence Test$
@@ -25,6 +35,11 @@ appId: com.plainleaf.tinywins
 - launchApp
 - assertVisible:
     id: home-screen
+- scrollUntilVisible:
+    element:
+      id: .*activity-name-.+
+      text: ^Maestro Persistence Test$
+    direction: DOWN
 - assertVisible:
     id: .*activity-name-.+
     text: ^Maestro Persistence Test$

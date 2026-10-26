@@ -68,8 +68,8 @@ test('repository enforces new limits, preserving unchanged legacy values and his
     await assert.rejects(tasks.update(task.id, { name: legacy.name, options: legacy.options.map(o => o.id === legacy.options[0].id ? { ...o, label: `${longLabel}!` } : o) }));
     const renamed = await tasks.update(task.id, { name: 'New name', options: legacy.options });
     assert.equal(renamed.options[0].label, longLabel);
-    const fixed = await tasks.update(task.id, { name: renamed.name, options: renamed.options.map(o => o.id === task.options[0].id ? { ...o, label: 'Good' } : o) });
-    assert.equal(fixed.options[0].label, 'Good');
+    await assert.rejects(tasks.update(task.id, { name: renamed.name, options: renamed.options.map(o => o.id === task.options[0].id ? { ...o, label: 'Good' } : o) }), /permanent/);
+    assert.equal((await tasks.getById(task.id))?.options[0].label, longLabel);
     assert.deepEqual(await entries.getForTaskAndDate(task.id, '2026-09-20'), entry);
   } finally { native.close(); }
 });

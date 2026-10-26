@@ -14,7 +14,7 @@ export function InsightsActivityMenu({ tasks, selectedId, onSelect }: Props) {
     tasks.find(task => task.id === selectedId)?.name || 'All';
   const choices = [{ id: 'all', name: 'All', active: true }, ...tasks];
   return <>
-    <Pressable accessibilityRole="button" accessibilityLabel={'Showing ' + selectedName}
+    <Pressable testID="insights-activity-menu" accessibilityRole="button" accessibilityLabel={'Showing ' + selectedName}
       accessibilityHint="Choose what to view" onPress={() => setOpen(true)} style={styles.button}>
       <Text style={styles.label} numberOfLines={1} maxFontSizeMultiplier={1.5}>{selectedName}</Text>
       <Svg width={12} height={12} viewBox="0 0 12 12" accessible={false}>
@@ -38,7 +38,7 @@ export function InsightsActivityMenu({ tasks, selectedId, onSelect }: Props) {
             {choices.map(choice => {
               const selected = choice.id === selectedId;
               const label = choice.active === false ? `${choice.name} · Archived` : choice.name;
-              return <Pressable key={choice.id} accessibilityRole="button"
+              return <Pressable key={choice.id} testID={`insights-menu-activity-${choice.id}`} accessibilityRole="button"
                 accessibilityState={{ selected }} accessibilityLabel={label}
                 onPress={() => { setOpen(false); onSelect(choice.id); }} style={styles.row}>
                 <Text style={[styles.rowLabel, selected && styles.selected]}>{label}</Text>

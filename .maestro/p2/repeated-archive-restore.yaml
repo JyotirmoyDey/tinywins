@@ -1,0 +1,421 @@
+appId: com.plainleaf.tinywins
+---
+# Fixture runner seeds 3 activities and 9 check-ins. All state changes below
+# use the application archive/restore UI.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-repeat-archive-workout
+- assertVisible:
+    id: activity-card-repeat-archive-reading
+- assertVisible:
+    id: activity-card-repeat-archive-guitar
+
+# Confirm the fixture starts with an empty archive.
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible: No archived items yet.
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+
+# Initial All Activities contains all 9 check-ins over 12 eligible task-days.
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-repeat-archive-workout
+- assertVisible:
+    id: journey-activity-repeat-archive-reading
+- assertVisible:
+    id: journey-activity-repeat-archive-guitar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^9 of 12 days recorded$
+
+# First cycle: archive Workout, retain its individual Insights, restore it.
+- tapOn:
+    id: nav-home
+- tapOn:
+    id: activity-menu-repeat-archive-workout
+- tapOn:
+    id: archive-activity-action
+- assertVisible:
+    text: ^Archive Workout\?$
+- tapOn:
+    text: (?i)^Archive$
+- assertNotVisible:
+    id: activity-card-repeat-archive-workout
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activity-name-repeat-archive-workout
+- tapOn:
+    id: archived-view-insights-repeat-archive-workout
+- assertVisible:
+    id: archived-insights-title
+    text: ^Workout$
+- assertVisible: Archived
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$
+- scrollUntilVisible:
+    element:
+      text: ^Back to Archived$
+    direction: UP
+- tapOn:
+    text: ^Back to Archived$
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible:
+    id: archived-activity-name-repeat-archive-workout
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertNotVisible:
+    id: journey-activity-repeat-archive-workout
+- assertVisible:
+    id: journey-activity-repeat-archive-reading
+- assertVisible:
+    id: journey-activity-repeat-archive-guitar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^5 of 8 days recorded$
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- tapOn:
+    id: restore-activity-repeat-archive-workout
+- assertNotVisible:
+    id: archived-activity-name-repeat-archive-workout
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: activity-card-repeat-archive-workout
+
+# Confirm restoration re-adds the same history to All Activities.
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-repeat-archive-workout
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^9 of 12 days recorded$
+
+# Second cycle: archive again and restart while Workout is archived.
+- tapOn:
+    id: nav-home
+- tapOn:
+    id: activity-menu-repeat-archive-workout
+- tapOn:
+    id: archive-activity-action
+- assertVisible:
+    text: ^Archive Workout\?$
+- tapOn:
+    text: (?i)^Archive$
+- assertNotVisible:
+    id: activity-card-repeat-archive-workout
+- assertVisible:
+    id: activity-card-repeat-archive-reading
+- assertVisible:
+    id: activity-card-repeat-archive-guitar
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertNotVisible:
+    id: activity-card-repeat-archive-workout
+- assertVisible:
+    id: activity-card-repeat-archive-reading
+- assertVisible:
+    id: activity-card-repeat-archive-guitar
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible:
+    id: archived-activity-name-repeat-archive-workout
+- tapOn:
+    id: archived-view-insights-repeat-archive-workout
+- assertVisible:
+    id: archived-insights-title
+    text: ^Workout$
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$
+- scrollUntilVisible:
+    element:
+      text: ^Back to Archived$
+    direction: UP
+- tapOn:
+    text: ^Back to Archived$
+- tapOn:
+    id: restore-activity-repeat-archive-workout
+- assertNotVisible:
+    id: archived-activity-name-repeat-archive-workout
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: activity-card-repeat-archive-workout
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-repeat-archive-workout
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^9 of 12 days recorded$
+
+# Third Workout cycle verifies repeated archive/restore remains available.
+- tapOn:
+    id: nav-home
+- tapOn:
+    id: activity-menu-repeat-archive-workout
+- tapOn:
+    id: archive-activity-action
+- assertVisible:
+    text: ^Archive Workout\?$
+- tapOn:
+    text: (?i)^Archive$
+- assertNotVisible:
+    id: activity-card-repeat-archive-workout
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activity-repeat-archive-workout
+- tapOn:
+    id: restore-activity-repeat-archive-workout
+- assertNotVisible:
+    id: archived-activity-name-repeat-archive-workout
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: activity-card-repeat-archive-workout
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-repeat-archive-workout
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^9 of 12 days recorded$
+
+# Archive and restore Reading to ensure Workout's repeated cycles did not
+# affect another activity's lifecycle or combined contribution.
+- tapOn:
+    id: nav-home
+- tapOn:
+    id: activity-menu-repeat-archive-reading
+- tapOn:
+    id: archive-activity-action
+- assertVisible:
+    text: ^Archive Reading\?$
+- tapOn:
+    text: (?i)^Archive$
+- assertNotVisible:
+    id: activity-card-repeat-archive-reading
+- assertVisible:
+    id: activity-card-repeat-archive-workout
+- assertVisible:
+    id: activity-card-repeat-archive-guitar
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertNotVisible:
+    id: journey-activity-repeat-archive-reading
+- assertVisible:
+    id: journey-activity-repeat-archive-workout
+- assertVisible:
+    id: journey-activity-repeat-archive-guitar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^6 of 8 days recorded$
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activity-name-repeat-archive-reading
+- tapOn:
+    id: restore-activity-repeat-archive-reading
+- assertNotVisible:
+    id: archived-activity-name-repeat-archive-reading
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: activity-card-repeat-archive-workout
+- assertVisible:
+    id: activity-card-repeat-archive-reading
+- assertVisible:
+    id: activity-card-repeat-archive-guitar
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-repeat-archive-workout
+- assertVisible:
+    id: journey-activity-repeat-archive-reading
+- assertVisible:
+    id: journey-activity-repeat-archive-guitar
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^9 of 12 days recorded$
+
+# Final active/archive state and combined history survive a cold restart.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-repeat-archive-workout
+- assertVisible:
+    id: activity-card-repeat-archive-reading
+- assertVisible:
+    id: activity-card-repeat-archive-guitar
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible: No archived items yet.
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- tapOn:
+    id: nav-insights
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-repeat-archive-workout
+- assertVisible:
+    id: journey-activity-repeat-archive-reading
+- assertVisible:
+    id: journey-activity-repeat-archive-guitar
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^9 of 12 days recorded$

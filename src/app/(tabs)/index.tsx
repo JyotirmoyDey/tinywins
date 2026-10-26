@@ -24,7 +24,7 @@ export default function Home() {
     </View>
     {notice && <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text>}
     {loading ? <Loading /> : error ? <View style={styles.message}><Text style={[t.body, { color: c.textPrimary }]}>{error}</Text><Button label="Try again" onPress={() => void reload()} /></View>
-      : data.tasks.length === 0 ? <ScrollView style={styles.firstTimeScroll} contentContainerStyle={styles.firstTimeContent}>
+      : data.tasks.length === 0 ? <ScrollView testID="home-empty-state" style={styles.firstTimeScroll} contentContainerStyle={styles.firstTimeContent}>
           <Text style={styles.firstTimeTitle}>Little things, worth noticing.</Text>
           <Text style={styles.firstTimeBody}>Pick something that matters to you. Record how your days go, and discover your patterns over time.</Text>
           <Text style={styles.examplesLabel}>Need a little inspiration?</Text>

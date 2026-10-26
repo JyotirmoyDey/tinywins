@@ -10,6 +10,7 @@ import { useEntry, useTaskActions } from '../state/TasksProvider';
 import { colors as c, radii as r, spacing as s, typography as t } from '../theme';
 import { TaskActionsMenu } from './TaskActionsMenu';
 import { CombinedInsightsToggle } from './CombinedInsightsToggle';
+import { previewThenCommitSliderValue, triggerSliderHaptic } from './sliderFeedback';
 import { SLIDER_INSET, sliderColor, sliderDescription, sliderDisplay, sliderIndexFromX, sliderXForIndex } from './sliderMath';
 
 const trackColor = '#E9E9E5';
@@ -56,7 +57,7 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date, dragHan
     if (lastPreview.current === index) return;
     lastPreview.current = index;
     setPreviewIndex(index);
-    void Haptics.selectionAsync().catch(() => {});
+    triggerSliderHaptic(() => Haptics.selectionAsync());
   }, []);
   const cancelPreview = useCallback(() => {
     lastPreview.current = savedIndexRef.current;
@@ -149,7 +150,7 @@ export const TaskSliderCard = memo(function TaskSliderCard({ task, date, dragHan
     const index = current < 0 ? 0 : Math.max(0, Math.min(options.length - 1, current + (action === 'increment' ? 1 : -1)));
     activeIndex.set(index); hasSelection.set(true); fillColor.set(colors[index]);
     thumbX.set(withTiming(sliderXForIndex(index, width, options.length), { duration: 110 }));
-    previewStep(index); commitStep(index);
+    previewThenCommitSliderValue(index, previewStep, commitStep);
   };
   return <View testID={`activity-card-${task.id}`} collapsable={false} style={styles.card}>
     <View style={styles.heading}>

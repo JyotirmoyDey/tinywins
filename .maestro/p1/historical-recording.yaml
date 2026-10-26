@@ -1,0 +1,191 @@
+appId: com.plainleaf.tinywins
+---
+# Surrounding entries are seeded from the Android device's local date by the E2E runner.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-historical-recording-workout
+- assertVisible:
+    id: activity-card-historical-recording-reading
+- assertVisible:
+    id: activity-current-level-historical-recording-workout
+    text: ^High$
+- assertVisible:
+    id: activity-current-level-historical-recording-reading
+    text: ^Low$
+
+# Verify the missing day is truly empty before creating the historical entry.
+- tapOn:
+    id: activity-menu-historical-recording-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: activity-history-screen
+- assertVisible:
+    id: history-value-three-days-ago
+    text: ^Low$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^—$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-today
+    text: ^High$
+
+# Create the missing past-day recording via the existing History UI.
+- tapOn:
+    id: history-day-two-days-ago
+- assertVisible:
+    id: history-editor-date
+- tapOn:
+    id: history-level-choice-1
+- assertVisible:
+    id: history-level-choice-1
+    selected: true
+- tapOn:
+    text: (?i)^Done$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-three-days-ago
+    text: ^Low$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-today
+    text: ^High$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-current-level-historical-recording-workout
+    text: ^High$
+- assertVisible:
+    id: activity-current-level-historical-recording-reading
+    text: ^Low$
+
+# The same calendar date for Reading is independent and remains unchanged.
+- tapOn:
+    id: activity-menu-historical-recording-reading
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-today
+    text: ^Low$
+- tapOn:
+    id: activity-history-back
+
+# Individual trend/distribution and All Insights use the newly added date.
+- tapOn:
+    id: activity-insights-historical-recording-workout
+- assertVisible:
+    id: insights-portrait-screen
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$
+- tapOn:
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-portrait-screen
+    direction: UP
+- tapOn:
+    id: insights-activity-all
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-combined-recorded-count
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^6 of 7 days recorded$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: UP
+- assertVisible:
+    id: journey-activity-historical-recording-workout
+    text: ^Workout$
+- assertVisible:
+    id: journey-activity-historical-recording-reading
+    text: ^Reading$
+
+# Restart without clearing data, then verify all dates and insights again.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-current-level-historical-recording-workout
+    text: ^High$
+- assertVisible:
+    id: activity-current-level-historical-recording-reading
+    text: ^Low$
+- tapOn:
+    id: activity-menu-historical-recording-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-three-days-ago
+    text: ^Low$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-today
+    text: ^High$
+- tapOn:
+    id: activity-history-back
+- tapOn:
+    id: activity-menu-historical-recording-reading
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-today
+    text: ^Low$
+- tapOn:
+    id: activity-history-back
+- tapOn:
+    id: activity-insights-historical-recording-workout
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$

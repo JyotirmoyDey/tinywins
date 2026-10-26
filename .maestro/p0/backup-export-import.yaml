@@ -1,0 +1,242 @@
+appId: com.plainleaf.tinywins
+---
+# P0 encrypted backup round-trip on a dedicated Android test device.
+# The app's Delete all local data action is used instead of clearState, so the
+# Expo development client remains registered with Metro. Exports are saved to
+# the public Downloads folder through Android's Storage Access Framework and
+# intentionally left there after the test.
+- evalScript: ${output.backupPassword = 'TinyWins-P0-Backup-2026!'}
+- evalScript: ${output.firstName = 'P0 Backup Guitar'}
+- evalScript: ${output.firstLevels = ['No session', 'A short session', 'A long session']}
+- evalScript: ${output.firstDescriptions = ['No session was recorded.', 'A short session was recorded.', 'A long session was recorded.']}
+- evalScript: ${output.firstTodayIndex = 2}
+- evalScript: ${output.firstYesterdayIndex = 0}
+- evalScript: ${output.secondName = 'P0 Backup Reading'}
+- evalScript: ${output.secondLevels = ['No pages', 'A few pages', 'A full chapter']}
+- evalScript: ${output.secondDescriptions = ['No pages were read.', 'A few pages were read.', 'A full chapter was read.']}
+- evalScript: ${output.secondTodayIndex = 2}
+- evalScript: ${output.secondYesterdayIndex = 1}
+- launchApp
+- openLink: exp+tinywins://expo-development-client/?url=http%3A%2F%2F192.168.1.4%3A8081
+- assertVisible:
+    id: home-screen
+
+# Start from an empty local database without clearing Android app data or the
+# Expo development-client registration. Existing externally saved backups are
+# untouched.
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: delete-local-data
+- assertVisible: '^Delete all local TinyWins data\?$'
+- tapOn: (?i)^Delete local data$
+- extendedWaitUntil:
+    visible: '^Local data deleted$'
+    timeout: 60000
+- tapOn: (?i)^OK$
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-empty-state
+
+# Create and record two independently configured activities with reusable UI flows.
+- evalScript: ${output.activityName = output.firstName}
+- evalScript: ${output.level0 = output.firstLevels[0]}
+- evalScript: ${output.level1 = output.firstLevels[1]}
+- evalScript: ${output.level2 = output.firstLevels[2]}
+- evalScript: ${output.description0 = output.firstDescriptions[0]}
+- evalScript: ${output.description1 = output.firstDescriptions[1]}
+- evalScript: ${output.description2 = output.firstDescriptions[2]}
+- evalScript: ${output.todayLevelIndex = output.firstTodayIndex}
+- evalScript: ${output.todayLevelLabel = output.firstLevels[output.firstTodayIndex]}
+- evalScript: ${output.yesterdayLevelIndex = output.firstYesterdayIndex}
+- evalScript: ${output.yesterdayLevelLabel = output.firstLevels[output.firstYesterdayIndex]}
+- runFlow: helpers/create-and-record.yaml
+
+- evalScript: ${output.activityName = output.secondName}
+- evalScript: ${output.level0 = output.secondLevels[0]}
+- evalScript: ${output.level1 = output.secondLevels[1]}
+- evalScript: ${output.level2 = output.secondLevels[2]}
+- evalScript: ${output.description0 = output.secondDescriptions[0]}
+- evalScript: ${output.description1 = output.secondDescriptions[1]}
+- evalScript: ${output.description2 = output.secondDescriptions[2]}
+- evalScript: ${output.todayLevelIndex = output.secondTodayIndex}
+- evalScript: ${output.todayLevelLabel = output.secondLevels[output.secondTodayIndex]}
+- evalScript: ${output.yesterdayLevelIndex = output.secondYesterdayIndex}
+- evalScript: ${output.yesterdayLevelLabel = output.secondLevels[output.secondYesterdayIndex]}
+- runFlow: helpers/create-and-record.yaml
+
+# Export with the real encryption implementation and Android Storage Access
+# Framework. Saving in public Downloads keeps the file after the app DB reset.
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: profile-backup
+- assertVisible:
+    id: backup-screen
+- tapOn:
+    id: backup-open-create
+- tapOn:
+    id: backup-create-password
+- inputText: ${output.backupPassword}
+- tapOn:
+    id: backup-confirm-password
+- inputText: ${output.backupPassword}
+- hideKeyboard
+- tapOn:
+    id: backup-create-encrypted
+- extendedWaitUntil:
+    visible:
+      id: backup-busy-status
+    timeout: 10000
+- assertVisible:
+    id: backup-screen
+- extendedWaitUntil:
+    visible:
+      id: backup-status
+    timeout: 120000
+- assertNotVisible:
+    id: backup-error
+- assertVisible:
+    id: backup-status
+    text: ^Encrypted backup ready.*
+- tapOn:
+    id: backup-save-file
+- assertVisible: Use this folder
+- tapOn: Use this folder
+- runFlow:
+    when:
+      visible: Allow
+    commands:
+      - tapOn: Allow
+- extendedWaitUntil:
+    visible:
+      id: backup-status
+    timeout: 60000
+- assertVisible:
+    id: backup-status
+    text: .*saved to your chosen folder.*
+- copyTextFrom:
+    id: backup-status
+- evalScript: ${output.backupFilename = maestro.copiedText.match(/tinywins-backup-[^\s]+\.tinywins/)[0]}
+- assertVisible:
+    id: backup-status
+    text: .*${output.backupFilename}.*
+- tapOn:
+    id: backup-done
+- tapOn:
+    id: backup-back
+- assertVisible:
+    id: profile-screen
+
+# Clear the local application database. The just-saved encrypted file remains
+# in Downloads, outside TinyWins' app-private storage.
+- tapOn:
+    id: delete-local-data
+- assertVisible: '^Delete all local TinyWins data\?$'
+- tapOn: (?i)^Delete local data$
+- extendedWaitUntil:
+    visible: '^Local data deleted$'
+    timeout: 60000
+- tapOn: (?i)^OK$
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-empty-state
+- assertNotVisible: ${output.firstName}
+- assertNotVisible: ${output.secondName}
+
+# Import the saved document through the native document picker, then validate
+# the encrypted payload and restore it through the production transaction.
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: profile-backup
+- tapOn:
+    id: backup-open-import
+- runFlow:
+    when:
+      visible: Files in TinywinsBackup
+    commands:
+      - tapOn: Download
+- assertVisible: TinywinsBackup
+- tapOn: TinywinsBackup
+- assertVisible: ${output.backupFilename}
+- tapOn: ${output.backupFilename}
+- assertVisible:
+    id: backup-import-password
+- tapOn:
+    id: backup-import-password
+- inputText: ${output.backupPassword}
+- hideKeyboard
+- tapOn:
+    id: backup-preview
+- extendedWaitUntil:
+    visible:
+      id: backup-restore
+    timeout: 120000
+- assertVisible: 2 tracked items
+- assertVisible: 0 archived items
+- assertVisible: 4 historical recordings
+- tapOn:
+    id: backup-restore
+- assertVisible: '^Replace current data\?$'
+- tapOn: (?i)^Restore$
+- assertVisible: '^Restore complete$'
+- tapOn: (?i)^OK$
+- assertVisible:
+    id: home-screen
+
+# Re-verify restored order, names, level titles/descriptions, exact relative
+# recording dates, the intentionally unrecorded gap, and Insights.
+- evalScript: ${output.activityName = output.firstName}
+- evalScript: ${output.level0 = output.firstLevels[0]}
+- evalScript: ${output.level1 = output.firstLevels[1]}
+- evalScript: ${output.level2 = output.firstLevels[2]}
+- evalScript: ${output.description0 = output.firstDescriptions[0]}
+- evalScript: ${output.description1 = output.firstDescriptions[1]}
+- evalScript: ${output.description2 = output.firstDescriptions[2]}
+- evalScript: ${output.todayLevelLabel = output.firstLevels[output.firstTodayIndex]}
+- evalScript: ${output.yesterdayLevelLabel = output.firstLevels[output.firstYesterdayIndex]}
+- evalScript: ${output.expectedPosition = 1}
+- runFlow: helpers/verify-restored-activity.yaml
+- evalScript: ${output.activityName = output.secondName}
+- evalScript: ${output.level0 = output.secondLevels[0]}
+- evalScript: ${output.level1 = output.secondLevels[1]}
+- evalScript: ${output.level2 = output.secondLevels[2]}
+- evalScript: ${output.description0 = output.secondDescriptions[0]}
+- evalScript: ${output.description1 = output.secondDescriptions[1]}
+- evalScript: ${output.description2 = output.secondDescriptions[2]}
+- evalScript: ${output.todayLevelLabel = output.secondLevels[output.secondTodayIndex]}
+- evalScript: ${output.yesterdayLevelLabel = output.secondLevels[output.secondYesterdayIndex]}
+- evalScript: ${output.expectedPosition = 2}
+- runFlow: helpers/verify-restored-activity.yaml
+
+# The app restart below does not clear state or recreate either activity.
+- stopApp
+- launchApp
+- openLink: exp+tinywins://expo-development-client/?url=http%3A%2F%2F192.168.1.4%3A8081
+- assertVisible:
+    id: home-screen
+- evalScript: ${output.activityName = output.firstName}
+- evalScript: ${output.level0 = output.firstLevels[0]}
+- evalScript: ${output.level1 = output.firstLevels[1]}
+- evalScript: ${output.level2 = output.firstLevels[2]}
+- evalScript: ${output.description0 = output.firstDescriptions[0]}
+- evalScript: ${output.description1 = output.firstDescriptions[1]}
+- evalScript: ${output.description2 = output.firstDescriptions[2]}
+- evalScript: ${output.todayLevelLabel = output.firstLevels[output.firstTodayIndex]}
+- evalScript: ${output.yesterdayLevelLabel = output.firstLevels[output.firstYesterdayIndex]}
+- evalScript: ${output.expectedPosition = 1}
+- runFlow: helpers/verify-restored-activity.yaml
+- evalScript: ${output.activityName = output.secondName}
+- evalScript: ${output.level0 = output.secondLevels[0]}
+- evalScript: ${output.level1 = output.secondLevels[1]}
+- evalScript: ${output.level2 = output.secondLevels[2]}
+- evalScript: ${output.description0 = output.secondDescriptions[0]}
+- evalScript: ${output.description1 = output.secondDescriptions[1]}
+- evalScript: ${output.description2 = output.secondDescriptions[2]}
+- evalScript: ${output.todayLevelLabel = output.secondLevels[output.secondTodayIndex]}
+- evalScript: ${output.yesterdayLevelLabel = output.secondLevels[output.secondYesterdayIndex]}
+- evalScript: ${output.expectedPosition = 2}
+- runFlow: helpers/verify-restored-activity.yaml

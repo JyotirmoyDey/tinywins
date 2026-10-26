@@ -1,0 +1,156 @@
+appId: com.plainleaf.tinywins
+---
+# Initial history is prepared by `npm run e2e -- same-day-recording`.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-same-day-recording-workout
+- assertVisible:
+    id: activity-card-same-day-recording-reading
+- assertVisible:
+    id: activity-current-level-same-day-recording-workout
+    text: ^Low$
+- assertVisible:
+    id: activity-current-level-same-day-recording-reading
+    text: ^Immersed$
+
+# Confirm the two existing Workout dates before changing today's value.
+- tapOn:
+    id: activity-menu-same-day-recording-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: activity-history-screen
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-today
+    text: ^Low$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen
+
+# First same-day update: Low → High. A right-side slider tap commits High.
+- tapOn:
+    id: activity-slider-same-day-recording-workout
+    point: 95%,50%
+- waitForAnimationToEnd
+- assertVisible:
+    id: activity-current-level-same-day-recording-workout
+    text: ^High$
+- tapOn:
+    id: activity-menu-same-day-recording-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-today
+    text: ^High$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-current-level-same-day-recording-workout
+    text: ^High$
+
+# Second same-day update: High → Moderate, using the center slider position.
+- tapOn:
+    id: activity-slider-same-day-recording-workout
+    point: 50%,50%
+- waitForAnimationToEnd
+- assertVisible:
+    id: activity-current-level-same-day-recording-workout
+    text: ^Moderate$
+- assertVisible:
+    id: activity-current-level-same-day-recording-reading
+    text: ^Immersed$
+- tapOn:
+    id: activity-menu-same-day-recording-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-today
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-current-level-same-day-recording-workout
+    text: ^Moderate$
+
+# Insights use the final two Workout rows; exact distribution is also checked
+# against the production calculator and SQLite rows by the runner.
+- tapOn:
+    id: activity-insights-same-day-recording-workout
+- assertVisible:
+    id: insights-portrait-screen
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^2 check-ins$
+
+# Restart without clearing state; today's and yesterday's values remain intact.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-current-level-same-day-recording-workout
+    text: ^Moderate$
+- assertVisible:
+    id: activity-current-level-same-day-recording-reading
+    text: ^Immersed$
+- tapOn:
+    id: activity-menu-same-day-recording-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-today
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- tapOn:
+    id: activity-history-back
+- tapOn:
+    id: activity-menu-same-day-recording-reading
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-today
+    text: ^Immersed$
+- tapOn:
+    id: activity-history-back
+- tapOn:
+    id: activity-insights-same-day-recording-workout
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^2 check-ins$

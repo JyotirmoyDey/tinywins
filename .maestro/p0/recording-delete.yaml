@@ -1,0 +1,184 @@
+appId: com.plainleaf.tinywins
+---
+# Fixture creation/loading is handled by `npm run e2e -- recording-delete`.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-recording-delete-workout
+- assertVisible:
+    id: activity-card-recording-delete-reading
+
+# Initial Workout insights and history are checked before deletion.
+- tapOn:
+    id: activity-insights-recording-delete-workout
+- assertVisible:
+    id: insights-portrait-screen
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: Last 90 days
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 90D
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: activity-menu-recording-delete-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: activity-history-screen
+- assertVisible:
+    id: history-value-three-days-ago
+    text: ^Low$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^High$
+- assertVisible:
+    id: history-value-today
+    text: ^Moderate$
+- tapOn:
+    id: history-day-two-days-ago
+- assertVisible:
+    id: history-clear-response
+
+# Clear response is the existing user-facing deletion operation. It removes the
+# row; it does not assign a skipped or lowest-level value.
+- tapOn:
+    id: history-clear-response
+- assertNotVisible:
+    id: history-clear-response
+- tapOn:
+    text: ^Done$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^—$
+- assertVisible:
+    id: history-value-three-days-ago
+    text: ^Low$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^High$
+- assertVisible:
+    id: history-value-today
+    text: ^Moderate$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen
+
+# Individual charts reflect three remaining records; the calendar explicitly
+# reports the deleted date as unrecorded.
+- tapOn:
+    id: activity-insights-recording-delete-workout
+- assertVisible:
+    id: insights-portrait-screen
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: Last 90 days
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 90D
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^3 check-ins$
+- scrollUntilVisible:
+    element:
+      id: calendar-date-${targetDate}
+    direction: DOWN
+- tapOn:
+    id: calendar-date-${targetDate}
+- assertVisible:
+    id: calendar-selected-day
+- assertVisible:
+    text: ^Not recorded$
+
+# Combined coverage changes from six of six eligible task-days to five of six.
+- tapOn:
+    id: insights-activity-menu
+- tapOn:
+    id: insights-menu-activity-all
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 90D
+- scrollUntilVisible:
+    element:
+      id: insights-combined-recorded-count
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^5 of 6 days recorded$
+
+# Reading remains unchanged in individual Insights.
+- tapOn:
+    id: insights-activity-recording-delete-reading
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 90D
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^2 check-ins$
+
+# Restart and verify the persisted UI state and unaffected records.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-current-level-recording-delete-workout
+    text: ^Moderate$
+- assertVisible:
+    id: activity-current-level-recording-delete-reading
+    text: ^High$
+- tapOn:
+    id: activity-menu-recording-delete-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: activity-history-screen
+- assertVisible:
+    id: history-value-three-days-ago
+    text: ^Low$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^—$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^High$
+- assertVisible:
+    id: history-value-today
+    text: ^Moderate$
+- tapOn:
+    id: activity-history-back
+- tapOn:
+    id: activity-menu-recording-delete-reading
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Low$
+- assertVisible:
+    id: history-value-today
+    text: ^High$

@@ -4,7 +4,7 @@ import { Connection, SqlDatabase } from '../src/data/connection';
 import { migrate } from '../src/data/migrations';
 import { TaskRepository } from '../src/data/repository';
 import { DailyEntryRepository } from '../src/data/dailyEntryRepository';
-export async function setup(path = ':memory:') {
+export async function setup(path = ':memory:', id: () => string = randomUUID) {
   const native = new DatabaseSync(path);
   const db: SqlDatabase = {
     execAsync: async sql => { native.exec(sql); },
@@ -13,6 +13,6 @@ export async function setup(path = ':memory:') {
     getFirstAsync: async <T>(sql: string, ...params: (string | number | null)[]) => (native.prepare(sql).get(...params) ?? null) as T | null,
   };
   const connection = new Connection(db); await migrate(connection);
-  return { native, db, connection, tasks: new TaskRepository(connection, randomUUID), entries: new DailyEntryRepository(connection, randomUUID) };
+  return { native, db, connection, tasks: new TaskRepository(connection, id), entries: new DailyEntryRepository(connection, id) };
 }
 export const draft = (name = ' Sleep ') => ({ name, options: ['Poor', 'Okay', 'Good', 'Excellent'].map(label => ({ id: randomUUID(), label })) });

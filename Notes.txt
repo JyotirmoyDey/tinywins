@@ -5,3 +5,34 @@ verify arcvhiving is working
 verify backup data with 3 years of data , size.
 verify telemetrty in firebase.
 
+================================
+Verify backup restore across multiple app versions.
+Verify archive across multiple app versions.
+Verify compulsory app update. 
+================================
+MAestro updats:
+
+P0 — Add before production
+Proposed test	What it should verify
+backup-export-import.yaml	Export → clear app data → import → verify activities, levels, and recordings
+backup-invalid-password.yaml	Wrong password or corrupted backup must not destroy existing data
+activity-reordering.yaml	Reorder multiple activities → restart → verify order persists
+recording-update.yaml	Change an existing day's recording → verify insights and persistence
+recording-delete.yaml	Delete a recording → verify charts and counts update
+all-insights-archive.yaml	Archived activities disappear from All insights; restoring brings them back
+
+P1 — Strongly recommended
+Proposed test	What it should verify
+same-day-recording.yaml	Recording the same day again updates the existing record without duplicates
+historical-recording.yaml	Record past dates without affecting other days
+date-filter-boundaries.yaml	7D/30D/90D/custom filters handle inclusive boundaries and empty ranges
+slider-interactions.yaml	Rapid slider changes, haptics-independent recording, and correct final value
+level-reordering.yaml	Reordering before first recording persists; reordering after recording is blocked
+app-upgrade-persistence.yaml	Installing a newer build over an older one preserves user data
+
+P2 — Can follow production
+- Long activity and level names across different screen sizes.
+- Charts with sparse data, many recordings, and skipped days.
+- Repeated archive/restore operations.
+- Android Back button and interruption handling.
+- Empty states after deleting every activity.

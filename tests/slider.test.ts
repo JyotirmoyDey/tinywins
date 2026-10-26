@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { createEntrySnapshot, DailyEntry, normalizeOptions } from '../src/domain/task';
 import { SLIDER_INSET, sliderColor, sliderDescription, sliderDisplay, sliderIndexFromX, sliderXForIndex } from '../src/components/sliderMath';
 import { EntryStore } from '../src/state/EntryStore';

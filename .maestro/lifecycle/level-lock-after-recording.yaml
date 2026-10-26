@@ -1,6 +1,7 @@
 appId: com.plainleaf.tinywins
 ---
-# Uses one free active-item slot. Never clears the development client's data.
+# Standalone: creates and cleans up its own fixture; needs one free active slot.
+# Never clears app data or depends on a previous lifecycle test.
 - evalScript: ${output.activityName = 'MLock' + Date.now()}
 - launchApp
 - assertVisible:
@@ -13,22 +14,36 @@ appId: com.plainleaf.tinywins
     id: activity-name-input
 - inputText: ${output.activityName}
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-template-custom
+    direction: DOWN
+- tapOn:
+    id: level-template-custom
 - tapOn:
     id: save-activity-button
-- extendedWaitUntil:
-    visible:
-      id: .*activity-name-.+
-      text: ${output.activityName}
-    timeout: 20000
+- assertNotVisible:
+    id: activity-editor-screen
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 
 # Before the first recording, existing names and the level structure are editable.
 - tapOn:
     id: .*activity-menu-.+
-    text: Actions for ${output.activityName}
+    text: ^Actions for ${output.activityName}$
 - tapOn:
     id: edit-activity-action
 - assertVisible:
     id: activity-editor-screen
+- scrollUntilVisible:
+    element:
+      id: level-input-0
+    direction: DOWN
 - assertVisible:
     id: reorder-level-0
 - assertVisible:
@@ -44,87 +59,147 @@ appId: com.plainleaf.tinywins
     direction: DOWN
 - tapOn:
     id: add-level-button
+- scrollUntilVisible:
+    element:
+      id: level-input-3
+    direction: DOWN
 - tapOn:
     id: level-input-3
 - inputText: Plenty
 - hideKeyboard
 - tapOn:
     id: save-activity-button
-- extendedWaitUntil:
-    visible:
-      id: .*activity-name-.+
-      text: ${output.activityName}
-    timeout: 20000
+- assertNotVisible:
+    id: activity-editor-screen
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 
 # A single committed slider selection permanently locks the structure.
 - tapOn:
     id: .*activity-slider-.+
-    text: ${output.activityName}, how did it go today?
-- extendedWaitUntil:
-    visible:
-      id: .*activity-current-level-.+
-      text: Quite a bit
-    timeout: 20000
+    text: '^${output.activityName}, how did it go today\?.*'
+    point: 90%,50%
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Plenty$
 - tapOn:
     id: .*activity-menu-.+
-    text: Actions for ${output.activityName}
+    text: ^Actions for ${output.activityName}$
 - tapOn:
     id: edit-activity-action
-- assertVisible: Your level order and number are now fixed. You can still edit names and descriptions.
+- assertVisible: Level names, descriptions, order, and number are fixed. You can still change recorded check-ins.
 - assertNotVisible:
     id: add-level-button
 - assertNotVisible:
-    id: remove-level-0
+    id: remove-level-[0-9]+
 - assertNotVisible:
-    id: reorder-level-0
+    id: reorder-level-[0-9]+
+- scrollUntilVisible:
+    element:
+      id: level-input-0
+    direction: DOWN
 - assertVisible:
     id: level-input-0
-    text: Rest
-- tapOn:
+    text: ^Rest$
+- assertVisible:
+    id: level-input-0
+    enabled: false
+- assertVisible:
     id: level-description-input-0
-- inputText: A quieter day
-- hideKeyboard
+    enabled: false
 - tapOn:
     id: save-activity-button
+- assertNotVisible:
+    id: activity-editor-screen
 - stopApp
 - launchApp
 - assertVisible:
     id: home-screen
-- extendedWaitUntil:
-    visible:
-      id: .*activity-name-.+
-      text: ${output.activityName}
-    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 - assertVisible:
-    id: .*activity-current-level-.+
-    text: Quite a bit
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Plenty$
 - tapOn:
     id: .*activity-menu-.+
-    text: Actions for ${output.activityName}
+    text: ^Actions for ${output.activityName}$
 - tapOn:
     id: edit-activity-action
+- assertVisible: Level names, descriptions, order, and number are fixed. You can still change recorded check-ins.
 - assertNotVisible:
     id: add-level-button
 - assertNotVisible:
-    id: remove-level-0
+    id: remove-level-[0-9]+
 - assertNotVisible:
-    id: reorder-level-0
+    id: reorder-level-[0-9]+
+- scrollUntilVisible:
+    element:
+      id: level-input-0
+    direction: DOWN
+- assertVisible:
+    id: level-input-0
+    text: ^Rest$
+- scrollUntilVisible:
+    element:
+      id: level-description-input-0
+    direction: DOWN
 - assertVisible:
     id: level-description-input-0
-    text: A quieter day
+    enabled: false
+- scrollUntilVisible:
+    element:
+      id: level-input-3
+    direction: DOWN
+- assertVisible:
+    id: level-input-3
+    text: ^Plenty$
+- assertNotVisible:
+    id: add-level-button
+- assertNotVisible:
+    id: remove-level-[0-9]+
+- assertNotVisible:
+    id: reorder-level-[0-9]+
 
 # Remove only the item created by this flow.
 - tapOn: Cancel editing
+- assertNotVisible:
+    id: activity-editor-screen
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 - tapOn:
     id: .*activity-menu-.+
-    text: Actions for ${output.activityName}
+    text: ^Actions for ${output.activityName}$
 - tapOn:
     id: delete-activity-action
-- assertVisible: Delete ${output.activityName}?
+- assertVisible:
+    text: '^Delete ${output.activityName}\?$'
 - tapOn:
-    text: ^Delete$
+    text: (?i)^Delete$
 - extendedWaitUntil:
     notVisible:
       id: .*activity-name-.+
-      text: ${output.activityName}
+      text: ^${output.activityName}$
     timeout: 20000

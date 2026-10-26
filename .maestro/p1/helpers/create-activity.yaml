@@ -13,8 +13,13 @@ appId: com.plainleaf.tinywins
 - hideKeyboard
 - tapOn:
     id: save-activity-button
-- extendedWaitUntil:
-    visible:
-      id: .*activity-name-.+
-      text: ${output.activityName}
-    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
+- assertVisible:
+    id: .*activity-name-.+
+    text: ^${output.activityName}$

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getTaskTimeline,getRollingTrend,getResponseDistribution,getPairedEntries,getCorrelation,getWeekdayPattern } from '../src/analytics/service';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 test('demo dataset preserves Workout user-defined order and historical weights',()=>{const d=loadDemoDataset();const workout=d.tasks.find(t=>t.id==='workout')!;assert.deepEqual(workout.options.map(o=>o.label),['Skipped','Good','Poor','Average']);const e=d.entries.find(x=>x.taskId==='workout'&&x.localDate==='2026-06-25')!;assert.equal(e.normalizedWeightAtEntry,0);});
 test('timeline leaves missing days as gaps rather than zero',()=>{const d=loadDemoDataset();const points=getTaskTimeline('workout',d.entries,'2026-09-22','30D');assert.ok(points.some(p=>p.weight===null));assert.ok(points.some(p=>p.weight===0));});
 test('rolling and distribution use recorded entries only',()=>{const d=loadDemoDataset();const trend=getRollingTrend('study',d.entries,'2026-09-22','3M');assert.ok(trend.some(x=>x.value!==null));const dist=getResponseDistribution(d.tasks.find(t=>t.id==='study')!,d.entries,'2026-09-22','3M');assert.equal(dist.reduce((n,x)=>n+x.count,0),d.entries.filter(e=>e.taskId==='study'&&e.localDate>='2026-06-25'&&e.localDate<='2026-09-22').length);});

@@ -1,0 +1,106 @@
+appId: com.plainleaf.tinywins
+---
+# Fixture: Workout has one historical Moderate check-in two days ago.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-level-reordering-after-recording-workout
+
+# Recording history is still editable after level definitions are locked.
+- tapOn:
+    id: activity-menu-level-reordering-after-recording-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: activity-history-screen
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^Moderate$
+- tapOn:
+    id: history-day-two-days-ago
+- assertVisible:
+    id: history-editor-date
+- tapOn:
+    id: history-level-choice-3
+- assertVisible:
+    id: history-level-choice-3
+    selected: true
+- tapOn:
+    text: (?i)^Done$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^Intense$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen
+
+# The definition, including the labels and descriptions that give history its
+# meaning, must be read-only after the first check-in.
+- tapOn:
+    id: activity-menu-level-reordering-after-recording-workout
+- tapOn:
+    id: edit-activity-action
+- assertVisible:
+    id: activity-editor-screen
+- assertVisible: Level names, descriptions, order, and number are fixed. You can still change recorded check-ins.
+- assertNotVisible:
+    id: add-level-button
+- assertNotVisible:
+    id: remove-level-[0-9]+
+- assertNotVisible:
+    id: reorder-level-[0-9]+
+- assertVisible:
+    id: level-input-0
+    text: ^Very Light$
+    enabled: false
+- assertVisible:
+    id: level-description-input-0
+    text: ^Minimal effort$
+    enabled: false
+- assertVisible:
+    id: level-input-1
+    text: ^Light$
+    enabled: false
+- assertVisible:
+    id: level-input-2
+    text: ^Moderate$
+    enabled: false
+- assertVisible:
+    id: level-input-3
+    text: ^Intense$
+    enabled: false
+- assertVisible:
+    id: level-description-input-3
+    text: ^Challenging effort$
+    enabled: false
+- tapOn: Cancel editing
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: activity-menu-level-reordering-after-recording-workout
+- tapOn:
+    id: edit-activity-action
+- assertVisible:
+    id: level-input-0
+    text: ^Very Light$
+    enabled: false
+- assertVisible:
+    id: level-input-3
+    text: ^Intense$
+    enabled: false
+- assertNotVisible:
+    id: add-level-button
+- tapOn: Cancel editing
+- assertVisible:
+    id: activity-menu-level-reordering-after-recording-workout
+- tapOn:
+    id: activity-menu-level-reordering-after-recording-workout
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^Intense$

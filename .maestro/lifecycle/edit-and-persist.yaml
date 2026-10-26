@@ -1,42 +1,110 @@
 appId: com.plainleaf.tinywins
 ---
+# Standalone: needs one free active-item slot, but no previous test data.
+# Creates a uniquely named fixture and deletes only that fixture after success.
+# Never clears app data or alters the shared Maestro Persistence Test activity.
+- evalScript: ${output.activityName = 'MEdit' + Date.now()}
 - launchApp
 - assertVisible:
     id: home-screen
-- extendedWaitUntil:
-    visible:
-      text: ^Maestro Persistence Test$
-    timeout: 20000
+- tapOn:
+    id: add-activity-button
 - assertVisible:
-    text: ^Maestro Persistence Test$
+    id: activity-editor-screen
+- tapOn:
+    id: activity-name-input
+- inputText: ${output.activityName}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-template-custom
+    direction: DOWN
+- tapOn:
+    id: level-template-custom
+- tapOn:
+    id: save-activity-button
+- assertNotVisible:
+    id: activity-editor-screen
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
+# Record the initial value before exercising the edit.
 - assertVisible:
-    id: .*activity-current-level-.+
-    text: ^Medium$
-# The activity has Low, Medium, High. An element-relative right-side tap selects High.
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Not recorded$
 - tapOn:
     id: .*activity-slider-.+
-    text: ^Maestro Persistence Test rating.*
+    text: '^${output.activityName}, how did it go today\?.*'
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^A little$
+# A right-side tap within this three-position slider selects Quite a bit.
+- tapOn:
+    id: .*activity-slider-.+
+    text: '^${output.activityName}, how did it go today\?.*'
     point: 90%,50%
 - assertVisible:
-    id: .*activity-current-level-.+
-    text: ^High$
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Quite a bit$
 - assertNotVisible:
-    id: .*activity-current-level-.+
-    text: ^Medium$
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^A little$
 - waitForAnimationToEnd
 - stopApp
 - launchApp
 - assertVisible:
     id: home-screen
-- extendedWaitUntil:
-    visible:
-      text: ^Maestro Persistence Test$
-    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 - assertVisible:
-    text: ^Maestro Persistence Test$
-- assertVisible:
-    id: .*activity-current-level-.+
-    text: ^High$
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Quite a bit$
 - assertNotVisible:
-    id: .*activity-current-level-.+
-    text: ^Medium$
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^A little$
+# Cleanup only this run's fixture after persistence has been verified.
+- tapOn:
+    id: .*activity-menu-.+
+    text: ^Actions for ${output.activityName}$
+- tapOn:
+    id: delete-activity-action
+- assertVisible:
+    text: '^Delete ${output.activityName}\?$'
+- tapOn:
+    text: (?i)^Delete$
+- assertNotVisible:
+    id: .*activity-name-.+
+    text: ^${output.activityName}$

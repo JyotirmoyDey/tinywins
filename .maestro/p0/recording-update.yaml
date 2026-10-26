@@ -1,0 +1,84 @@
+appId: com.plainleaf.tinywins
+---
+# Data is seeded by `npm run e2e -- recording-update`; never clear app state here.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-recording-update-activity
+- assertVisible:
+    id: activity-current-level-recording-update-activity
+    text: ^High$
+- tapOn:
+    id: activity-menu-recording-update-activity
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: activity-history-screen
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^Low$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-today
+    text: ^High$
+- tapOn:
+    id: history-day-two-days-ago
+- assertVisible:
+    id: history-editor-date
+- tapOn:
+    id: history-level-choice-2
+- tapOn:
+    text: ^Done$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^High$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-today
+    text: ^High$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: activity-insights-recording-update-activity
+- assertVisible:
+    id: insights-portrait-screen
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: Last 90 days
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 90D
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^3 check-ins$
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: activity-menu-recording-update-activity
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: activity-history-screen
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^High$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^Moderate$
+- assertVisible:
+    id: history-value-today
+    text: ^High$

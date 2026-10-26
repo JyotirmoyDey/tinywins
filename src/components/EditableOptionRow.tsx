@@ -97,7 +97,7 @@ export function EditableOptionRow({ option, index, count, minimumCount = 3, onCh
         : <View style={styles.lockedGutter} />}
       <View style={styles.fields}>
         <View style={styles.titleLine}>
-          <TextInput testID={`level-input-${index}`} ref={inputRef} onFocus={() => onFocus(rowRef.current)} editable={!disabled} value={option.label}
+          <TextInput testID={`level-input-${index}`} ref={inputRef} onFocus={() => onFocus(rowRef.current)} editable={!disabled && !structureLocked} value={option.label}
             maxLength={nativeTextMaxLength(option.label, MAX_OPTION_CHARACTERS)} onChangeText={onChange} placeholder={`Level ${index + 1}`}
             accessibilityLabel={`Level ${index + 1} name`} style={styles.input} maxFontSizeMultiplier={1.3}
             multiline numberOfLines={2} textAlignVertical="center"
@@ -108,7 +108,7 @@ export function EditableOptionRow({ option, index, count, minimumCount = 3, onCh
           </Text>
         </View>
         <TextInput testID={`level-description-input-${index}`} ref={descriptionInputRef} onFocus={() => onDescriptionFocus(rowRef.current)}
-          editable={!disabled} value={option.description ?? ''}
+          editable={!disabled && !structureLocked} value={option.description ?? ''}
           maxLength={nativeTextMaxLength(option.description ?? '', MAX_OPTION_DESCRIPTION_CHARACTERS)} onChangeText={onDescriptionChange}
           placeholder="What does this level mean to you?" placeholderTextColor={c.textSecondary}
           accessibilityLabel={`Level ${index + 1} description`} style={styles.descriptionInput}

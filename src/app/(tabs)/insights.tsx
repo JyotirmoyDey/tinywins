@@ -193,8 +193,9 @@ export default function Insights(){
     }} contentContainerStyle={styles.page}>
       <View style={styles.header} onLayout={event=>{headerHeight.current=event.nativeEvent.layout.height;}}>
         {archivedMode?<View style={styles.archivedHeader}>
+          {/* Entering the shared tab can unwind history; return to the named route. */}
           <Pressable accessibilityRole="button" accessibilityLabel="Back to Archived"
-            onPress={()=>router.canGoBack()?router.back():router.navigate('/archived')}
+            onPress={()=>router.dismissTo('/archived')}
             style={styles.archivedBack}><Text style={styles.archivedBackText}>‹ Archived</Text></Pressable>
           <View style={styles.archivedTitleRow}>
             <Text testID="archived-insights-title" style={styles.archivedTitle} numberOfLines={2}>{selectedTask?.name||'Not available'}</Text>
@@ -223,14 +224,17 @@ export default function Insights(){
             <Text style={styles.rangeNoticeLink}>Adjust range</Text>
           </Pressable>
         </View>}
-        {loading?<Placeholder>Loading your insights…</Placeholder>:archivedMode&&!selectedTask?<Placeholder>This archived item is no longer available. Return to Archived.</Placeholder>:isAll&&combinedTasks.length===0?<View style={styles.emptyCombined}>
+        {loading?<Placeholder>Loading your insights…</Placeholder>:archivedMode&&!selectedTask?<Placeholder>This archived item is no longer available. Return to Archived.</Placeholder>:isAll&&tasks.length===0?<View style={styles.emptyCombined}>
+          <Text testID="insights-no-activities-title" style={styles.emptyCombinedTitle}>No insights yet</Text>
+          <Text testID="insights-no-activities-description" style={styles.emptyCombinedText}>Add an activity and start recording your days. Your insights will appear here as your history grows.</Text>
+        </View>:isAll&&combinedTasks.length===0?<View style={styles.emptyCombined}>
           <Text style={styles.emptyCombinedTitle}>Nothing selected yet.</Text>
           <Text style={styles.emptyCombinedText}>Tap the graph icon on Home to add something to Insights.</Text>
         </View>:isAll?<>
           <ChartVisibility key={`all-${journeyTogetherConfig.id}`} chartType={journeyTogetherConfig.id} scope="all"><AnalyticsCard testID="insights-chart-journey-together" title={journeyTogetherConfig.title} description={journeyTogetherConfig.subtitle}>
             {journey&&<JourneyTogetherChart data={journey} onSelectTask={selectActivity}/>}
           </AnalyticsCard></ChartVisibility>
-          <ChartVisibility key={`all-${combinedConsistencyConfig.id}`} chartType={combinedConsistencyConfig.id} scope="all"><AnalyticsCard testID="insights-chart-combined-consistency" title={combinedConsistencyConfig.title} description={combinedConsistencyConfig.subtitle}>{consistency.recordedDays?<><Text style={styles.summary}>{consistency.recordedDays} of {consistency.eligibleDays} {consistency.eligibleDays===1?'day':'days'} recorded</Text><BarChart items={consistency.rows.filter(row=>row.eligibleDays>0).map(row=>({label:row.name,value:row.coverage*100,count:`${row.recordedDays}/${row.eligibleDays}`}))} color="#2A9D8F"/></>:<Placeholder>{consistency.eligibleDays===0?'There were no days to track in this period.':'Nothing recorded on the days tracked in this period.'}</Placeholder>}</AnalyticsCard></ChartVisibility>
+          <ChartVisibility key={`all-${combinedConsistencyConfig.id}`} chartType={combinedConsistencyConfig.id} scope="all"><AnalyticsCard testID="insights-chart-combined-consistency" title={combinedConsistencyConfig.title} description={combinedConsistencyConfig.subtitle}>{consistency.recordedDays?<><Text testID="insights-combined-recorded-count" style={styles.summary}>{consistency.recordedDays} of {consistency.eligibleDays} {consistency.eligibleDays===1?'day':'days'} recorded</Text><BarChart items={consistency.rows.filter(row=>row.eligibleDays>0).map(row=>({label:row.name,value:row.coverage*100,count:`${row.recordedDays}/${row.eligibleDays}`}))} color="#2A9D8F"/></>:<Placeholder>{consistency.eligibleDays===0?'There were no days to track in this period.':'Nothing recorded on the days tracked in this period.'}</Placeholder>}</AnalyticsCard></ChartVisibility>
           <ChartVisibility key={`all-${combinedCalendarConfig.id}`} chartType={combinedCalendarConfig.id} scope="all"><AnalyticsCard testID="insights-chart-combined-calendar" title={combinedCalendarConfig.title} description={combinedCalendarConfig.subtitle}><MonthCalendar month={month} onMonthChange={setMonth} cells={calendarCells} color="#2A9D8F" kind="coverage"/></AnalyticsCard></ChartVisibility>
           <ChartVisibility key={`all-${weeklyRecordingConfig.id}`} chartType={weeklyRecordingConfig.id} scope="all"><AnalyticsCard testID="insights-chart-weekly-checkins" title={weeklyRecordingConfig.title} description={weeklyRecordingConfig.subtitle}>{weekdays.some(row=>row.recorded>0)?<BarChart items={weekdays.map(row=>({label:row.label,value:row.recorded,count:row.observations}))} color="#2A9D8F"/>:<Placeholder>Nothing recorded in this period.</Placeholder>}</AnalyticsCard></ChartVisibility>
         </>:<>{individualSections.map(section=><InsightsAccordion key={section.id}

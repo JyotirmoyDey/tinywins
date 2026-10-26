@@ -38,6 +38,7 @@ export function TaskActionsMenu({ task, onClear, onBusyChange }: { task: Task; o
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, s.lg) }]} accessibilityViewIsModal>
           <Text style={styles.taskName}>{task.name}</Text>
           <MenuItem label="Edit" testID="edit-activity-action" onPress={() => { setOpen(false); router.push(`/task/${task.id}`); }} />
+          <MenuItem label="History" testID="activity-history-action" onPress={() => { setOpen(false); router.push(`/history/${task.id}`); }} />
           {onClear && <MenuItem label="Clear today's check-in" onPress={() => { setOpen(false); onClear(); }} />}
           <MenuItem label="Archive" testID="archive-activity-action" onPress={() => {
             setOpen(false);

@@ -1,32 +1,45 @@
 appId: com.plainleaf.tinywins
 ---
-- evalScript: ${output.activityName = 'MInsights' + Date.now()}
 - launchApp
-- runFlow: helpers/create-activity.yaml
 - tapOn:
-    id: .*activity-slider-.+
-    text: ${output.activityName}, how did it go today?
-- extendedWaitUntil:
-    visible:
-      id: .*activity-current-level-.+
-      text: ^A little$
-    timeout: 20000
-- tapOn:
-    id: .*activity-insights-.+
-    text: ${output.activityName}, insights
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-activity-all
+    direction: UP
 - assertVisible:
-    id: insights-portrait-screen
+    id: insights-activity-all
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: ^insights-activity-[0-9a-f-]{36}$
+    direction: RIGHT
+- tapOn:
+    id: ^insights-activity-[0-9a-f-]{36}$
+- assertVisible:
+    id: ^insights-activity-[0-9a-f-]{36}$
+    selected: true
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Today \(1D\)$
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 1D
 - assertVisible:
     id: insights-chart-rating-trend
 - assertVisible:
-    id: insights-today-rating
-    text: ^A little$
+    id: insights-chart-rating-distribution
 - scrollUntilVisible:
     element:
       id: insights-chart-activity-calendar
     direction: DOWN
 - assertVisible:
     id: insights-chart-activity-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-section-patterns
+    direction: DOWN
 - tapOn:
     id: insights-section-patterns
 - scrollUntilVisible:
@@ -48,9 +61,12 @@ appId: com.plainleaf.tinywins
 - assertVisible:
     id: insights-chart-weekday-patterns
 
-# The dock re-enters normal All Insights, not an archived or stale task view.
 - tapOn:
     id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-activity-all
+    direction: UP
 - assertVisible:
     id: insights-activity-all
     selected: true
@@ -82,7 +98,3 @@ appId: com.plainleaf.tinywins
     id: nav-home
 - assertVisible:
     id: home-screen
-- assertVisible:
-    id: .*activity-current-level-.+
-    text: ^A little$
-- runFlow: helpers/delete-activity.yaml

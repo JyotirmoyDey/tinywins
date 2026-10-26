@@ -210,8 +210,8 @@ export function TaskForm({ task, exampleId }: { task?: Task; exampleId?: string 
           onSubmitEditing={() => inputs.current[options[0].id]?.focus()} style={styles.nameInput} editable={!busy && !sorting} />
         <Text style={[t.sectionTitle, styles.levelHeading]}>How will you describe your days?</Text>
         <Text style={styles.levelLockHint}>{levelsLocked
-          ? 'Your level order and number are now fixed. You can still edit names and descriptions.'
-          : 'Levels become permanent after your first check-in. You can still edit their names and descriptions.'}</Text>
+          ? 'Level names, descriptions, order, and number are fixed. You can still change recorded check-ins.'
+          : 'Level names, descriptions, order, and number become permanent after your first check-in.'}</Text>
         {!task && <>
           <Text style={styles.templatePrompt}>Choose a starting point. Make it your own.</Text>
           <View style={styles.templateChoices} accessibilityRole="radiogroup">

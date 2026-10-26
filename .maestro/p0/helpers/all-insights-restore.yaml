@@ -1,0 +1,90 @@
+appId: com.plainleaf.tinywins
+---
+# Runs after the runner verifies that the database is still archived. Restore is
+# performed through the Archived screen, not by editing SQLite.
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible:
+    id: archived-activity-name-all-insights-archive-workout
+- tapOn:
+    id: restore-activity-all-insights-archive-workout
+- assertNotVisible:
+    id: archived-activity-name-all-insights-archive-workout
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: activity-card-all-insights-archive-workout
+- assertVisible:
+    id: activity-card-all-insights-archive-reading
+- assertVisible:
+    id: activity-card-all-insights-archive-guitar
+
+# The restored item should rejoin All Activities combined analytics.
+- tapOn:
+    id: nav-insights
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-all-insights-archive-workout
+    text: ^Workout$
+- assertVisible:
+    id: journey-activity-all-insights-archive-reading
+    text: ^Reading$
+- assertVisible:
+    id: journey-activity-all-insights-archive-guitar
+    text: ^Guitar$
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^12 of 12 days recorded$
+
+# Verify UI persistence after restarting without clearing the database.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-all-insights-archive-workout
+- assertVisible:
+    id: activity-card-all-insights-archive-reading
+- assertVisible:
+    id: activity-card-all-insights-archive-guitar
+- tapOn:
+    id: nav-insights
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-all-insights-archive-workout
+    text: ^Workout$
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^12 of 12 days recorded$

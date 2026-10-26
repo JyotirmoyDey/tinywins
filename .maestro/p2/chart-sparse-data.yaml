@@ -1,0 +1,173 @@
+appId: com.plainleaf.tinywins
+---
+# Fixture dates are relative to the Android local calendar date; all
+# intermediate days remain absent from SQLite.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-chart-sparse-workout
+- tapOn:
+    id: activity-insights-chart-sparse-workout
+- assertVisible:
+    id: insights-portrait-screen
+
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 7 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^1 check-in$
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 30 days$
+- assertVisible:
+    id: insights-distribution-count
+    text: ^2 check-ins$
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-distribution-count
+    text: ^2 check-ins$
+
+# First select a custom period with no recordings and verify stale values clear.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Custom range$
+- assertVisible:
+    id: custom-date-range-sheet
+- tapOn:
+    id: custom-date-from
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${emptyFromDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-to
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${emptyToDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-apply
+- assertVisible: Nothing recorded in this period.
+- assertNotVisible:
+    id: insights-distribution-count
+- assertVisible:
+    id: insights-chart-rating-trend
+    containsDescendants:
+      - text: Nothing recorded in this period.
+
+# The full year contains all four Workout observations.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Custom.*$
+- tapOn:
+    id: custom-date-from
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${customFromDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-to
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${customToDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-apply
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$
+- assertVisible:
+    id: insights-chart-rating-trend
+- assertVisible:
+    id: insights-chart-activity-calendar
+
+# Reading has only one observation in the selected 90D period.
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: activity-insights-chart-sparse-reading
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^1 check-in$
+- assertVisible:
+    id: insights-chart-rating-trend
+- assertVisible:
+    id: insights-chart-activity-calendar
+
+# All selected activities contribute to the combined charts over the full year.
+- tapOn:
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-activity-all
+    direction: UP
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Custom.*$
+- tapOn:
+    id: custom-date-from
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${customFromDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-to
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${customToDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-apply
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: UP
+- assertVisible:
+    id: journey-activity-chart-sparse-workout
+- assertVisible:
+    id: journey-activity-chart-sparse-reading
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^5 of 426 days recorded$

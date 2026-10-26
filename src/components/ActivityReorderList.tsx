@@ -156,7 +156,8 @@ const ActivityReorderRow = memo(function ActivityReorderRow({ task, index, count
     transform: [{ scale: rowScale.get() }],
     opacity: rowOpacity.get(),
   }));
-  return <Animated.View onLayout={event => onMeasured(task.id, event.nativeEvent.layout.height)} style={[styles.row, style]}>
+  return <Animated.View testID={`home-activity-position-${index + 1}`} collapsable={false}
+    onLayout={event => onMeasured(task.id, event.nativeEvent.layout.height)} style={[styles.row, style]}>
     <TaskSliderCard task={task} date={date} dragHandle={<ActivityDragHandle id={task.id} name={task.name}
       index={index} count={count} enabled={enabled} scrollGesture={scrollGesture} layout={layout}
       dragBase={dragBase} dragTarget={dragTarget} activeId={activeId} rowTop={rowTop}

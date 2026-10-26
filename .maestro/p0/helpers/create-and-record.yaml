@@ -1,0 +1,94 @@
+appId: com.plainleaf.tinywins
+---
+# Caller provides activityName, level0..2, description0..2, todayLevelIndex,
+# and yesterdayLevelIndex in Maestro's shared output map.
+- tapOn:
+    id: add-activity-button
+- assertVisible:
+    id: activity-editor-screen
+- tapOn:
+    id: activity-name-input
+- inputText: ${output.activityName}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-input-0
+    direction: DOWN
+- tapOn:
+    id: level-input-0
+- eraseText: 100
+- inputText: ${output.level0}
+- hideKeyboard
+- tapOn:
+    id: level-description-input-0
+- inputText: ${output.description0}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-input-1
+    direction: DOWN
+- tapOn:
+    id: level-input-1
+- eraseText: 100
+- inputText: ${output.level1}
+- hideKeyboard
+- tapOn:
+    id: level-description-input-1
+- inputText: ${output.description1}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-input-2
+    direction: DOWN
+- tapOn:
+    id: level-input-2
+- eraseText: 100
+- inputText: ${output.level2}
+- hideKeyboard
+- tapOn:
+    id: level-description-input-2
+- inputText: ${output.description2}
+- hideKeyboard
+- tapOn:
+    id: save-activity-button
+- assertVisible:
+    id: home-screen
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
+- tapOn:
+    id: .*activity-menu-.+
+    text: ^Actions for ${output.activityName}$
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: activity-history-screen
+- tapOn:
+    id: history-day-today
+- assertVisible:
+    id: history-editor-date
+- tapOn:
+    id: history-level-choice-${output.todayLevelIndex}
+- tapOn: Done
+- tapOn:
+    id: history-day-yesterday
+- tapOn:
+    id: history-level-choice-${output.yesterdayLevelIndex}
+- tapOn: Done
+- assertVisible:
+    id: history-value-today
+    text: ^${output.todayLevelLabel}$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^${output.yesterdayLevelLabel}$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^—$
+- tapOn:
+    id: activity-history-back
+- assertVisible:
+    id: home-screen

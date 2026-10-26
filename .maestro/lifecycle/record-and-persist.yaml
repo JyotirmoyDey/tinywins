@@ -1,35 +1,45 @@
 appId: com.plainleaf.tinywins
 ---
+# Requires smoke/create-and-persist.yaml after any local-data reset.
+# Reuses its three default levels: Not today, A little, Quite a bit.
+# Does not clear data or create an activity. Can be rerun on a recorded fixture.
 - launchApp
 - assertVisible:
     id: home-screen
-- extendedWaitUntil:
-    visible:
-      text: ^Maestro Persistence Test$
-    timeout: 20000
-- assertVisible:
-    text: ^Maestro Persistence Test$
-- assertVisible:
-    id: .*activity-current-level-.+
-    text: ^Not recorded$
-# The previous flow creates Low, Medium, High. The slider center selects Medium.
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^Maestro Persistence Test$
+    direction: DOWN
+# A center tap on the identified three-position slider commits A little.
 - tapOn:
     id: .*activity-slider-.+
-    text: ^Maestro Persistence Test rating.*
+    text: '^Maestro Persistence Test, how did it go today\?.*'
 - assertVisible:
-    id: .*activity-current-level-.+
-    text: ^Medium$
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^Maestro Persistence Test$
+      - id: .*activity-current-level-.+
+        text: ^A little$
 - waitForAnimationToEnd
 - stopApp
 - launchApp
 - assertVisible:
     id: home-screen
-- extendedWaitUntil:
-    visible:
-      text: ^Maestro Persistence Test$
-    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^Maestro Persistence Test$
+    direction: DOWN
 - assertVisible:
-    text: ^Maestro Persistence Test$
-- assertVisible:
-    id: .*activity-current-level-.+
-    text: ^Medium$
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^Maestro Persistence Test$
+      - id: .*activity-current-level-.+
+        text: ^A little$

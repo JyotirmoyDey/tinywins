@@ -1,0 +1,174 @@
+appId: com.plainleaf.tinywins
+---
+# The runner seeds and verifies the SQLite fixture before this UI flow.
+# This phase archives Workout, verifies combined exclusion and historical
+# access, then leaves the activity archived for a runner-side DB assertion.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-all-insights-archive-workout
+- assertVisible:
+    id: activity-card-all-insights-archive-reading
+- assertVisible:
+    id: activity-card-all-insights-archive-guitar
+
+# Initial All Activities view includes all three fixture activities.
+- tapOn:
+    id: nav-insights
+- assertVisible:
+    id: insights-portrait-screen
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertVisible:
+    id: journey-activity-all-insights-archive-workout
+    text: ^Workout$
+- assertVisible:
+    id: journey-activity-all-insights-archive-reading
+    text: ^Reading$
+- assertVisible:
+    id: journey-activity-all-insights-archive-guitar
+    text: ^Guitar$
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^12 of 12 days recorded$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-calendar
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-combined-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekly-checkins
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekly-checkins
+
+# Archive Workout through the activity menu and confirmation UI.
+- tapOn:
+    id: nav-home
+- tapOn:
+    id: activity-menu-all-insights-archive-workout
+- tapOn:
+    id: archive-activity-action
+- assertVisible:
+    text: ^Archive Workout\?$
+- tapOn:
+    text: (?i)^Archive$
+- assertNotVisible:
+    id: activity-card-all-insights-archive-workout
+- assertVisible:
+    id: activity-card-all-insights-archive-reading
+- assertVisible:
+    id: activity-card-all-insights-archive-guitar
+
+# Combined charts update using active activities only.
+- tapOn:
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-portrait-screen
+    direction: UP
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
+- assertNotVisible:
+    id: journey-activity-all-insights-archive-workout
+- assertVisible:
+    id: journey-activity-all-insights-archive-reading
+    text: ^Reading$
+- assertVisible:
+    id: journey-activity-all-insights-archive-guitar
+    text: ^Guitar$
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^8 of 8 days recorded$
+- assertNotVisible:
+    id: insights-activity-all-insights-archive-workout
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-calendar
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-combined-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekly-checkins
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekly-checkins
+
+# Archived history stays reachable and the archive status survives a restart.
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible:
+    id: archived-activity-name-all-insights-archive-workout
+    text: ^Workout$
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertNotVisible:
+    id: activity-card-all-insights-archive-workout
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible:
+    id: archived-activity-name-all-insights-archive-workout
+    text: ^Workout$
+- tapOn:
+    id: archived-view-insights-all-insights-archive-workout
+- assertVisible:
+    id: archived-insights-title
+    text: ^Workout$
+- assertVisible:
+    text: ^Archived$
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$
+- scrollUntilVisible:
+    element:
+      text: ^Back to Archived$
+    direction: UP
+- tapOn:
+    text: ^Back to Archived$
+- assertVisible:
+    id: archived-activities-screen
+- assertVisible:
+    id: archived-activity-name-all-insights-archive-workout
+    text: ^Workout$

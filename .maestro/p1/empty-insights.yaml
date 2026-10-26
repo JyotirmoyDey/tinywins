@@ -2,6 +2,45 @@ appId: com.plainleaf.tinywins
 ---
 - evalScript: ${output.activityName = 'MEmpty' + Date.now()}
 - launchApp
+- extendedWaitUntil:
+    visible:
+      id: ^(home-screen|activity-editor-screen|insights-portrait-screen|insights-landscape-screen)$
+    timeout: 60000
+- runFlow:
+    when:
+      visible:
+        id: activity-editor-screen
+    commands:
+      - pressKey: BACK
+- runFlow:
+    when:
+      visible:
+        id: activity-editor-screen
+    commands:
+      - pressKey: BACK
+- runFlow:
+    when:
+      visible: Combined Insights is full
+    commands:
+      - tapOn: OK
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen
+- runFlow:
+    when:
+      visible: 5 of 5 in Insights
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: ^(?!.* not included in combined Insights$).+ included in combined Insights$
+          direction: DOWN
+      - copyTextFrom:
+          text: ^(?!.* not included in combined Insights$).+ included in combined Insights$
+      - evalScript: ${output.restoreToggleLabel = maestro.copiedText.replace(' included in combined Insights', ' not included in combined Insights')}
+      - tapOn:
+          text: ${maestro.copiedText}
+      - assertVisible: 4 of 5 in Insights
 - runFlow: helpers/create-activity.yaml
 - assertVisible:
     id: .*activity-current-level-.+
@@ -9,6 +48,13 @@ appId: com.plainleaf.tinywins
 - tapOn:
     id: .*activity-insights-.+
     text: ${output.activityName}, insights
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Today \(1D\)$
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, 1D
 - assertVisible:
     id: insights-chart-rating-trend
 - assertVisible: Nothing recorded in this period.
@@ -21,6 +67,10 @@ appId: com.plainleaf.tinywins
 - assertVisible:
     id: calendar-matching-days
     text: ^0 matching days this month$
+- scrollUntilVisible:
+    element:
+      id: insights-section-patterns
+    direction: DOWN
 - tapOn:
     id: insights-section-patterns
 - scrollUntilVisible:
@@ -29,6 +79,10 @@ appId: com.plainleaf.tinywins
     direction: DOWN
 - assertVisible:
     id: insights-chart-period-comparison
+- scrollUntilVisible:
+    element:
+      id: period-current-coverage
+    direction: DOWN
 - assertVisible:
     id: period-current-coverage
     text: ^0 of 1 day$
@@ -44,7 +98,11 @@ appId: com.plainleaf.tinywins
     direction: DOWN
 - assertVisible:
     id: insights-chart-weekday-patterns
-- assertVisible: One day is too soon to see a weekly pattern.
+- scrollUntilVisible:
+    element:
+      text: .*One day is too soon to see a weekly pattern\.$
+    direction: DOWN
+- assertVisible: .*One day is too soon to see a weekly pattern\.$
 - assertNotVisible: NaN
 - assertNotVisible: Infinity
 - tapOn:
@@ -53,3 +111,14 @@ appId: com.plainleaf.tinywins
     id: .*activity-current-level-.+
     text: ^Not recorded$
 - runFlow: helpers/delete-activity.yaml
+- runFlow:
+    when:
+      true: ${output.restoreToggleLabel != null}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: ${output.restoreToggleLabel}
+          direction: DOWN
+      - tapOn:
+          text: ${output.restoreToggleLabel}
+      - assertVisible: 5 of 5 in Insights

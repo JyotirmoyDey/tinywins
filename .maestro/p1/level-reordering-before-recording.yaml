@@ -1,0 +1,115 @@
+appId: com.plainleaf.tinywins
+---
+# Fixture: Workout has four levels and no recordings.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-level-reordering-before-recording-workout
+- tapOn:
+    id: activity-menu-level-reordering-before-recording-workout
+- tapOn:
+    id: edit-activity-action
+- assertVisible:
+    id: activity-editor-screen
+- assertVisible:
+    id: level-input-0
+    text: ^Very Light$
+- assertVisible:
+    id: level-input-1
+    text: ^Light$
+- assertVisible:
+    id: level-input-2
+    text: ^Moderate$
+- assertVisible:
+    id: level-input-3
+    text: ^Intense$
+- assertVisible:
+    id: reorder-level-0
+- assertVisible:
+    id: reorder-level-3
+
+# Move Intense from fourth to first using a slow swipe from its drag handle.
+- swipe:
+    from:
+      id: reorder-level-3
+    direction: UP
+    duration: 900
+- assertVisible:
+    id: level-input-0
+    text: ^Intense$
+- assertVisible:
+    id: level-input-1
+    text: ^Very Light$
+- assertVisible:
+    id: level-input-2
+    text: ^Light$
+- assertVisible:
+    id: level-input-3
+    text: ^Moderate$
+
+# Move Very Light from second to fourth.
+- swipe:
+    from:
+      id: reorder-level-1
+    direction: DOWN
+    duration: 900
+- assertVisible:
+    id: level-input-0
+    text: ^Intense$
+- assertVisible:
+    id: level-input-1
+    text: ^Light$
+- assertVisible:
+    id: level-input-2
+    text: ^Moderate$
+- assertVisible:
+    id: level-input-3
+    text: ^Very Light$
+- assertVisible: Challenging effort
+- assertVisible: Minimal effort
+- assertVisible: Comfortable effort
+- assertVisible: Noticeable effort
+- tapOn: Save Changes
+- assertNotVisible:
+    id: activity-editor-screen
+
+# The persisted editor order is checked again after navigation and restart.
+- tapOn:
+    id: activity-menu-level-reordering-before-recording-workout
+- tapOn:
+    id: edit-activity-action
+- assertVisible:
+    id: level-input-0
+    text: ^Intense$
+- assertVisible:
+    id: level-input-1
+    text: ^Light$
+- assertVisible:
+    id: level-input-2
+    text: ^Moderate$
+- assertVisible:
+    id: level-input-3
+    text: ^Very Light$
+- tapOn: Cancel editing
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: activity-menu-level-reordering-before-recording-workout
+- tapOn:
+    id: edit-activity-action
+- assertVisible:
+    id: level-input-0
+    text: ^Intense$
+- assertVisible:
+    id: level-input-1
+    text: ^Light$
+- assertVisible:
+    id: level-input-2
+    text: ^Moderate$
+- assertVisible:
+    id: level-input-3
+    text: ^Very Light$
+- tapOn: Cancel editing

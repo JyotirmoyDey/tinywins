@@ -1,0 +1,137 @@
+appId: com.plainleaf.tinywins
+---
+# SQLite fixture contains 7 explicit Skipped levels, 8 other ratings, and
+# 15 dates with no row. The companion runner checks exact calculator inputs.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-chart-skipped-mixed
+- tapOn:
+    id: activity-insights-chart-skipped-mixed
+- assertVisible:
+    id: insights-portrait-screen
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 30 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 30D$
+
+# Rating Mix includes Skipped as its own explicitly recorded choice.
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^15 check-ins$
+- assertVisible: Skipped
+- assertVisible:
+    id: insights-chart-activity-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-activity-calendar
+    direction: DOWN
+- assertVisible:
+    id: calendar-matching-days
+    text: ^${calendarRecordedDays} matching days this month$
+- scrollUntilVisible:
+    element:
+      id: calendar-date-${todayDate}
+    direction: DOWN
+- tapOn:
+    id: calendar-date-${todayDate}
+- assertVisible:
+    id: calendar-selected-day
+    containsDescendants:
+      - text: Skipped
+- tapOn:
+    id: calendar-date-${todayDate}
+
+# Calendar level filters count explicit Skipped cells; missing dates match no
+# level and are not turned into a lowest rating or a Skipped entry.
+- tapOn:
+    text: Filter Skipped
+- assertVisible:
+    id: calendar-matching-days
+    text: ^${calendarSkippedDays} matching days this month$
+- tapOn:
+    text: Filter Skipped
+- assertVisible:
+    id: calendar-matching-days
+    text: ^${calendarRecordedDays} matching days this month$
+
+# Pattern charts are reached through the existing collapsed section.
+- scrollUntilVisible:
+    element:
+      id: insights-section-patterns
+    direction: DOWN
+- tapOn:
+    id: insights-section-patterns
+- scrollUntilVisible:
+    element:
+      id: insights-chart-recording-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-recording-consistency
+    containsDescendants:
+      - text: 15 of 30 days recorded
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekday-patterns
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekday-patterns
+    containsDescendants:
+      - text: ^15 days recorded.*
+
+# All Activities reports coverage across both activities; explicit Skipped
+# counts as recorded presence while the 15 missing dates do not.
+- tapOn:
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-activity-all
+    direction: UP
+- tapOn:
+    id: insights-activity-all
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: UP
+- assertVisible:
+    id: journey-activity-chart-skipped-mixed
+- assertVisible:
+    id: journey-activity-chart-skipped-reading
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^45 of 60 days recorded$
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-activity-all
+    direction: UP
+- tapOn:
+    id: insights-activity-all
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 30 days$
+- assertVisible:
+    id: insights-chart-combined-consistency
+    containsDescendants:
+      - text: 45 of 60 days recorded

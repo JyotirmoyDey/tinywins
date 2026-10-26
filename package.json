@@ -54,6 +54,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
+    "e2e": "tsx .maestro/scripts/run-test.ts",
     "lint": "expo lint"
   },
   "private": true

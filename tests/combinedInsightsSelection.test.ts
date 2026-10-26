@@ -9,7 +9,7 @@ import { CombinedInsightsLimitError } from '../src/data/repository';
 import { initialCombinedTaskIds, MAX_COMBINED_INSIGHTS_ITEMS } from '../src/config/combinedInsights';
 import { regularInsightsTaskId, selectedCombinedDataset, selectedInsightsTasks,
   withHomeInsightsSelection } from '../src/analytics/combinedSelection';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { getJourneyTogether } from '../src/analytics/journeyTogether';
 import { getAnalyticsDataset, getCombinedRecordingCalendar, getRecordingConsistency,
   getWeekdayRecordingPattern } from '../src/analytics/service';
@@ -41,6 +41,8 @@ test('Home selection immediately governs the selector and combined charts withou
     const archived = withHomeInsightsSelection(snapshot, await db.tasks.getAll(), false);
     assert.equal(regularInsightsTaskId(first.id, selectedInsightsTasks(archived)), 'all');
     assert.ok(archived.tasks.find(task => task.id === first.id && !task.active));
+    assert.equal((await db.tasks.getById(first.id))?.includeInCombinedInsights, true,
+      'Archiving hides the activity without forgetting its combined-Insights preference.');
   } finally { db.native.close(); }
 });
 
@@ -75,14 +77,14 @@ test('five selections are allowed, a sixth is rejected, and zero is valid', asyn
   } finally { db.native.close(); }
 });
 
-test('archive frees a graph spot; restore keeps the same item unselected', async () => {
+test('archive preserves selection preference; restore respects the combined-Insights limit', async () => {
   const db = await setup();
   try {
     const first = await db.tasks.create(draft('First'));
     for (let i = 1; i < MAX_COMBINED_INSIGHTS_ITEMS; i++) await db.tasks.create(draft(`Other ${i}`));
     const sixth = await db.tasks.create(draft('Sixth'));
     await db.tasks.archive(first.id);
-    assert.equal((await db.tasks.getById(first.id))?.includeInCombinedInsights, false);
+    assert.equal((await db.tasks.getById(first.id))?.includeInCombinedInsights, true);
     await db.tasks.setCombinedInsightsSelection(sixth.id, true);
     await db.tasks.restore(first.id);
     assert.equal((await db.tasks.getById(first.id))?.includeInCombinedInsights, false);
@@ -106,6 +108,29 @@ test('concurrent selections and creations cannot exceed five', async () => {
   } finally { db.native.close(); }
 });
 
+test('restore returns a previously selected activity to All Insights when a slot is available', async () => {
+  const db = await setup();
+  try {
+    const selected = await db.tasks.create(draft('Selected before archive'));
+    const other = await db.tasks.create(draft('Other active'));
+    await db.entries.upsert(selected.id, '2026-09-20', selected.options[1].id);
+    const originalEntries = (await db.entries.getAll()).filter(entry => entry.taskId === selected.id);
+
+    await db.tasks.archive(selected.id);
+    assert.equal((await db.tasks.getById(selected.id))?.includeInCombinedInsights, true);
+    assert.deepEqual(selectedInsightsTasks(getAnalyticsDataset(await db.tasks.getAll(), await db.entries.getAll()))
+      .map(task => task.id), [other.id]);
+
+    await db.tasks.restore(selected.id);
+    const tasks = await db.tasks.getAll();
+    const entries = await db.entries.getAll();
+    const combined = selectedCombinedDataset(getAnalyticsDataset(tasks, entries,
+      await db.tasks.getLifecycleTransitions()));
+    assert.deepEqual(combined.tasks.map(task => task.id), [selected.id, other.id]);
+    assert.deepEqual(entries.filter(entry => entry.taskId === selected.id), originalEntries);
+  } finally { db.native.close(); }
+});
+
 test('selection survives restart; migration chooses first five active Home items only once', async () => {
   const folder = mkdtempSync(join(tmpdir(), 'tinywins-combined-'));
   const path = join(folder, 'combined.sqlite');
@@ -115,7 +140,11 @@ test('selection survives restart; migration chooses first five active Home items
     for (let i = 0; i < 7; i++) tasks.push(await first.tasks.create(draft(`Item ${i}`)));
     await first.tasks.archive(tasks[0].id);
     // Simulate the prior installed schema, which had no graph preference.
-    first.native.exec('ALTER TABLE tasks DROP COLUMN includeInCombinedInsights; PRAGMA user_version = 5;');
+    first.native.exec(`ALTER TABLE tasks DROP COLUMN includeInCombinedInsights;
+      ALTER TABLE tasks DROP COLUMN levelsLocked;
+      ALTER TABLE task_options DROP COLUMN description;
+      ALTER TABLE tasks DROP COLUMN sortPosition;
+      PRAGMA user_version = 5;`);
     await migrate(first.connection);
     const migrated = await first.tasks.getAll();
     assert.deepEqual(migrated.filter(task => task.includeInCombinedInsights).map(task => task.id),
@@ -162,7 +191,8 @@ test('all four combined calculations consume only the same selected stable IDs',
     includeInCombinedInsights: false })) }).tasks.length, 0);
   assert.equal(selectedCombinedDataset({ ...dataset, tasks: dataset.tasks.map(task => ({ ...task,
     includeInCombinedInsights: undefined })) }).tasks.length, 0);
-  assert.equal(dataset.tasks.length, 8); // Individual Insights still receives the complete dataset.
+  assert.ok(dataset.tasks.length > scoped.tasks.length,
+    'Individual Insights retains activities excluded from the combined selection.');
 });
 
 test('initial selection is based on stable Home order, not array order or names', () => {
@@ -174,20 +204,22 @@ test('initial selection is based on stable Home order, not array order or names'
   assert.deepEqual([...ids], ['a', 'b']);
 });
 
-test('imported one-year data starts with five graph selections and keeps recordings when one is archived', async () => {
+test('imported selected activities regain combined visibility after archive and restore', async () => {
   const db = await setup();
   try {
-    await new DemoImportService(db.connection).replaceLocalData(loadDemoDataset());
+    const source = loadDemoDataset();
+    await new DemoImportService(db.connection).replaceLocalData(source);
     const tasks = await db.tasks.getAll();
-    assert.equal(tasks.length, 8);
+    assert.equal(tasks.length, source.tasks.length);
     assert.deepEqual(tasks.filter(task => task.includeInCombinedInsights).map(task => task.id),
       tasks.slice(0, 5).map(task => task.id));
     const selected = tasks[0];
     const before = (await db.entries.getAll()).filter(entry => entry.taskId === selected.id);
     await db.tasks.archive(selected.id);
-    assert.equal((await db.tasks.getById(selected.id))?.includeInCombinedInsights, false);
+    assert.equal((await db.tasks.getById(selected.id))?.includeInCombinedInsights, true);
     assert.deepEqual((await db.entries.getAll()).filter(entry => entry.taskId === selected.id), before);
     await db.tasks.restore(selected.id);
-    assert.equal((await db.tasks.getById(selected.id))?.includeInCombinedInsights, false);
+    assert.equal((await db.tasks.getById(selected.id))?.includeInCombinedInsights, true);
+    assert.equal(selectedInsightsTasks(getAnalyticsDataset(await db.tasks.getAll(), await db.entries.getAll())).length, 5);
   } finally { db.native.close(); }
 });

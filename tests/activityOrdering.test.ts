@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { activityIndexAtCenter, activityLayoutForOrder, activityTopAtPosition,
   isMeaningfulActivityHeightChange, moveActivityPosition, moveActivityToIndex,
   positionsForActivityIds, shouldAdoptExternalActivityOrder, stableActivityIndexAtCenter } from '../src/components/activityOrdering';
+import { localDate, recentDates } from '../src/domain/task';
 import { setup, draft } from './sqlite';
 import { collectBackupPayload, restoreBackupPayload, validateBackupPayload } from '../src/backup/data';
 import { migrate } from '../src/data/migrations';
@@ -129,6 +130,76 @@ test('activity order persists, new items append, archive preserves slots, and ch
     assert.deepEqual((await db.tasks.getAll()).map(task => task.id), [third.id, first.id, second.id, fourth.id]);
     assert.equal((await db.entries.getForTaskAndDate(second.id, '2026-10-19'))?.id, entry.id);
   } finally { db.native.close(); rmSync(directory, { recursive: true, force: true }); }
+});
+
+// Repository persistence only. Home drag-and-drop UI verification remains MANUAL / NOT AUTOMATED.
+test('four-activity reorder persists across a full SQLite reopen without changing activity data', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'tinywins-order-reopen-'));
+  const path = join(directory, 'ordering.sqlite');
+  let db = await setup(path);
+  try {
+    const definitions = [
+      { name: 'Workout', levels: ['Rest', 'Light', 'Steady', 'Intense'] },
+      { name: 'Reading', levels: ['No pages', 'A few pages', 'A chapter', 'Several chapters'] },
+      { name: 'Guitar', levels: ['No practice', 'Warm-up', 'Practice', 'Performance'] },
+      { name: 'Meditation', levels: ['Not today', 'A few minutes', 'A session', 'A long session'] },
+    ];
+    const activities = [];
+    for (const definition of definitions) {
+      const base = draft(definition.name);
+      activities.push(await db.tasks.create({ name: definition.name, options: base.options.map((option, index) => ({
+        ...option,
+        label: definition.levels[index],
+        description: `${definition.name} level ${index + 1}`,
+      })) }));
+    }
+
+    const [today, yesterday, twoDaysAgo] = recentDates(localDate(), 3);
+    await db.entries.upsert(activities[0].id, today, activities[0].options[2].id);
+    await db.entries.upsert(activities[0].id, yesterday, activities[0].options[1].id);
+    await db.entries.upsert(activities[1].id, today, activities[1].options[3].id);
+    await db.entries.upsert(activities[2].id, yesterday, activities[2].options[0].id);
+    await db.entries.upsert(activities[2].id, twoDaysAgo, activities[2].options[2].id);
+    await db.entries.upsert(activities[3].id, today, activities[3].options[1].id);
+
+    const initial = await db.tasks.getAll();
+    assert.deepEqual(initial.map(activity => activity.name), ['Workout', 'Reading', 'Guitar', 'Meditation']);
+    assert.equal(new Set(initial.map(activity => activity.id)).size, 4);
+
+    const snapshot = async () => {
+      const tasks = await db.tasks.getAll();
+      const entries = await db.entries.getAll();
+      return {
+        activities: tasks.map(({ sortPosition: _sortPosition, ...activity }) => activity)
+          .sort((a, b) => a.id.localeCompare(b.id)),
+        entries: entries.slice().sort((a, b) => a.taskId.localeCompare(b.taskId) || a.localDate.localeCompare(b.localDate)),
+      };
+    };
+    const before = await snapshot();
+    const ids = Object.fromEntries(initial.map(activity => [activity.name, activity.id]));
+    const expectedOrder = [ids.Meditation, ids.Workout, ids.Reading, ids.Guitar];
+
+    await db.tasks.reorderActive(expectedOrder);
+    const reordered = await db.tasks.getAll();
+    assert.deepEqual(reordered.map(activity => activity.id), expectedOrder);
+    assert.deepEqual(reordered.map(activity => activity.name), ['Meditation', 'Workout', 'Reading', 'Guitar']);
+    assert.equal(reordered.length, 4);
+    assert.equal(new Set(reordered.map(activity => activity.id)).size, 4);
+    assert.deepEqual(await snapshot(), before);
+
+    db.native.close();
+    db = await setup(path);
+
+    const reopened = await db.tasks.getAll();
+    assert.deepEqual(reopened.map(activity => activity.id), expectedOrder);
+    assert.deepEqual(reopened.map(activity => activity.name), ['Meditation', 'Workout', 'Reading', 'Guitar']);
+    assert.equal(reopened.length, 4);
+    assert.equal(new Set(reopened.map(activity => activity.id)).size, 4);
+    assert.deepEqual(await snapshot(), before);
+  } finally {
+    db.native.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('consecutive activity reorders persist in order and a failed reorder transaction rolls back cleanly', async () => {

@@ -16,11 +16,13 @@ function dayLabel(date: string, today: string) {
 const HistoryRow = memo(function HistoryRow({ taskId, date, today, eligible, onEdit }: { taskId: string; date: string; today: string; eligible: boolean; onEdit: (date: string) => void }) {
   const entry = useEntry(taskId, date);
   const canEdit = eligible || !!entry;
-  return <Pressable accessibilityRole={canEdit ? 'button' : 'text'} disabled={!canEdit}
+  const key = date === today ? 'today' : date === recentDates(today, 2)[1] ? 'yesterday' :
+    date === recentDates(today, 3)[2] ? 'two-days-ago' : date === recentDates(today, 4)[3] ? 'three-days-ago' : date;
+  return <Pressable testID={`history-day-${key}`} accessibilityRole={canEdit ? 'button' : 'text'} disabled={!canEdit}
     accessibilityLabel={`${dayLabel(date, today)}, ${entry?.optionLabelAtEntry ?? 'No entry'}${canEdit ? ', edit response' : ', archived period'}`}
     onPress={() => onEdit(date)} style={({ pressed }) => [styles.row, { opacity: pressed ? 0.65 : 1 }]}>
     <Text style={[t.body, { color: c.textSecondary }]}>{dayLabel(date, today)}</Text>
-    <Text style={[t.button, { color: entry ? c.textPrimary : c.textTertiary, flexShrink: 1, textAlign: 'right' }]}>{entry?.optionLabelAtEntry ?? '—'}</Text>
+    <Text testID={`history-value-${key}`} style={[t.button, { color: entry ? c.textPrimary : c.textTertiary, flexShrink: 1, textAlign: 'right' }]}>{entry?.optionLabelAtEntry ?? '—'}</Text>
   </Pressable>;
 });
 function DayEditor({ task, date, today, eligible, onClose }: { task: Task; date: string; today: string; eligible: boolean; onClose: () => void }) {
@@ -39,12 +41,12 @@ function DayEditor({ task, date, today, eligible, onClose }: { task: Task; date:
       <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, s.lg) }]} accessibilityViewIsModal>
         <ScrollView keyboardShouldPersistTaps="handled">
           <Text style={[t.sectionTitle, { color: c.textPrimary }]}>{task.name}</Text>
-          <Text style={[t.body, { color: c.textSecondary, marginTop: s.sm, marginBottom: s.xl }]}>{parseLocalDate(date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</Text>
+          <Text testID="history-editor-date" style={[t.body, { color: c.textSecondary, marginTop: s.sm, marginBottom: s.xl }]}>{parseLocalDate(date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</Text>
           {(retired || changed) && <Text style={[t.body, { color: c.textSecondary, marginBottom: s.lg }]}>Recorded: {entry.optionLabelAtEntry}{retired ? ' (retired choice)' : ' (previous label)'}. Keep this response, or select a current choice below.</Text>}
-          {canChoose ? <View style={styles.choices}>{task.options.map(option => <RatingOptionButton key={option.id} label={option.label} disabled={false}
+          {canChoose ? <View style={styles.choices}>{task.options.map((option, index) => <RatingOptionButton key={option.id} testID={`history-level-choice-${index}`} label={option.label} disabled={false}
             selected={entry?.optionId === option.id && !changed} onPress={() => void save(option.id)} />)}</View>
             : <Text style={[t.secondary, { color: c.textSecondary }]}>Archived on this date. The existing recording remains available.</Text>}
-          {entry && <View style={{ marginTop: s.lg }}><Button label="Clear response" subtle onPress={() => void save(null)} /></View>}
+          {entry && <View style={{ marginTop: s.lg }}><Button testID="history-clear-response" label="Clear response" subtle onPress={() => void save(null)} /></View>}
           {error && <Text accessibilityRole="alert" style={[t.body, { color: c.danger, marginTop: s.md }]}>{error}</Text>}
           <View style={{ marginTop: s.lg }}><Button label="Done" onPress={onClose} /></View>
         </ScrollView>
@@ -58,6 +60,15 @@ export default function ActivityHistory() {
   const [loaded, setLoaded] = useState(''); const [error, setError] = useState(false); const [editing, setEditing] = useState<string | null>(null);
   const dates = recentDates(today); const task = data.tasks.find(task => task.id === id);
   const eligibility = task ? createTaskDayEligibility(task, data.lifecycle, [], today) : null;
+  const transitions = data.lifecycle.filter(event => event.taskId === id);
+  const isDateEditable = (date: string) => {
+    if (eligibility?.eligible(date)) return true;
+    // Match DailyEntryRepository's supported backfill rule: a newly created
+    // active task may receive a past entry before its first lifecycle
+    // transition, provided that date has already passed.
+    return !!task?.active && transitions.every(event => event.localDate > date) &&
+      !!eligibility?.start && date < eligibility.start;
+  };
   const load = useCallback(() => {
     let active = true;
     void loadHistory(id, recentDates(today)).then(() => { if (active) { setLoaded(`${id}:${today}`); setError(false); } })
@@ -65,17 +76,17 @@ export default function ActivityHistory() {
     return () => { active = false; };
   }, [id, today, loadHistory]);
   useFocusEffect(load);
-  return <SafeAreaView style={styles.screen}>
-    <View style={{ paddingHorizontal: s.xxl }}><Button label="‹ Back" subtle onPress={() => router.back()} />
+  return <SafeAreaView testID="activity-history-screen" style={styles.screen}>
+    <View style={{ paddingHorizontal: s.xxl }}><Button testID="activity-history-back" label="‹ Back" subtle onPress={() => router.back()} />
       <ScreenHeader title={task?.name ?? 'History'} subtitle="Past 30 days · tap a day to edit" /></View>
     {error ? <View style={{ padding: s.xxl, gap: s.lg }}><Text style={t.body}>History could not be loaded.</Text><Button label="Try again" onPress={() => { load(); }} /></View>
       : loading || loaded !== `${id}:${today}` ? <Loading /> : !task ? <Text style={{ padding: s.xxl }}>Not found.</Text>
       : <FlatList style={{ marginHorizontal: s.xxl, backgroundColor: c.surface, borderRadius: r.lg, borderWidth: 1, borderColor: c.border }} data={dates} keyExtractor={date => date} contentContainerStyle={{ paddingHorizontal: s.md, paddingBottom: s.md }}
         renderItem={({ item }) => <HistoryRow taskId={id} date={item} today={today}
-          eligible={!!eligibility?.eligible(item) && (task.active || item < today)} onEdit={setEditing} />}
+          eligible={isDateEditable(item)} onEdit={setEditing} />}
         ListFooterComponent={<Text style={[t.secondary, { color: c.textSecondary, paddingVertical: s.xxl }]}>— means no response was recorded.</Text>} />}
     {editing && task && <DayEditor key={`${id}:${editing}`} task={task} date={editing}
-      today={today} eligible={!!eligibility?.eligible(editing)} onClose={() => setEditing(null)} />}
+      today={today} eligible={isDateEditable(editing)} onClose={() => setEditing(null)} />}
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({

@@ -1,6 +1,7 @@
 appId: com.plainleaf.tinywins
 ---
-# Uses one free active-item slot. This flow deletes only its own new item.
+# Standalone: needs one free active slot; creates and deletes only its own item.
+# Never clears app data or depends on another test's fixture.
 - evalScript: ${output.activityName = 'MDelete' + Date.now()}
 - launchApp
 - assertVisible:
@@ -13,49 +14,111 @@ appId: com.plainleaf.tinywins
     id: activity-name-input
 - inputText: ${output.activityName}
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-template-custom
+    direction: DOWN
+- tapOn:
+    id: level-template-custom
 - tapOn:
     id: save-activity-button
-- extendedWaitUntil:
-    visible:
-      id: .*activity-name-.+
-      text: ${output.activityName}
-    timeout: 20000
+- assertNotVisible:
+    id: activity-editor-screen
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 
 # The UI allows one logical check-in per item and day. Create and update it
 # before deletion; database tests cover cascading multiple historical days.
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Not recorded$
 - tapOn:
     id: .*activity-slider-.+
-    text: ${output.activityName}, how did it go today?
-- extendedWaitUntil:
-    visible:
-      id: .*activity-current-level-.+
-      text: A little
-    timeout: 20000
-- tapOn:
-    id: .*activity-menu-.+
-    text: Actions for ${output.activityName}
-- tapOn:
-    id: delete-activity-action
-- assertVisible: Delete ${output.activityName}?
-- tapOn:
-    text: ^Delete$
-- extendedWaitUntil:
-    notVisible:
-      id: .*activity-name-.+
-      text: ${output.activityName}
-    timeout: 20000
-- assertNotVisible:
+    text: '^${output.activityName}, how did it go today\?.*'
+- assertVisible:
     id: .*activity-card-.+
-    text: ${output.activityName}
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^A little$
+- tapOn:
+    id: .*activity-slider-.+
+    text: '^${output.activityName}, how did it go today\?.*'
+    point: 90%,50%
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Quite a bit$
+# Confirm that a real saved activity/check-in exists before testing deletion.
+- waitForAnimationToEnd
 - stopApp
 - launchApp
 - assertVisible:
     id: home-screen
-- assertNotVisible: ${output.activityName}
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Quite a bit$
+- tapOn:
+    id: .*activity-menu-.+
+    text: ^Actions for ${output.activityName}$
+- tapOn:
+    id: delete-activity-action
+- assertVisible:
+    text: '^Delete ${output.activityName}\?$'
+- tapOn:
+    text: (?i)^Delete$
+- extendedWaitUntil:
+    notVisible:
+      id: .*activity-name-.+
+      text: ^${output.activityName}$
+    timeout: 20000
+- assertNotVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertNotVisible:
+    text: ^${output.activityName}$
 - tapOn:
     id: nav-profile
 - tapOn:
     id: open-archived-activities
 - assertVisible:
     id: archived-activities-screen
-- assertNotVisible: ${output.activityName}
+- assertNotVisible:
+    id: .*archived-activity-name-.+
+    text: ^${output.activityName}$
+- tapOn:
+    id: archived-back-to-profile
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen

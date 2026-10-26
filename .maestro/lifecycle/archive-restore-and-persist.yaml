@@ -1,95 +1,169 @@
 appId: com.plainleaf.tinywins
 ---
-# Requires create-and-persist, record-and-persist, then edit-and-persist.
-# The edited check-in is High for today's local date. Do not clear app data.
+# Standalone: creates, archives, restores, verifies persistence, then deletes
+# only its own fixture. Does not clear or alter unrelated local data.
+- evalScript: ${output.activityName = 'MRestore' + Date.now()}
 - launchApp
 - assertVisible:
     id: home-screen
-- extendedWaitUntil:
-    visible:
-      text: ^Maestro Persistence Test$
-    timeout: 20000
-- assertVisible:
-    id: .*activity-current-level-.+
-    text: ^High$
 
-# Archive the existing activity; the final confirmation is an OS-native alert.
+# Create a unique activity using the real creation flow.
 - tapOn:
-    id: .*activity-menu-.+
-    text: ^Actions for Maestro Persistence Test$
-- tapOn:
-    id: archive-activity-action
-- assertVisible: Archive Maestro Persistence Test?
-- tapOn:
-    text: ^Archive$
-- extendedWaitUntil:
-    notVisible:
-      text: ^Maestro Persistence Test$
-    timeout: 20000
-- assertNotVisible:
-    id: .*activity-card-.+
-    text: ^Maestro Persistence Test$
-
-# Regular All Insights must not list or graph the archived activity.
-- tapOn:
-    id: nav-insights
-- assertVisible: Insights
-- assertVisible: All
-- assertNotVisible: Maestro Persistence Test
-
-# Archived Insights retain the same task ID and today's historical rating.
-- tapOn:
-    id: nav-profile
-- tapOn:
-    id: open-archived-activities
+    id: add-activity-button
 - assertVisible:
-    id: archived-activities-screen
-- extendedWaitUntil:
-    visible:
-      id: .*archived-activity-name-.+
-      text: ^Maestro Persistence Test$
-    timeout: 20000
+    id: activity-editor-screen
 - tapOn:
-    id: .*archived-view-insights-.+
-    text: ^View insights for Maestro Persistence Test$
-- assertVisible:
-    id: archived-insights-title
-    text: ^Maestro Persistence Test$
-- assertVisible: Archived
+    id: activity-name-input
+- inputText: ${output.activityName}
+- hideKeyboard
 - scrollUntilVisible:
     element:
-      id: insights-today-rating
+      id: level-template-custom
     direction: DOWN
-    timeout: 20000
-- assertVisible:
-    id: insights-today-rating
-    text: ^High$
+- tapOn:
+    id: level-template-custom
+- tapOn:
+    id: save-activity-button
+- assertNotVisible:
+    id: activity-editor-screen
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 
-# Restart directly from archived Insights without clearing SQLite; archive state must survive.
+# Record one identifiable value, then verify it survives an app restart.
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Not recorded$
+- tapOn:
+    id: .*activity-slider-.+
+    text: '^${output.activityName}, how did it go today\?.*'
+    point: 90%,50%
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Quite a bit$
+- waitForAnimationToEnd
 - stopApp
 - launchApp
 - assertVisible:
     id: home-screen
-- assertNotVisible: Maestro Persistence Test
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Quite a bit$
+
+# Archive and verify it is removed from Home and listed in Archived.
+- tapOn:
+    id: .*activity-menu-.+
+    text: '^Actions for ${output.activityName}$'
+- tapOn:
+    id: archive-activity-action
+- assertVisible:
+    text: '^Archive ${output.activityName}\?$'
+- tapOn:
+    text: (?i)^Archive$
+- extendedWaitUntil:
+    notVisible:
+      id: .*activity-name-.+
+      text: ^${output.activityName}$
+    timeout: 20000
 - tapOn:
     id: nav-profile
 - tapOn:
     id: open-archived-activities
 - assertVisible:
     id: archived-activities-screen
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:
+    element:
       id: .*archived-activity-name-.+
-      text: ^Maestro Persistence Test$
-    timeout: 20000
+      text: ^${output.activityName}$
+    direction: DOWN
+- assertVisible:
+    id: .*archived-activity-name-.+
+    text: ^${output.activityName}$
 
-# Restore the archived record rather than creating a replacement.
+# The archive state must persist without clearing SQLite.
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertNotVisible:
+    text: ^${output.activityName}$
+- tapOn:
+    id: nav-profile
+- tapOn:
+    id: open-archived-activities
+- assertVisible:
+    id: archived-activities-screen
+- scrollUntilVisible:
+    element:
+      id: .*archived-activity-name-.+
+      text: ^${output.activityName}$
+    direction: DOWN
+- assertVisible:
+    id: .*archived-activity-name-.+
+    text: ^${output.activityName}$
+- tapOn:
+    id: .*archived-view-insights-.+
+    text: '^View insights for ${output.activityName}$'
+- assertVisible:
+    id: archived-insights-title
+    text: ^${output.activityName}$
+- assertVisible: Archived
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: '^Today \(1D\)$'
+- scrollUntilVisible:
+    element:
+      id: insights-today-rating
+    direction: DOWN
+- assertVisible:
+    id: insights-today-rating
+    text: ^Quite a bit$
+
+# Restore the same archived item and confirm its check-in is unchanged.
+- scrollUntilVisible:
+    element:
+      text: ^Back to Archived$
+    direction: UP
+- tapOn:
+    text: ^Back to Archived$
+- assertVisible:
+    id: archived-activities-screen
+- scrollUntilVisible:
+    element:
+      id: .*restore-activity-.+
+      text: '^Restore ${output.activityName}$'
+    direction: DOWN
 - tapOn:
     id: .*restore-activity-.+
-    text: ^Restore Maestro Persistence Test$
+    text: '^Restore ${output.activityName}$'
 - extendedWaitUntil:
     notVisible:
-      text: ^Maestro Persistence Test$
+      id: .*archived-activity-name-.+
+      text: ^${output.activityName}$
     timeout: 20000
 - tapOn:
     id: archived-back-to-profile
@@ -97,30 +171,62 @@ appId: com.plainleaf.tinywins
     id: nav-home
 - assertVisible:
     id: home-screen
-- extendedWaitUntil:
-    visible:
-      text: ^Maestro Persistence Test$
-    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 - assertVisible:
-    id: .*activity-current-level-.+
-    text: ^High$
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Quite a bit$
 
-# A second restart proves both restoration and the unchanged check-in persist.
+# Restoration and the existing entry must both survive another restart.
 - stopApp
 - launchApp
 - assertVisible:
     id: home-screen
-- extendedWaitUntil:
-    visible:
-      text: ^Maestro Persistence Test$
-    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 - assertVisible:
-    id: .*activity-current-level-.+
-    text: ^High$
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^Quite a bit$
+
+# Clean up only this flow's fixture after all persistence assertions pass.
+- tapOn:
+    id: .*activity-menu-.+
+    text: '^Actions for ${output.activityName}$'
+- tapOn:
+    id: delete-activity-action
+- assertVisible:
+    text: '^Delete ${output.activityName}\?$'
+- tapOn:
+    text: (?i)^Delete$
+- extendedWaitUntil:
+    notVisible:
+      id: .*activity-name-.+
+      text: ^${output.activityName}$
+    timeout: 20000
 - tapOn:
     id: nav-profile
 - tapOn:
     id: open-archived-activities
 - assertVisible:
     id: archived-activities-screen
-- assertNotVisible: Maestro Persistence Test
+- assertNotVisible:
+    id: .*archived-activity-name-.+
+    text: ^${output.activityName}$

@@ -1,0 +1,97 @@
+appId: com.plainleaf.tinywins
+---
+# Caller provides activityName, level0..2, description0..2, todayLevelLabel,
+# yesterdayLevelLabel, and expectedPosition.
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
+- assertVisible:
+    id: home-activity-position-${output.expectedPosition}
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^${output.todayLevelLabel}$
+- tapOn:
+    id: .*activity-menu-.+
+    text: ^Actions for ${output.activityName}$
+- tapOn:
+    id: edit-activity-action
+- assertVisible:
+    id: activity-editor-screen
+- assertVisible:
+    id: level-input-0
+    text: ^${output.level0}$
+- assertVisible:
+    id: level-description-input-0
+    text: ^${output.description0}$
+- scrollUntilVisible:
+    element:
+      id: level-input-1
+    direction: DOWN
+- assertVisible:
+    id: level-input-1
+    text: ^${output.level1}$
+- assertVisible:
+    id: level-description-input-1
+    text: ^${output.description1}$
+- scrollUntilVisible:
+    element:
+      id: level-input-2
+    direction: DOWN
+- assertVisible:
+    id: level-input-2
+    text: ^${output.level2}$
+- assertVisible:
+    id: level-description-input-2
+    text: ^${output.description2}$
+- tapOn: Cancel editing
+- assertNotVisible:
+    id: activity-editor-screen
+- tapOn:
+    id: .*activity-menu-.+
+    text: ^Actions for ${output.activityName}$
+- tapOn:
+    id: activity-history-action
+- assertVisible:
+    id: history-value-today
+    text: ^${output.todayLevelLabel}$
+- assertVisible:
+    id: history-value-yesterday
+    text: ^${output.yesterdayLevelLabel}$
+- assertVisible:
+    id: history-value-two-days-ago
+    text: ^—$
+- tapOn:
+    id: activity-history-back
+- tapOn:
+    id: .*activity-insights-.+
+    text: ^${output.activityName}, insights$
+- tapOn:
+    id: insights-date-filter
+- tapOn: Last 7 days
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 7D$
+- assertVisible:
+    id: insights-chart-rating-trend
+- scrollUntilVisible:
+    element:
+      id: insights-distribution-count
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^2 check-ins$
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen

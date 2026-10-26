@@ -1,0 +1,165 @@
+appId: com.plainleaf.tinywins
+---
+# Fixture data is prepared and checked by `npm run e2e -- date-filter-boundaries`.
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-date-filter-boundaries-activity
+- tapOn:
+    id: activity-insights-date-filter-boundaries-activity
+- assertVisible:
+    id: insights-portrait-screen
+
+# 7D includes today and six previous local calendar days; day 7 is outside.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 7 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 7D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^2 check-ins$
+
+# 30D includes day 29; day 30 is outside.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 30 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 30D$
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$
+
+# 90D includes day 89; day 90 is outside.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 90D$
+- assertVisible:
+    id: insights-distribution-count
+    text: ^6 check-ins$
+
+# Set both custom endpoints through Android's native date-picker dialog.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Custom range$
+- assertVisible:
+    id: custom-date-range-sheet
+- tapOn:
+    id: custom-date-from
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${fromDateInput}
+- tapOn:
+    text: ^OK$
+- assertVisible:
+    id: custom-date-to
+- tapOn:
+    id: custom-date-to
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${toDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-apply
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, Custom.*
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^3 check-ins$
+
+# Empty custom range contains no fixture recordings and must not retain stale chart values.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Custom.*$
+- tapOn:
+    id: custom-date-from
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${emptyFromInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-to
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${emptyToInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-apply
+- assertVisible:
+    id: insights-date-filter
+    text: Date range, Custom.*
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-trend
+    direction: UP
+- assertVisible: Nothing recorded in this period.
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible: Nothing recorded in this period.
+- assertNotVisible:
+    id: insights-distribution-count
+- assertNotVisible:
+    text: ^3 check-ins$
+
+# Switching ranges after an empty result recomputes the original records.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 7 days$
+- assertVisible:
+    id: insights-distribution-count
+    text: ^2 check-ins$
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 30 days$
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$
+
+# Return Home and reopen this activity's Insights; verify filter state/data together.
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: activity-insights-date-filter-boundaries-activity
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 30D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^4 check-ins$

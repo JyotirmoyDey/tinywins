@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setup, draft } from './sqlite';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { DemoImportService } from '../src/data/demoImport';
 import { getAnalyticsDataset } from '../src/analytics/service';
 import { getRatingTrend } from '../src/analytics/ratingTrend';

@@ -4,21 +4,46 @@ appId: com.plainleaf.tinywins
 # retaining the same recorded value. This does not touch unrelated data.
 - evalScript: ${output.activityName = 'MDate' + Date.now()}
 - launchApp
+# Open TinyWins from the Expo development client rather than its project picker.
+- openLink: exp+tinywins://expo-development-client/?url=http%3A%2F%2F192.168.1.4%3A8081
 - runFlow: helpers/create-activity.yaml
+- scrollUntilVisible:
+    element:
+      id: .*activity-slider-.+
+      text: '^${output.activityName}, how did it go today\?.*'
+    direction: DOWN
 - tapOn:
     id: .*activity-slider-.+
-    text: ${output.activityName}, how did it go today?
-- extendedWaitUntil:
-    visible:
-      id: .*activity-current-level-.+
-      text: ^A little$
-    timeout: 20000
+    text: '^${output.activityName}, how did it go today\?.*'
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^A little$
+- scrollUntilVisible:
+    element:
+      id: .*activity-insights-.+
+      text: '^${output.activityName}, insights$'
+    direction: DOWN
 - tapOn:
     id: .*activity-insights-.+
-    text: ${output.activityName}, insights
+    text: '^${output.activityName}, insights$'
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: '^Today \(1D\)$'
+- assertVisible:
+    id: insights-date-filter
+    text: '^Date range, 1D$'
 - assertVisible:
     id: insights-today-rating
     text: ^A little$
+- scrollUntilVisible:
+    element:
+      id: insights-section-patterns
+    direction: DOWN
 - tapOn:
     id: insights-section-patterns
 - scrollUntilVisible:
@@ -80,7 +105,31 @@ appId: com.plainleaf.tinywins
 # Switching ranges never changes the saved check-in.
 - tapOn:
     id: nav-home
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 - assertVisible:
-    id: .*activity-current-level-.+
-    text: ^A little$
-- runFlow: helpers/delete-activity.yaml
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^A little$
+- tapOn:
+    id: .*activity-menu-.+
+    text: '^Actions for ${output.activityName}$'
+- tapOn:
+    id: delete-activity-action
+- assertVisible:
+    text: '^Delete ${output.activityName}\?$'
+- tapOn:
+    text: (?i)^Delete$
+- extendedWaitUntil:
+    notVisible:
+      id: .*activity-name-.+
+      text: ^${output.activityName}$
+    timeout: 20000

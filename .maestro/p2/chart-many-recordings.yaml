@@ -1,0 +1,225 @@
+appId: com.plainleaf.tinywins
+---
+# Eight activities each have 365 deterministic records (2,920 total).
+- launchApp
+- assertVisible:
+    id: home-screen
+- assertVisible:
+    id: activity-card-chart-many-activity-1
+- tapOn:
+    id: activity-insights-chart-many-activity-1
+- assertVisible:
+    id: insights-portrait-screen
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 7 days$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-distribution
+    direction: DOWN
+- assertVisible:
+    id: insights-distribution-count
+    text: ^7 check-ins$
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 30 days$
+- assertVisible:
+    id: insights-distribution-count
+    text: ^30 check-ins$
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Last 90 days$
+- assertVisible:
+    id: insights-distribution-count
+    text: ^90 check-ins$
+
+# Set a full-year custom period through the native picker.
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Custom range$
+- assertVisible:
+    id: custom-date-range-sheet
+- tapOn:
+    id: custom-date-from
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${yearFromDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-to
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${yearToDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-apply
+- assertVisible:
+    id: insights-distribution-count
+    text: ^365 check-ins$
+- assertVisible:
+    id: insights-chart-rating-trend
+- assertVisible:
+    id: insights-chart-activity-calendar
+
+# Expand the existing trend chart to verify the supported expanded rendering,
+# then return to the standard Insights layout.
+- scrollUntilVisible:
+    element:
+      id: expand-trend-chart
+    direction: UP
+- tapOn:
+    id: expand-trend-chart
+- assertVisible:
+    id: expanded-trend-screen
+- assertVisible:
+    id: expanded-trend-plot
+- tapOn:
+    id: close-expanded-trend
+- assertVisible:
+    id: insights-portrait-screen
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, Custom.*$
+
+# Visit every individual chart, including charts in the collapsed Patterns section.
+- scrollUntilVisible:
+    element:
+      id: insights-chart-activity-calendar
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-activity-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-section-patterns
+    direction: DOWN
+- tapOn:
+    id: insights-section-patterns
+- scrollUntilVisible:
+    element:
+      id: insights-chart-period-comparison
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-period-comparison
+- scrollUntilVisible:
+    element:
+      id: insights-chart-recording-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-recording-consistency
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekday-patterns
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekday-patterns
+
+# All Activities currently selects up to five eligible items. Show every selected
+# series and verify its combined chart and coverage render for the same year.
+- tapOn:
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-activity-all
+    direction: UP
+- tapOn:
+    id: insights-activity-all
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: UP
+- assertVisible:
+    id: journey-activity-chart-many-activity-1
+- assertVisible:
+    id: journey-activity-chart-many-activity-4
+- tapOn: Show all
+- assertVisible:
+    id: journey-activity-chart-many-activity-5
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^1825 of 1825 days recorded$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-calendar
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-combined-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekly-checkins
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekly-checkins
+
+# Navigation and restart continue to render without altering fixture data.
+- tapOn:
+    id: nav-home
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-activity-all
+    direction: UP
+- tapOn:
+    id: insights-activity-all
+- assertVisible:
+    id: insights-chart-journey-together
+- stopApp
+- launchApp
+- assertVisible:
+    id: home-screen
+- tapOn:
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-activity-all
+    direction: UP
+- tapOn:
+    id: insights-activity-all
+- assertVisible:
+    id: insights-chart-journey-together
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: ^Custom range$
+- tapOn:
+    id: custom-date-from
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${yearFromDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-to
+- tapOn:
+    text: (?i)^switch to text input mode$
+- eraseText: 100
+- inputText: ${yearToDateInput}
+- tapOn:
+    text: ^OK$
+- tapOn:
+    id: custom-date-apply
+- scrollUntilVisible:
+    element:
+      id: insights-chart-combined-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-combined-recorded-count
+    text: ^1825 of 1825 days recorded$

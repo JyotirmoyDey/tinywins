@@ -1,6 +1,8 @@
 appId: com.plainleaf.tinywins
 ---
-# Requires one free active-item and Combined Insights slot. Never clears data.
+# Standalone: creates/restores/deletes only its own uniquely named fixture.
+# Requires My Data, one free active slot and one free Combined Insights slot.
+# Never clears data or changes another item's Combined Insights membership.
 - evalScript: ${output.activityName = 'MArchive' + Date.now()}
 - launchApp
 - assertVisible:
@@ -13,119 +15,256 @@ appId: com.plainleaf.tinywins
     id: activity-name-input
 - inputText: ${output.activityName}
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: level-template-custom
+    direction: DOWN
+- tapOn:
+    id: level-template-custom
 - tapOn:
     id: save-activity-button
-- extendedWaitUntil:
-    visible:
-      id: .*activity-name-.+
-      text: ${output.activityName}
-    timeout: 20000
+- assertNotVisible:
+    id: activity-editor-screen
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
+- assertVisible:
+    text: ^${output.activityName} included in combined Insights$
+    label: Verify the fixture received an available Combined Insights slot
 - tapOn:
     id: .*activity-slider-.+
-    text: ${output.activityName}, how did it go today?
-- extendedWaitUntil:
-    visible:
-      id: .*activity-current-level-.+
-      text: A little
-    timeout: 20000
+    text: '^${output.activityName}, how did it go today\?.*'
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^A little$
 
 # Fail rather than give a false pass if this item was not in All before archive.
 - tapOn:
     id: nav-insights
-- assertVisible: Insights
-- assertVisible: All
+- scrollUntilVisible:
+    element:
+      id: insights-portrait-screen
+    direction: UP
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: '^Today \(1D\)$'
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 1D$
+# Reveal the Show all control before checking whether expansion is needed.
+- scrollUntilVisible:
+    element:
+      id: insights-chart-journey-together
+    direction: DOWN
 - runFlow:
     when:
-      visible: Show all
+      visible:
+        text: ^Show all( [0-9]+ tracked items)?$
     commands:
-      - tapOn: Show all
+      - tapOn:
+          text: ^Show all( [0-9]+ tracked items)?$
 - scrollUntilVisible:
     element:
       id: .*journey-activity-.+
-      text: ${output.activityName}
+      text: ^${output.activityName}$
     direction: DOWN
 - assertVisible:
     id: .*journey-activity-.+
-    text: ${output.activityName}
+    text: ^${output.activityName}$
 - tapOn:
     id: nav-home
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
 - tapOn:
     id: .*activity-menu-.+
-    text: Actions for ${output.activityName}
+    text: ^Actions for ${output.activityName}$
 - tapOn:
     id: archive-activity-action
-- assertVisible: Archive ${output.activityName}?
+- assertVisible:
+    text: '^Archive ${output.activityName}\?$'
 - tapOn:
-    text: ^Archive$
+    text: (?i)^Archive$
 - extendedWaitUntil:
     notVisible:
       id: .*activity-name-.+
-      text: ${output.activityName}
+      text: ^${output.activityName}$
     timeout: 20000
 
 - tapOn:
     id: nav-insights
-- assertVisible: All
+- scrollUntilVisible:
+    element:
+      id: insights-portrait-screen
+    direction: UP
+- assertVisible:
+    id: insights-activity-all
+    selected: true
+# Wait for a real combined result (or its empty state), not a loading frame.
+- extendedWaitUntil:
+    visible:
+      text: '^(Your Journey Together|Nothing selected yet\.)$'
+    timeout: 20000
 - runFlow:
     when:
-      visible: Show all
+      visible:
+        id: insights-chart-journey-together
     commands:
-      - tapOn: Show all
+      # At most four selected activities remain after archiving this fixture.
+      - scrollUntilVisible:
+          element:
+            id: insights-chart-journey-together
+          direction: DOWN
 - assertNotVisible:
     id: .*journey-activity-.+
-    text: ${output.activityName}
+    text: ^${output.activityName}$
+- assertNotVisible:
+    id: insights-activity-.+
+    text: ^${output.activityName}$
 - tapOn:
     id: nav-profile
 - tapOn:
     id: open-archived-activities
 - assertVisible:
     id: archived-activities-screen
-- extendedWaitUntil:
-    visible:
-      id: .*archived-activity-name-.+
-      text: ${output.activityName}
-    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: .*archived-view-insights-.+
+      text: ^View insights for ${output.activityName}$
+    direction: DOWN
+- assertVisible:
+    id: .*archived-activity-name-.+
+    text: ^${output.activityName}$
 - tapOn:
     id: .*archived-view-insights-.+
-    text: View insights for ${output.activityName}
+    text: ^View insights for ${output.activityName}$
 - assertVisible:
     id: archived-insights-title
-    text: ${output.activityName}
-- assertVisible: Archived
+    text: ^${output.activityName}$
+- assertVisible:
+    text: ^Archived$
+- assertNotVisible:
+    id: insights-activity-all
+- assertNotVisible:
+    id: insights-activity-.+
+- tapOn:
+    id: insights-date-filter
+- tapOn:
+    text: '^Today \(1D\)$'
+- assertVisible:
+    id: insights-date-filter
+    text: ^Date range, 1D$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-rating-trend
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-rating-trend
 - scrollUntilVisible:
     element:
       id: insights-today-rating
     direction: DOWN
 - assertVisible:
     id: insights-today-rating
-    text: A little
+    text: ^A little$
+- scrollUntilVisible:
+    element:
+      id: insights-chart-activity-calendar
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-activity-calendar
+- scrollUntilVisible:
+    element:
+      id: insights-section-patterns
+    direction: DOWN
+- tapOn:
+    id: insights-section-patterns
+- scrollUntilVisible:
+    element:
+      id: insights-chart-period-comparison
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-period-comparison
+- scrollUntilVisible:
+    element:
+      id: insights-chart-recording-consistency
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-recording-consistency
+- scrollUntilVisible:
+    element:
+      id: insights-chart-weekday-patterns
+    direction: DOWN
+- assertVisible:
+    id: insights-chart-weekday-patterns
 
 # Restore this flow's own item. Its historical entry remains intact.
-- tapOn: Back to Archived
+- scrollUntilVisible:
+    element:
+      text: ^Back to Archived$
+    direction: UP
+- tapOn:
+    text: ^Back to Archived$
 - assertVisible:
     id: archived-activities-screen
+- scrollUntilVisible:
+    element:
+      id: .*restore-activity-.+
+      text: ^Restore ${output.activityName}$
+    direction: DOWN
 - tapOn:
     id: .*restore-activity-.+
-    text: Restore ${output.activityName}
+    text: ^Restore ${output.activityName}$
+- extendedWaitUntil:
+    notVisible:
+      id: .*archived-activity-name-.+
+      text: ^${output.activityName}$
+    timeout: 20000
 - tapOn:
     id: archived-back-to-profile
 - tapOn:
     id: nav-home
-- extendedWaitUntil:
-    visible:
-      id: .*activity-current-level-.+
-      text: A little
-    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: .*activity-card-.+
+      containsDescendants:
+        - id: .*activity-name-.+
+          text: ^${output.activityName}$
+    direction: DOWN
+- assertVisible:
+    id: .*activity-card-.+
+    containsDescendants:
+      - id: .*activity-name-.+
+        text: ^${output.activityName}$
+      - id: .*activity-current-level-.+
+        text: ^A little$
 - tapOn:
     id: .*activity-menu-.+
-    text: Actions for ${output.activityName}
+    text: ^Actions for ${output.activityName}$
 - tapOn:
     id: delete-activity-action
-- assertVisible: Delete ${output.activityName}?
+- assertVisible:
+    text: '^Delete ${output.activityName}\?$'
 - tapOn:
-    text: ^Delete$
+    text: (?i)^Delete$
 - extendedWaitUntil:
     notVisible:
       id: .*activity-name-.+
-      text: ${output.activityName}
+      text: ^${output.activityName}$
     timeout: 20000

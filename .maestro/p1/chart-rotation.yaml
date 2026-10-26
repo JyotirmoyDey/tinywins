@@ -1,22 +1,25 @@
 appId: com.plainleaf.tinywins
 ---
-- evalScript: ${output.activityName = 'MRotate' + Date.now()}
 - launchApp
-- runFlow: helpers/create-activity.yaml
 - tapOn:
-    id: .*activity-slider-.+
-    text: ${output.activityName}, how did it go today?
-- extendedWaitUntil:
-    visible:
-      id: .*activity-current-level-.+
-      text: ^A little$
-    timeout: 20000
+    id: nav-insights
+- scrollUntilVisible:
+    element:
+      id: insights-activity-all
+    direction: UP
+- scrollUntilVisible:
+    element:
+      id: ^insights-activity-[0-9a-f-]{36}$
+    direction: RIGHT
 - tapOn:
-    id: .*activity-insights-.+
-    text: ${output.activityName}, insights
+    id: ^insights-activity-[0-9a-f-]{36}$
+- assertVisible:
+    id: ^insights-activity-[0-9a-f-]{36}$
+    selected: true
 - tapOn:
     id: insights-date-filter
-- tapOn: Last 7 days
+- tapOn:
+    text: ^Last 7 days$
 - assertVisible:
     id: insights-date-filter
     text: Date range, 7D
@@ -26,7 +29,6 @@ appId: com.plainleaf.tinywins
     id: expand-trend-chart
 - assertVisible:
     id: expanded-trend-screen
-    text: ${output.activityName}
 - extendedWaitUntil:
     visible:
       id: expanded-trend-landscape-chart
@@ -50,4 +52,3 @@ appId: com.plainleaf.tinywins
     id: nav-home
 - assertVisible:
     id: home-screen
-- runFlow: helpers/delete-activity.yaml

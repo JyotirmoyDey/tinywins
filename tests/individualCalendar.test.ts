@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AnalyticsEntry, AnalyticsTask } from '../src/analytics/types';
-import { loadDemoDataset } from '../src/analytics/demoData';
+import { loadDemoDataset } from './demoDataset';
 import { calendarLevels, individualCalendarData, matchingDateCount,
   matchesCalendarFilter, toggleCalendarLevel } from '../src/components/analytics/individualCalendar';
 import { sliderColor } from '../src/components/sliderMath';

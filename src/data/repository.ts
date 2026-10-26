@@ -9,7 +9,7 @@ type OptionRow = Omit<TaskOption, 'active' | 'description'> & { active: number; 
 const toOption = (row: OptionRow): TaskOption => ({ ...row, active: !!row.active,
   description: row.description ?? undefined });
 export class LevelConfigurationLockedError extends Error {
-  constructor() { super('Levels are permanent after the first check-in. You can still edit their names and descriptions.'); }
+  constructor() { super('Level names, descriptions, order, and number are permanent after the first check-in.'); }
 }
 export class ActiveTaskLimitError extends Error {
   constructor() { super(ACTIVE_TASK_LIMIT_MESSAGE); this.name = 'ActiveTaskLimitError'; }
@@ -83,8 +83,15 @@ export class TaskRepository {
       if (!current) throw new Error('Task not found.');
       const error = validateDraft(draft, current); if (error) throw new Error(error);
       const structural = changesScaleStructure(current.options, draft.options);
-      if (structural && (current.levelsLocked || !!await db.getFirstAsync(
-        'SELECT 1 FROM daily_entries WHERE taskId = ? LIMIT 1', id))) throw new LevelConfigurationLockedError();
+      const hasRecordings = !!await db.getFirstAsync('SELECT 1 FROM daily_entries WHERE taskId = ? LIMIT 1', id);
+      const definitionsLocked = current.levelsLocked || hasRecordings;
+      const definitionChanged = structural || current.options.some(option => {
+        const next = draft.options.find(candidate => candidate.id === option.id);
+        if (!next || next.label !== option.label) return true;
+        if (next.description === undefined) return false;
+        return (next.description.trim() || undefined) !== option.description;
+      });
+      if (definitionsLocked && definitionChanged) throw new LevelConfigurationLockedError();
       const now = new Date().toISOString();
       const existing = await db.getAllAsync<OptionRow>('SELECT * FROM task_options WHERE taskId = ?', id);
       // Deactivate first to avoid temporary collisions in the unique position index.
@@ -133,11 +140,18 @@ export class TaskRepository {
       if (!task) throw new Error('Task not found.');
       if (task.active === active) return;
       if (active) await assertActiveTaskCapacity(db);
+      // Keep a selected item's combined-Insights preference while archived.
+      // Inactive items are filtered out of Insights and don't consume a slot.
+      // If other items filled the five-item limit meanwhile, restore it
+      // unselected rather than exceeding the limit or displacing another item.
+      const includeInCombinedInsights = active
+        ? task.includeInCombinedInsights && await selectedCount(db) < MAX_COMBINED_INSIGHTS_ITEMS
+        : task.includeInCombinedInsights;
       const moment = new Date(); const now = moment.toISOString();
       const day = localDate(moment);
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
       await db.runAsync('UPDATE tasks SET active = ?, archivedAt = ?, includeInCombinedInsights = ?, updatedAt = ? WHERE id = ?',
-        Number(active), active ? null : now, active ? Number(task.includeInCombinedInsights) : 0, now, id);
+        Number(active), active ? null : now, Number(includeInCombinedInsights), now, id);
       await db.runAsync(`INSERT INTO task_lifecycle_transitions
         (id, taskId, type, occurredAt, localDate, utcOffsetMinutes, timeZone, inferred)
         VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,

@@ -11,6 +11,8 @@ export default function Profile() {
   const router = useRouter();
   const { data, clearLocalData, loadScreenshotData } = useTasks();
   const insightsSource = useDevInsightsSource();
+  // Temporarily keep development data controls off Profile while capturing screenshots.
+  const showDevDataToolsOnProfile = false;
   const resetPending = useRef(false);
   const [resetting, setResetting] = useState(false);
   const importPending = useRef(false);
@@ -37,18 +39,18 @@ export default function Profile() {
     try {
       await loadScreenshotData();
       setDevInsightsSource('my');
-      Alert.alert('Screenshot data ready', 'Five activities and their 180 days of check-ins are now stored in My Data.');
+      Alert.alert('Screenshot data ready', 'The activities and check-ins from the current demo JSON are now stored in My Data.');
     } catch {
       Alert.alert('Could not load screenshot data', 'Your previous local records were kept. Please try again.');
     } finally { importPending.current = false; setImporting(false); }
   };
-  const confirmImport = () => Alert.alert('Load 180-day screenshot data?',
-    'This replaces everything you track and its recordings on this device with the five activities in the screenshot dataset.',
+  const confirmImport = () => Alert.alert('Load screenshot test data?',
+    'This replaces everything you track and its recordings on this device with the data in the current demo JSON file.',
     [{ text: 'Cancel', style: 'cancel' },
       { text: 'Load test data', onPress: () => void importTestData() }]);
   return <SafeAreaView style={styles.screen} edges={['top']}>
     <View style={styles.content}>
-      <Text style={styles.title}>Profile</Text>
+      <Text testID="profile-screen" style={styles.title}>Profile</Text>
       <Text style={styles.description}>What you track and your check-ins are saved on this device.</Text>
       <Pressable testID="open-archived-activities" accessibilityRole="button" accessibilityLabel={`Archived, ${archivedCount}`} onPress={() => router.push('/archived')}
         style={({ pressed }) => [styles.row, pressed && { opacity: 0.65 }]}>
@@ -61,7 +63,7 @@ export default function Profile() {
         </View>
         <Text style={styles.rowDetail}>{archivedCount}  ›</Text>
       </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Backup and restore"
+      <Pressable testID="profile-backup" accessibilityRole="button" accessibilityLabel="Backup and restore"
         onPress={() => router.push('/backup')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
         <View style={styles.rowLeading}>
           <Svg width={21} height={21} viewBox="0 0 24 24" accessible={false}>
@@ -72,7 +74,7 @@ export default function Profile() {
         </View>
         <Text style={styles.rowDetail}>›</Text>
       </Pressable>
-      {__DEV__ && <MenuView actions={[
+      {__DEV__ && showDevDataToolsOnProfile && <MenuView actions={[
         { id: 'my', title: 'My Data', state: insightsSource === 'my' ? 'on' : 'off' },
         { id: 'demo', title: 'Demo Data', state: insightsSource === 'demo' ? 'on' : 'off' },
       ]} onPressAction={event => { if (event.nativeEvent.event === 'my' || event.nativeEvent.event === 'demo') setDevInsightsSource(event.nativeEvent.event); }}>
@@ -81,12 +83,12 @@ export default function Profile() {
           <Text style={styles.rowDetail}>{insightsSource === 'my' ? 'My Data' : 'Demo Data'}  ›</Text>
         </View>
       </MenuView>}
-      {__DEV__ && <Pressable accessibilityRole="button" accessibilityLabel="Load 180-day screenshot data into My Data"
+      {__DEV__ && showDevDataToolsOnProfile && <Pressable accessibilityRole="button" accessibilityLabel="Load screenshot test data into My Data"
         accessibilityState={{ disabled: importing || resetting }} disabled={importing || resetting}
         onPress={confirmImport} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-        <Text style={styles.rowTitle}>{importing ? 'Loading screenshot data…' : 'Load 180-day screenshot data'}</Text>
+        <Text style={styles.rowTitle}>{importing ? 'Loading screenshot data…' : 'Load screenshot test data'}</Text>
       </Pressable>}
-      <Pressable accessibilityRole="button" accessibilityLabel="Delete all local TinyWins data"
+      <Pressable testID="delete-local-data" accessibilityRole="button" accessibilityLabel="Delete all local TinyWins data"
         accessibilityState={{ disabled: resetting || importing }} disabled={resetting || importing} onPress={confirmReset}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
         <Text style={styles.deleteLabel}>{resetting ? 'Clearing local data…' : 'Delete all local data'}</Text>
